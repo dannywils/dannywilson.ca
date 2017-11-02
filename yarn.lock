@@ -3351,6 +3351,27 @@ gatsby-cli@^1.1.10:
     yargs "^8.0.2"
     yurnalist "^0.2.1"
 
+gatsby-cli@^1.1.11:
+  version "1.1.11"
+  resolved "https://registry.yarnpkg.com/gatsby-cli/-/gatsby-cli-1.1.11.tgz#570b99f2394a2bb0413860d8a9c52e14630038b4"
+  dependencies:
+    babel-code-frame "^6.26.0"
+    babel-runtime "^6.26.0"
+    bluebird "^3.5.0"
+    common-tags "^1.4.0"
+    convert-hrtime "^2.0.0"
+    core-js "^2.5.0"
+    execa "^0.8.0"
+    fs-extra "^4.0.1"
+    hosted-git-info "^2.5.0"
+    lodash "^4.17.4"
+    pretty-error "^2.1.1"
+    resolve-cwd "^2.0.0"
+    source-map "^0.5.7"
+    stack-trace "^0.0.10"
+    yargs "^8.0.2"
+    yurnalist "^0.2.1"
+
 gatsby-link@^1.6.21:
   version "1.6.22"
   resolved "https://registry.yarnpkg.com/gatsby-link/-/gatsby-link-1.6.22.tgz#bc117ccc09b75361279d20439046560134342ce5"
