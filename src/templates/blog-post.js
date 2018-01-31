@@ -1,18 +1,48 @@
 import React from 'react';
+import graphql from 'graphql';
 import Helmet from 'react-helmet';
+import Content, { HTMLContent } from '../components/Content';
 
-export default function Template({ data }) {
-  const { markdownRemark: post } = data;
+export const BlogPostTemplate = ({
+  content,
+  contentComponent,
+  description,
+  title,
+  helmet,
+}) => {
+  const PostContent = contentComponent || Content;
+
   return (
     <section className="section">
-      <Helmet title={`Blog | ${post.frontmatter.title}`} />
+      {helmet || ''}
       <div className="container content">
-        <h1 className="title is-size-2 has-text-info is-bold-light">{post.frontmatter.title}</h1>
-        <div dangerouslySetInnerHTML={{ __html: post.html }} />
+        <div className="columns">
+          <div className="column is-10 is-offset-1">
+            <h1 className="title is-size-2 has-text-weight-bold is-bold-light">
+              {title}
+            </h1>
+            <p>{description}</p>
+            <PostContent content={content} />
+          </div>
+        </div>
       </div>
     </section>
   );
-}
+};
+
+export default ({ data }) => {
+  const { markdownRemark: post } = data;
+
+  return (
+    <BlogPostTemplate
+      content={post.html}
+      contentComponent={HTMLContent}
+      description={post.frontmatter.description}
+      helmet={<Helmet title={`Blog | ${post.frontmatter.title}`} />}
+      title={post.frontmatter.title}
+    />
+  );
+};
 
 export const pageQuery = graphql`
   query BlogPostByPath($path: String!) {
@@ -22,6 +52,7 @@ export const pageQuery = graphql`
         path
         date(formatString: "MMMM DD, YYYY")
         title
+        description
       }
     }
   }
