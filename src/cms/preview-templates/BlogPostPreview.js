@@ -1,10 +1,9 @@
 import React from 'react';
-import { BlogPostTemplate } from '../../templates/blog-post';
+import Article from '../../components/Article';
 
 const BlogPostPreview = ({ entry, widgetFor }) => (
-  <BlogPostTemplate
-    content={widgetFor('body')}
-    description={entry.getIn(['data', 'description'])}
+  <Article
+    content={entry.getIn(['data', 'description']) + widgetFor('body')}
     title={entry.getIn(['data', 'title'])}
   />
 );

@@ -1,14 +1,11 @@
-const path = require('path');
+const nodePath = require('path');
 
 exports.createPages = ({ boundActionCreators, graphql }) => {
   const { createPage } = boundActionCreators;
 
   return graphql(`
     {
-      allMarkdownRemark(
-        sort: { order: DESC, fields: [frontmatter___date] }
-        limit: 1000
-      ) {
+      allMarkdownRemark(sort: { order: DESC, fields: [frontmatter___date] }, limit: 1000) {
         edges {
           node {
             excerpt(pruneLength: 400)
@@ -19,48 +16,7 @@ exports.createPages = ({ boundActionCreators, graphql }) => {
               path
               date
               title
-              image
-              heading
               description
-              intro {
-                blurbs {
-                  image
-                  text
-                }
-                heading
-                description
-              }
-              main {
-                heading
-                description
-                image1 {
-                  alt
-                  image
-                }
-                image2 {
-                  alt
-                  image
-                }
-                image3 {
-                  alt
-                  image
-                }
-              }
-              testimonials {
-                author
-                quote
-              }
-              full_image
-              pricing {
-                heading
-                description
-                plans {
-                  description
-                  items
-                  plan
-                  price
-                }
-              }
             }
           }
         }
@@ -72,18 +28,17 @@ exports.createPages = ({ boundActionCreators, graphql }) => {
       return Promise.reject(result.errors);
     }
 
-    return result.data.allMarkdownRemark.edges.forEach(({ node }) => {
-      const pagePath = node.frontmatter.path;
-      createPage({
-        path: pagePath,
-        component: path.resolve(
-          `src/templates/${String(node.frontmatter.templateKey)}.js`
-        ),
-        // additional data can be passed via context
-        context: {
-          path: pagePath
-        }
-      });
-    });
+    return result.data.allMarkdownRemark.edges.forEach(
+      ({ node: { frontmatter: { path, templateKey } } }) => {
+        createPage({
+          path,
+          component: nodePath.resolve(`src/templates/${String(templateKey)}.js`),
+          // additional data can be passed via context
+          context: {
+            path
+          }
+        });
+      }
+    );
   });
 };
