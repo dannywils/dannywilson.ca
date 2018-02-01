@@ -37,8 +37,8 @@ export default class IndexPage extends React.Component {
                 node: {
                   excerpt,
                   id,
-                  frontmatter: { title, path, date, content },
-                },
+                  frontmatter: { title, path, date, content }
+                }
               }) => (
                 <Article
                   key={id}

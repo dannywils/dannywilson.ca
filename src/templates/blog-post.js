@@ -7,7 +7,7 @@ import Article from '../components/Article';
 
 export default ({ data }) => {
   const {
-    markdownRemark: { html, id, frontmatter: { description, title, date } },
+    markdownRemark: { html, id, frontmatter: { description, title, date } }
   } = data;
 
   return (
