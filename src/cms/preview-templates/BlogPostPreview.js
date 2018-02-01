@@ -3,7 +3,12 @@ import Article from '../../components/Article';
 
 const BlogPostPreview = ({ entry, widgetFor }) => (
   <Article
-    content={entry.getIn(['data', 'description']) + widgetFor('body')}
+    content={
+      <div>
+        <p>{entry.getIn(['data', 'description'])}</p>
+        {widgetFor('body')}
+      </div>
+    }
     title={entry.getIn(['data', 'title'])}
   />
 );

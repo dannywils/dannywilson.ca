@@ -2,7 +2,9 @@ import React from 'react';
 import ReactOverdrive from 'react-overdrive';
 
 const Overdrive =
-  typeof window === 'undefined' ? React.Fragment : ReactOverdrive;
+  typeof window === 'undefined' || document.location.pathname === '/admin/'
+    ? 'div'
+    : ReactOverdrive;
 
 const Article = ({ title, subtitle, content, id }) => (
   <div className="block">
