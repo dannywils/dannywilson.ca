@@ -1,5 +1,8 @@
 import React from 'react';
-import Overdrive from 'react-overdrive';
+import ReactOverdrive from 'react-overdrive';
+
+const Overdrive =
+  typeof window === 'undefined' ? React.Fragment : ReactOverdrive;
 
 const Article = ({ title, subtitle, content, id }) => (
   <div className="block">
