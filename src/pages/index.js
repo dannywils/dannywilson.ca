@@ -23,7 +23,7 @@ export default class IndexPage extends React.Component {
     const { data: { allMarkdownRemark: { edges } } } = this.props;
 
     return (
-      <section className="columns">
+      <React.Fragment>
         <Script
           url="https://identity.netlify.com/v1/netlify-identity-widget.js"
           onLoad={() => this.handleScriptLoad()}
@@ -50,7 +50,7 @@ export default class IndexPage extends React.Component {
               )
             )}
         </div>
-      </section>
+      </React.Fragment>
     );
   }
 }

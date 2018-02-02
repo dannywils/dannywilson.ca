@@ -13,7 +13,7 @@ const Article = ({ title, subtitle, content, id }) => (
         <div className="card-content">
           <h2 className="title">{title}</h2>
           {subtitle && <p className="subtitle is-size-6">{subtitle}</p>}
-          <p className="content">{content}</p>
+          <div className="content">{content}</div>
         </div>
       </div>
     </Overdrive>

@@ -11,7 +11,7 @@ export default ({ data }) => {
   } = data;
 
   return (
-    <section className="columns">
+    <React.Fragment>
       <Helmet title={title} />
       <div className="column is-8 container">
         <Article
@@ -21,7 +21,7 @@ export default ({ data }) => {
           content={<HTMLContent content={`<p>${description}</p>` + html} />}
         />
       </div>
-    </section>
+    </React.Fragment>
   );
 };
 

@@ -20,20 +20,22 @@ module.exports = {
       }
     },
     {
-      resolve: 'gatsby-transformer-remark',
+      resolve: `gatsby-transformer-remark`,
       options: {
         plugins: [
-          `gatsby-plugin-sharp`,
           {
             resolve: `gatsby-remark-images`,
             options: {
-              maxWidth: 800,
-              linkImagesToOriginal: false
+              maxWidth: 900,
+              linkImagesToOriginal: false,
+              backgroundColor: 'transparent'
             }
           }
         ]
       }
     },
+    `gatsby-transformer-sharp`,
+    `gatsby-plugin-sharp`,
     {
       resolve: 'gatsby-plugin-netlify-cms',
       options: {
@@ -50,7 +52,6 @@ module.exports = {
         theme_color: '#a2466c',
         display: 'minimal-ui'
       }
-    },
-    `gatsby-plugin-offline`
+    }
   ]
 };
