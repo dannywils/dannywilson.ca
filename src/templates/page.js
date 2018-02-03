@@ -6,18 +6,16 @@ export const AboutPageTemplate = ({ title, content, contentComponent }) => {
   const PageContent = contentComponent || Content;
 
   return (
-    <section className="section section--gradient">
-      <div className="container">
-        <div className="column is-10 is-offset-1">
-          <div className="section">
-            <h2 className="title is-size-3 has-text-weight-bold is-bold-light">
-              {title}
-            </h2>
-            <PageContent className="content" content={content} />
-          </div>
+    <div className="column is-8 container">
+      <div className="card">
+        <div className="card-content">
+          <h2 className="title is-size-3 has-text-weight-bold is-bold-light">
+            {title}
+          </h2>
+          <PageContent className="content" content={content} />
         </div>
       </div>
-    </section>
+    </div>
   );
 };
 

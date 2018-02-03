@@ -9,7 +9,7 @@ const Overdrive =
 const Article = ({ title, subtitle, content, id }) => (
   <div className="block">
     <Overdrive id={id}>
-      <div className="card ">
+      <div className="card">
         <div className="card-content">
           <h2 className="title">{title}</h2>
           {subtitle && <p className="subtitle is-size-6">{subtitle}</p>}

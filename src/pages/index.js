@@ -29,7 +29,7 @@ export default class IndexPage extends React.Component {
           onLoad={() => this.handleScriptLoad()}
         />
 
-        <div className="column is-6 container">
+        <div className="column is-7 container">
           {edges
             .filter(post => post.node.frontmatter.templateKey === 'blog-post')
             .map(

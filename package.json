@@ -5,8 +5,8 @@
   "author": "Danny Wilson",
   "dependencies": {
     "bulma": "^0.6.0",
-    "gatsby": "1.9.175",
-    "gatsby-link": "^1.6.35",
+    "gatsby": "1.9.178",
+    "gatsby-link": "^1.6.36",
     "gatsby-plugin-manifest": "^1.0.13",
     "gatsby-plugin-netlify-cms": "^1.0.5",
     "gatsby-plugin-react-helmet": "^2.0.4",
@@ -19,6 +19,7 @@
     "prop-types": "^15.6.0",
     "react": "^16.2.0",
     "react-helmet": "^5.2.0",
+    "react-icons": "^2.2.7",
     "react-load-script": "0.0.6",
     "react-overdrive": "^0.0.9"
   },
