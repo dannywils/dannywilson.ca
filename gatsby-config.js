@@ -16,6 +16,15 @@ module.exports = {
         theme_color: '#a2466c',
         display: 'minimal-ui'
       }
+    },
+    {
+      resolve: `gatsby-plugin-google-analytics`,
+      options: {
+        trackingId: 'UA-39372803-1',
+        head: false,
+        anonymize: true,
+        respectDNT: true
+      }
     }
   ]
 };
