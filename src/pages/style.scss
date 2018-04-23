@@ -1,0 +1,37 @@
+
+
+html, body {
+  margin: 0;
+  display: grid;
+  height: 100vh;
+  width: 100vw;
+  justify-content: center;
+  align-items: center;
+  font-family: BlinkMacSystemFont,-apple-system,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,Helvetica,Arial,sans-serif;
+  overflow: hidden;
+  text-align: center;
+  color: #fff;
+  background-color: #3273dc;
+}
+
+h1 {
+  margin: 0 20px 10px 20px;
+  font-size: 4rem;
+  line-height: 1.125;
+}
+
+h2 {
+  margin: 0 20px 20px 20px;
+  line-height: 1.25;
+  opacity: 0.85;
+  font-weight: 400;
+}
+
+a {
+  font-size: 2rem;
+  padding: 50px;
+  text-decoration: none;
+  &:hover {
+    opacity: 0.6;
+  }
+}
