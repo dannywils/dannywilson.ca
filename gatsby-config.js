@@ -12,8 +12,8 @@ module.exports = {
         name: 'Danny Wilson',
         short_name: 'Danny Wilson',
         start_url: '/',
-        background_color: '#f7f0eb',
-        theme_color: '#a2466c',
+        background_color: '#3273DC',
+        theme_color: '#209CEE',
         display: 'minimal-ui'
       }
     },
