@@ -31,7 +31,8 @@ a {
   font-size: 2rem;
   padding: 50px;
   text-decoration: none;
-  &:hover {
-    opacity: 0.6;
-  }
+}
+
+a:hover {
+  opacity: 0.6;
 }

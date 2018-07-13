@@ -3,30 +3,20 @@
   "description": "Example Gatsby, and Netlify CMS project",
   "version": "1.0.0",
   "author": "Danny Wilson",
-  "dependencies": {
-    "gatsby": "1.9.253",
-    "gatsby-link": "^1.6.41",
-    "gatsby-plugin-google-analytics": "^1.0.31",
-    "gatsby-plugin-manifest": "^1.0.20",
-    "gatsby-plugin-react-helmet": "^2.0.11",
-    "gatsby-plugin-sass": "^1.0.26",
-    "react": "^16.3.2",
-    "react-helmet": "^5.2.0"
-  },
   "license": "MIT",
   "main": "n/a",
   "scripts": {
-    "build": "gatsby build",
     "dev": "gatsby develop",
-    "start": "gatsby serve",
-    "format": "prettier --write src/**/*.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "gatsby build",
+    "start": "gatsby serve"
   },
-  "devDependencies": {
-    "prettier": "^1.12.1"
-  },
-  "resolutions": {
-    "react": "16.3.2",
-    "react-dom": "16.3.2"
+  "dependencies": {
+    "gatsby": "next",
+    "gatsby-plugin-google-analytics": "next",
+    "gatsby-plugin-manifest": "next",
+    "gatsby-plugin-react-helmet": "next",
+    "react-helmet": "latest",
+    "react": "latest",
+    "react-dom": "latest"
   }
 }
