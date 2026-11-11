@@ -40,7 +40,7 @@ try{
     effect.dispose();r.dispose();
     return {departures,samples,emptyText,restoredText,releasedText};
   });
-  assert.ok(result.departures[0]>result.departures[1]&&result.departures[1]>result.departures[2],'Rightmost cells disappear first, then the front reaches the left');
+  assert.ok(result.departures[1]>result.departures[0]&&result.departures[0]>result.departures[2],'The silhouette releases before the facial core, with a slight right-side bias');
   assert.ok(result.samples[0]>result.samples[1]&&result.samples[1]>result.samples[2]);
   assert.equal(result.samples[4],0);assert.equal(result.samples[5],0,'Completed dissolution does not respawn');
   assert.equal(result.emptyText,0);assert.ok(result.restoredText>100,'Hover restores actual text pixels after full dissolution');assert.equal(result.releasedText,0);

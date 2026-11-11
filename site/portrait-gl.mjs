@@ -1,4 +1,4 @@
-// One GPU pass: each source glyph is a movable quad, rendered exactly once.
+// One GPU pass: each source fragment is a movable quad, rendered exactly once.
 // The source photograph is sampled only for tone/alpha; it is never composited.
 const vertexSource = `
 attribute vec2 position;
@@ -11,6 +11,9 @@ uniform vec3 placement;
 uniform vec4 dissolve;
 uniform vec3 debrisControls;
 uniform float columns;
+uniform vec2 meshGrid;
+uniform float driftSpread;
+uniform float portraitMode;
 uniform float time;
 uniform float breakupTime;
 uniform float sweepDuration;
@@ -32,7 +35,7 @@ float noise(vec2 p) {
   return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);
 }
 void main() {
-  vec2 grid=vec2(columns,floor(columns*imageSize.y/imageSize.x/1.3));
+  vec2 grid=meshGrid;
   vec2 cell=floor(origin*grid);
   cellInteraction=interaction*motion;
   float local=cellInteraction.x;
@@ -49,7 +52,12 @@ void main() {
   float contour=noise(origin*vec2(9.,15.)+31.7)*.72+noise(origin*vec2(27.,41.)+7.3)*.28;
   float boundary=mix(hash(cell+91.7),contour,erosionStructure);
   float threshold=mix(dissolve.x,dissolve.y,boundary);
-  float departure=max(0.,(threshold-origin.x)/velocity);
+  // The silhouette opens into a volume, with a little of the original right
+  // edge bias. Protect the bridge/nose through the bounded cycle, not by warping.
+  vec2 radial=origin-vec2(.5,.4);
+  float releasePosition=mix(origin.x,.5+length(radial*vec2(.8,1.))*.65,.65);
+  float core=1.-smoothstep(.65,1.25,length(radial/vec2(.13,.18)));
+  float departure=max(0.,(threshold-releasePosition)/velocity)+core*1.4*portraitMode;
   float flightDuration=clamp(.55/max(dissolve.w,.03)/max(rate,.2),.8,6.);
   // Main starts this clock at 72% of the intro. A cell departs immediately after
   // its own arrival when the dissolve front has reached it, without a shared hold.
@@ -57,22 +65,22 @@ void main() {
   // Restoration reverses the same flight back to the original source position.
   float flight=age*released*(1.-restored);
   float burst=hash(cell+59.1);
-  float distance=pow(flight,1.25)*dissolve.z*mix(1.,.65+burst*.9,debrisControls.y);
-  float curl=sin(flight*(8.+burst*10.)+seed*6.283)*flight*flight;
-  vec2 offset=vec2(distance+curl*.018*debrisControls.y,
-    ((seed-.5)*flight*flight*.18+curl*.04)*debrisControls.y);
-  // Neighboring rows share a gust, while individual fragments curl out of it.
-  float ribbon=origin.y*19.+seed*.7;
-  float wind=sin(ribbon+flight*9.)-sin(ribbon);
-  offset+=vec2(pow(flight,1.5)*(.04+.018*sin(flight*15.+ribbon)),
-    wind*pow(flight,1.35)*.055)*flowControls.x*debrisControls.y;
-  // A sparse cohort travels across the screen; the rest sheds as fine local dust.
+  // Independent velocities on a sphere: no shared wind, downward gravity, or
+  // screen-right destination. Each shard keeps its original source UVs.
+  float azimuth=hash(cell+401.7)*6.283185;
+  float z=hash(cell+417.3)*2.-1.;
+  float equator=sqrt(max(0.,1.-z*z));
+  float orbit=(hash(cell+431.9)-.5)*flight*1.2*flowControls.x;
+  vec2 heading=vec2(cos(azimuth+orbit),sin(azimuth+orbit))*equator;
+  float travel=flight*flight*(2.-flight);
+  float distance=travel*dissolve.z*mix(1.,.55+burst*1.2,debrisControls.y)*driftSpread;
   float drifter=step(hash(cell+71.3),debrisControls.z)*step(.0001,debrisControls.z);
-  float persistence=mix(.22+burst*.16,.82+burst*.18,drifter);
-  fragmentLife=1.-smoothstep(persistence*.45,persistence,flight);
+  float reach=1.+drifter*flowControls.z*1.6;
+  vec2 offset=heading*distance*reach;
+  float persistence=mix(.68+burst*.22,.94+burst*.06,drifter);
+  fragmentLife=1.-smoothstep(persistence*.7,persistence,flight);
   vec2 size=imageSize*min(portraitBounds.z/imageSize.x,portraitBounds.w/imageSize.y);
   vec2 homeCenter=(origin-.5+placement.yz)*size*placement.x+portraitBounds.xy+portraitBounds.zw*.5;
-  offset.x+=max(0.,(resolution.x-homeCenter.x)/(size.x*placement.x))*pow(flight,1.65)*flowControls.z*drifter;
   // Every cell begins just beyond the viewport's left edge, independent of the portrait box.
   float delay=.04+hash(introCell+201.7)*.3;
   float progress=clamp((assembly-delay)/(settleAt-delay),0.,1.);
@@ -100,11 +108,13 @@ void main() {
   incoming.y+=plane*sin(progress*3.14159)*remaining*size.y*.12*flightDepth*motion;
   float live=smoothstep(.98,1.,progress);
   offset*=live;
+  float perspective=2./max(.8,2.-z*travel*.85*flightDepth*live);
+  vec2 volumeCenter=(vec2(.5,.4)-.5+placement.yz)*size*placement.x+portraitBounds.xy+portraitBounds.zw*.5;
   float flicker=1.-glitch*(.25+hash(introCell+glitchFrame*31.1)*.5);
   fragmentLife=mix(1.,fragmentLife,live)*smoothstep(delay,delay+.08,assembly)*flicker;
   // UVs stay anchored to the original face cell while its geometry moves.
   uv=vec2(position.x,1.-position.y);
-  float angle=(seed-.5)*pow(flight,1.4)*2.4*flowControls.y*live;
+  float angle=(seed-.5)*travel*4.*flowControls.y*live;
   vec2 localPosition=(position-origin)*size*placement.x;
   // Airborne cells turn edge-on like small pieces of phosphor. The projection
   // becomes exactly flat at home, including when restoring along the same path.
@@ -115,11 +125,12 @@ void main() {
   fragmentShade=1.-airborne*(1.-facing)*.3;
   // Different source cells pass nearer or farther from the lens. Their scale and
   // lighting return to exactly one at home; the settled face never changes shape.
-  float lensScale=max(.3,1.+plane*(approach+pow(flight,1.3)*flightDepth*live));
+  float lensScale=max(.3,1.+plane*approach)*perspective;
   localPosition*=lensScale;
-  fragmentShade*=1.-clamp(-plane,0.,.5)*.4*clamp(approach+flight*flightDepth*live,0.,1.);
+  fragmentShade*=1.-clamp(-plane,0.,.5)*.4*approach;
+  fragmentShade*=1.-max(0.,-z)*travel*.35*flightDepth*live;
   localPosition=mat2(cos(angle),sin(angle),-sin(angle),cos(angle))*localPosition;
-  vec2 screen=homeCenter+localPosition+offset*size*placement.x+incoming;
+  vec2 screen=volumeCenter+(homeCenter-volumeCenter)*perspective+localPosition+offset*size*placement.x*perspective+incoming;
   gl_Position=vec4(screen.x/resolution.x*2.-1.,1.-screen.y/resolution.y*2.,0.,1.);
 }
 `;
@@ -322,6 +333,9 @@ export class PortraitGL {
           "pointer",
           "pointerStrength",
           "columns",
+          "meshGrid",
+          "driftSpread",
+          "portraitMode",
           "time",
           "breakupTime",
           "sweepDuration",
@@ -472,6 +486,8 @@ export class PortraitGL {
     gl.uniform1f(u.erosionStructure,s.erosionStructure??.68);
     gl.uniform1f(u.fragmentDepth,s.fragmentDepth??.8);
     gl.uniform1f(u.flightDepth,s.flightDepth??.8);
+    gl.uniform1f(u.driftSpread,s.driftSpread??1);
+    gl.uniform1f(u.portraitMode,this.options.text?0:1);
     this.updateMesh();
   }
   get sourceWidth(){return this.image.naturalWidth||this.image.width;}
@@ -498,8 +514,11 @@ export class PortraitGL {
     this.textures.forEach((texture,i)=>{gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,texture);});
   }
   updateMesh() {
-    const columns=innerWidth<=700?this.config.ascii.mobileColumns:this.config.ascii.desktopColumns;
-    const rows=Math.max(1,Math.floor(columns*this.sourceHeight/this.sourceWidth/1.3));
+    const glyphColumns=innerWidth<=700?this.config.ascii.mobileColumns:this.config.ascii.desktopColumns;
+    const detail=Math.max(1,Math.min(innerWidth<=700?2:3,Math.round(this.config.shader.fragmentation??2)));
+    const columns=glyphColumns*detail;
+    const rows=Math.max(1,Math.floor(glyphColumns*this.sourceHeight/this.sourceWidth/1.3))*detail;
+    this.gl.uniform2f(this.uniforms.meshGrid,columns,rows);
     if(this.meshColumns===columns && this.meshRows===rows)return;
     this.meshColumns=columns;this.meshRows=rows;
     const vertices=new Float32Array(columns*rows*6*4);

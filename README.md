@@ -43,7 +43,7 @@ still allows vertical scrolling. Reduced motion keeps the complete portrait and 
 
 `site/timeline.mjs` stages the whole scene as a living, 26-second cycle after the
 entrance: light edge activity leaves the identity readable, an asymmetric swell
-erodes the right side, then a longer return brings the same source fragments home.
+opens the silhouette into a weightless cloud, then a longer return brings the same source fragments home.
 The front remains bounded; the portrait never ends in black. Successive swells
 vary gently in strength, and continuous values at cycle boundaries avoid a reset
 or hitch. The name sheds only a quarter of the eligible cells, retaining its
@@ -95,18 +95,23 @@ jumps are confined to its outer silhouette. Stronger tonal contrast preserves
 the eyes, glasses and smile. Nose contrast is capped and masked above the upper
 lip so it cannot spread into the moustache; fewer shape variants keep the nose
 outline stable. Explicit glyph sampling avoids atlas mip blur. Roughly the
-right side breaks into individually transported glyph cells, then the boundary
+silhouette breaks into individually transported source fragments, then the boundary
 retreats to restore them. The scene timeline bounds the renderer's erosion clock,
 preserving the face instead of advancing through complete disappearance. The
 underlying sweep speed remains adjustable alongside the starting center. Hover,
 touch and Reveal can gather cells at any point in the automatic cycle; release
 blends back into the current stage rather than restarting it.
-Each cell is drawn once: its original source coordinates, shading and character
-move with it, leaving its position empty. No separate debris glyphs are generated.
-The characters keep rewriting during flight. Vertex motion varies speed,
-acceleration and curl per cell. Shared gusts curl through neighboring rows and
-fragments rotate as they depart, with their source pixels attached. Particle
-depth adds edge-on projection and directional dimming to airborne cells. Both
+Each character cell is divided into four independently moving pieces by default.
+The character atlas and tonal sampling stay at their original resolution, so
+subdivision preserves the assembled face. **Shard detail** adjusts this division
+from one to nine pieces per character, capped at four on phones. Each piece is
+drawn once, carrying its original source coordinates and shading; no separate
+debris glyphs are generated. The characters keep rewriting during flight.
+Each shard has an independent velocity on a sphere, with gentle orbital drift
+and slow rotation. There is no common wind or screen-right destination. **Weightless
+spread** adjusts the volume; **Near / far depth** projects shards toward and away
+from the viewer. The bridge and nose release later to retain facial structure.
+Particle depth adds edge-on projection and directional dimming to airborne cells. Both
 return exactly to their flat source appearance when gathered; the settled face
 and type are unaffected. The **Fragment depth** control can reduce or disable it.
 **Near / far depth** adds different apparent distances to incoming and departing
@@ -114,9 +119,12 @@ source cells: a few pass closer to the lens while others recede. Scale and shadi
 return exactly to their original values at home, including when restored by touch.
 The utility strip stays subdued during assembly and becomes fully visible when
 the entrance finishes, or immediately on hover or keyboard focus.
-Particle density selects a sparse cohort of longer-lived fragments that can drift toward
-the viewport's right edge; the rest fades as local dust. Wind curl, fragment
-rotation, stream reach, brush size and trail persistence have dedicated controls.
+Particle density selects a sparse cohort of longer-lived, farther-travelling
+fragments. The remaining shards also stay visible longer, forming a suspended
+cloud before returning. Orbital drift, fragment rotation, far fragment reach,
+brush size and trail persistence have dedicated controls. The stored `windCurl`
+and `streamReach` keys remain compatible with saved looks and now control orbital
+drift and far fragment reach.
 On phones, the portrait uses the available screen width. Short screens reserve
 space for the interaction strip, and landscape has a compact two-column layout.
 Boundary softness spans 0.01–2 portrait widths, including
@@ -126,7 +134,7 @@ takeover. A dark crimson accent with a restrained halo is confined to one eye. T
 photo is never composited into the output. No rendering library is required.
 The **Connected erosion** control blends fine independent grain with two scales
 of connected contours, so breakup can peel away in irregular patches. It keeps
-the same right-to-left sweep and does not introduce extra particle pixels.
+an opening silhouette with a slight right-side bias and does not introduce extra particle pixels.
 Reduced motion keeps a static human state. Hidden tabs stop the animation loop.
 GPU context loss reveals the static fallback; restoration rebuilds the renderer.
 On initial load the portrait area stays clear until its source and shader are
@@ -192,7 +200,7 @@ script-load failure, and the handoff to the normal renderer.
 `node scripts/verify-text.mjs` checks a continuous handoff, actual letter pixels
 departing, A/I-only red lighting, hover/touch release, the email link, and reduced motion.
 `node scripts/verify-sweep.mjs` stress-tests the underlying flight primitive at
-full erosion: right-to-left departure, absence of duplicate cells, restoration of
+full erosion: silhouette-before-core departure, absence of duplicate cells, restoration of
 dissolved text, release, and the cycle restart control.
 `node scripts/verify-experience.mjs` stress-tests whole-scene keyboard reveal/release,
 progressive gathering, replayed assembly, phone hold/cancellation, and reduced
@@ -214,6 +222,9 @@ projection with exact home, restored, and reduced-motion pixels.
 `node scripts/verify-timeline.mjs` samples ten minutes of cycle continuity and
 rendered portrait/text presence across several cycles, including return from
 peak erosion, gathering, reduced motion, and phone layouts.
+`node scripts/verify-gravity.mjs` checks source shards travelling in all four
+screen directions, absence of invented pixels, exact assembled detail after
+subdivision, and desktop/phone viewport frame timing.
 
 Push changes to `master` to publish through `.github/workflows/pages.yml`.
 The workflow can also be run manually from the Actions tab. GitHub Pages must
