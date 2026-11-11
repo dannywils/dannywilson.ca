@@ -91,6 +91,12 @@ export function createTuner(config,onChange,onPreview,onReplay=()=>{}){
       row.innerHTML=`<label for="${id}">${label}</label><input type="number" aria-label="${label} value" min="${min}" max="${max}" step="${step}"><input id="${id}" type="range" min="${min}" max="${max}" step="${step}">`;
       const inputs=[...row.querySelectorAll('input')];controls.set(key,inputs);
       for(const input of inputs)input.addEventListener('input',()=>{if(input.value===''||!input.validity.valid)return;values=sanitize({...values,[key]:Number(input.value)});sync();apply();});
+      inputs[0].addEventListener('blur',()=>{
+        if(inputs[0].value===''||!inputs[0].validity.valid){
+          inputs[0].value=values[key];
+          status.textContent=`${label} restored to ${values[key]}. Enter a value from ${min} to ${max}.`;
+        }
+      });
       details.append(row);
     }
     if(title==='Red eye'){

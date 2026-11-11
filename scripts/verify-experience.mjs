@@ -14,7 +14,9 @@ try {
       // Stress full-scene recovery beyond the bounded production timeline.
       if(window.forceDissolved){
         args[6]=60;
-        if(this.options.text&&this.config.shader.breakup!==1){this.config.shader.breakup=1;this.applyConfig();}
+        if(this.options.text&&(this.config.shader.breakup!==1||this.config.shader.identityBreakup!==1)){
+          Object.assign(this.config.shader,{breakup:1,identityBreakup:1,identityDelay:0});this.applyConfig();
+        }
       }
       render.apply(this,args);
       if(this.options.text){

@@ -36,7 +36,17 @@ export class TextEffect {
     this.bounds.left=b.left+this.offsetX;this.bounds.top=b.top+this.offsetY;
     this.renderer?.setBounds(this.bounds);
   }
+  applyConfig(){
+    this.textConfig={...this.config,ascii:{...this.config.ascii},shader:{...this.config.shader,
+      breakup:this.config.shader.breakup*(this.config.shader.textBreakup??.25),zoom:1,centerX:0,centerY:0}};
+    if(this.renderer){this.renderer.config=this.textConfig;this.renderer.applyConfig();}
+  }
+  updateConfig(){
+    if(getComputedStyle(this.element.querySelector('h1')).letterSpacing!==this.letterSpacing)this.refresh();
+    else this.applyConfig();
+  }
   refresh(){
+    this.letterSpacing=getComputedStyle(this.element.querySelector('h1')).letterSpacing;
     const anchor=this.element.getBoundingClientRect(),letters=[];
     const walker=document.createTreeWalker(this.element,NodeFilter.SHOW_TEXT);
     while(walker.nextNode()){
@@ -67,9 +77,8 @@ export class TextEffect {
       ctx.fillStyle='#f4f1e7';
       ctx.fillText(letter.char,x,y);
     }
-    this.textConfig={...this.config,ascii:{...this.config.ascii},shader:{...this.config.shader,
-      breakup:this.config.shader.breakup*(this.config.shader.textBreakup??.25),zoom:1,centerX:0,centerY:0}};
-    if(this.renderer){this.renderer.config=this.textConfig;this.renderer.updateSource(this.source);this.renderer.applyConfig();}
+    this.applyConfig();
+    if(this.renderer)this.renderer.updateSource(this.source);
     else this.renderer=new PortraitGL(this.canvas,this.source,this.textConfig,{text:true,clear:false});
     this.identityRegions=letters.filter(l=>l.accent).map(({box})=>[
       (box.left-left)/this.bounds.width,(box.top-top)/this.bounds.height,

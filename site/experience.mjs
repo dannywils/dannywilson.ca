@@ -1,5 +1,5 @@
 // A screen-space brush lets a single gesture gather both the portrait and type.
-export function createExperience({ root, motion, config, onMove, onLeave, onReplay }) {
+export function createExperience({ root, motion, config, onMove, onLeave, onReplay, onSkip }) {
   const rail = document.querySelector('.experience');
   const hint = rail.querySelector('.experience-hint');
   const reveal = rail.querySelector('[data-scene="reveal"]');
@@ -10,12 +10,20 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   const listeners = [];
   let enabled = false, held = false, pinned = false, heldTime = 0, active = false;
   let x = -100, y = -100, lastHint = '';
-  let startX=0,startY=0,travel=0,pressedAt=0,interactive=false;
+  let startX=0,startY=0,travel=0,pressedAt=0,interactive=false,assembling=true;
   const state = { radius: 90, reveal: 0, gather: 0, pulse:null };
   const on = (el, type, fn) => { el.addEventListener(type, fn); listeners.push([el, type, fn]); };
   const reset = () => {
     held = false; heldTime = 0; active = false;
     cursor.classList.remove('active', 'held'); onLeave();
+  };
+  const syncReveal = () => {
+    reveal.setAttribute('aria-pressed',String(pinned));
+    reveal.querySelector('span').textContent=pinned?'Release':'Reveal';
+    reveal.title=pinned?'Release the portrait and name':'Reveal the complete portrait and name';
+  };
+  const release = () => {
+    pinned=false;state.reveal=0;state.gather=0;state.pulse=null;reset();syncReveal();
   };
   const move = e => {
     if (!enabled || motion.matches || e.isPrimary === false) return;
@@ -49,31 +57,40 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   on(reveal, 'click', () => {
     pinned = !pinned;
     state.pulse=null;
-    reveal.setAttribute('aria-pressed', String(pinned));
-    reveal.querySelector('span').textContent = pinned ? 'Release' : 'Reveal';
+    syncReveal();
   });
   on(replay, 'click', () => {
-    pinned = false; state.reveal = 0; state.gather = 0; state.pulse=null;reset();
-    reveal.setAttribute('aria-pressed', 'false'); reveal.querySelector('span').textContent = 'Reveal';
-    onReplay();
+    release();
+    if(assembling)onSkip?.();else onReplay();
   });
   on(motion, 'change', () => {
-    pinned = false; state.reveal = 0; state.gather = 0; state.pulse=null;reset();
-    reveal.setAttribute('aria-pressed','false');reveal.querySelector('span').textContent='Reveal';
+    release();
+  });
+  on(document,'keydown',e=>{
+    if(e.key==='Escape'&&!document.body.classList.contains('tuning-open'))release();
   });
   return {
-    state,
+    state,release,
     update(delta, assembly, breakupTime) {
       enabled = figure.dataset.renderer === 'webgl';
       const ready = enabled && !motion.matches;
       interactive=ready&&assembly===1;
+      const nextAssembling=assembly<1;
+      if(assembling!==nextAssembling||!replay.dataset.entranceAction){
+        assembling=nextAssembling;replay.dataset.entranceAction=assembling?'skip':'replay';
+        replay.querySelector('span').textContent=assembling?'Skip':'Replay';
+        replay.querySelector('path').setAttribute('d',assembling?'M7 5l10 7-10 7V5Zm11 0v14':'M4 10a8 8 0 1 1 1.7 7M4 4v6h6');
+        replay.setAttribute('aria-label',assembling?'Skip entrance':'Replay entrance');
+        replay.title=assembling?'Skip entrance':'Replay entrance';
+      }
       if(state.pulse){
         state.pulse.age+=delta;
         state.pulse.radius=(state.pulse.reach+state.pulse.width)*state.pulse.age/1.8;
         if(state.pulse.age>1.8||!interactive)state.pulse=null;
       }
       rail.hidden = false;
-      reveal.disabled = replay.disabled = !ready || assembly < 1;
+      reveal.disabled = !ready || assembly < 1;
+      replay.disabled = !ready;
       if (held && ready && assembly === 1) {
         heldTime += delta;
         // A short intentional hold, then an accelerating circle of restoration.

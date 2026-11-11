@@ -52,6 +52,9 @@ or hitch. The name sheds only a quarter of the eligible cells, retaining its
 letter shapes throughout. **Cycle length**, **Peak erosion**, and **Text erosion**
 are independently adjustable in Tune. **Restart cycle** restarts this motion;
 **Replay** restages the full entrance and red ignition.
+During assembly the same control becomes **Skip**, which moves directly to the
+live scene without an extra ignition flash. **Escape** releases a pinned or held
+reveal when the tuner is closed; Restart cycle also clears that reveal state.
 
 The interaction strip provides **Replay** for the complete entrance and **Reveal**
 to gather the entire scene until **Release** is selected. Moving across the page
@@ -173,7 +176,8 @@ letters; normalized bounds select their delayed, reduced disintegration in the
 vertex shader. Bounds update with layout, so the effect survives phone sizing,
 letter-spacing changes and tuning. The original DOM text remains for semantics, selection, keyboard focus,
 and the working mail link, and is revealed if rendering fails. Rasterization is
-repeated when layout or tuning changes, not on every animation frame.
+repeated when layout or letter spacing changes. Tone and motion adjustments reuse
+the name texture and update its shader settings directly.
 Screen readers receive
 the name, email and portrait description. A static ASCII SVG serves as the
 no-JavaScript and renderer-failure fallback.
@@ -244,6 +248,11 @@ layouts, persistent contact details, 44px action targets and tuner inputs,
 16px phone fields, Escape-to-close, focus return, and the mail link. The tuning
 panel separates timeline/lettering from fragment motion; controls retain the
 existing stored settings and shared-look format.
+
+`node scripts/verify-quality.mjs` checks Skip/Replay, Escape release, restart after
+Reveal, name texture reuse, spacing refresh, invalid/empty number-field recovery,
+and reduced motion. Invalid number fields return to the last accepted value on
+blur, keeping the displayed settings consistent with the renderer.
 
 Push changes to `master` to publish through `.github/workflows/pages.yml`.
 The workflow can also be run manually from the Actions tab. GitHub Pages must

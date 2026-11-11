@@ -37,6 +37,14 @@ const experience = createExperience({root,motion,config,
     phosphor?.clear();
     renderer?.resetInteraction();textEffect?.renderer?.resetInteraction();
     sync();start();
+  },
+  onSkip() {
+    entranceElapsed=entranceDuration;
+    breakupElapsed=entranceDuration*(1-config.intro.flowStart)/1000;
+    introCueFired=true;controller=new Controller(config);
+    phosphor?.clear();
+    renderer?.resetInteraction();textEffect?.renderer?.resetInteraction();
+    sync();start();draw();
   }
 });
 function sync() {
@@ -217,7 +225,7 @@ image.onload = () => {
 image.onerror = () => fail();
 createTuner(config, () => {
   renderer?.applyConfig();
-  textEffect?.refresh();
+  textEffect?.updateConfig();
   phosphor?.clear();
   controller.duration = controller.phase === "human"
     ? Math.max(controller.elapsed + 100, (config.timing.humanMin + config.timing.humanMax) / 2)
@@ -229,7 +237,9 @@ createTuner(config, () => {
   start();
 }, () => {
   breakupElapsed=0;
-  leaveAll();
+  experience.release();
+  renderer?.resetInteraction();textEffect?.renderer?.resetInteraction();
+  phosphor?.clear();
   draw();
 });
 image.src = config.portrait;
