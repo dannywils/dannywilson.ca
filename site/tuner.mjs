@@ -35,6 +35,7 @@ const groups = [
     ['trailPersistence','Trail persistence · seconds',.2,2,.05],
   ]],
   ['Character animation', [
+    ['afterglow','Motion afterglow · seconds',0,.25,.01],
     ['scrambleHz','Rewrite speed',0,16,.5],
     ['densityJitter','Density variation',0,3,.25],
     ['glitchBandSpeed','Scramble band speed',0,1,.05],

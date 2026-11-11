@@ -4,6 +4,7 @@ import { PortraitGL } from "./portrait-gl.mjs";
 import { createTuner } from "./tuner.mjs";
 import { TextEffect } from "./text-effect.mjs";
 import { createExperience } from "./experience.mjs";
+import { Phosphor } from "./phosphor.mjs";
 const root = document.querySelector(".composition");
 const figure = document.querySelector(".portrait");
 const canvas = document.querySelector("canvas");
@@ -16,6 +17,7 @@ const motion = matchMedia("(prefers-reduced-motion: reduce)");
 let controller = new Controller(config),
   renderer,
   textEffect,
+  phosphor,
   frame = 0,
   last = 0,
   elapsed = 0,
@@ -30,6 +32,7 @@ const experience = createExperience({root,motion,config,
   onLeave: leaveAll,
   onReplay() {
     entranceElapsed=0;breakupElapsed=0;controller=new Controller(config);
+    phosphor?.clear();
     renderer?.resetInteraction();textEffect?.renderer?.resetInteraction();
     sync();start();
   }
@@ -60,8 +63,16 @@ function draw() {
     }:null;
     figure.dataset.entrance = assembly < 1 ? "assembling" : "settled";
     figure.setAttribute("aria-busy", String(assembly < 1));
+    let usePhosphor=!!phosphor&&!motion.matches&&config.shader.afterglow>0;
+    if(usePhosphor){
+      try{phosphor.begin();}catch{
+        phosphor.dispose();phosphor=undefined;usePhosphor=false;
+        renderer.gl.bindFramebuffer(renderer.gl.FRAMEBUFFER,null);
+      }
+    }
     renderer.render(elapsed, controller.phase, motion.matches, pointer, light, assembly, breakupElapsed);
     textEffect?.render(elapsed,controller.phase,motion.matches,light,breakupElapsed,assembly===1,assembly,experience.state);
+    if(usePhosphor)phosphor.present(elapsed,config.shader.afterglow);
     renderer.gl.useProgram(renderer.program);
   }
 }
@@ -70,12 +81,14 @@ function resize() {
   const b = figure.getBoundingClientRect();
   renderer.resize(innerWidth, innerHeight, b);
   textEffect?.refresh();
+  phosphor?.clear();
   draw();
 }
 function reposition() {
   if (!renderer) return;
   renderer.setBounds(figure.getBoundingClientRect());
   textEffect?.position();
+  phosphor?.clear();
   draw();
 }
 function tick(now) {
@@ -129,6 +142,7 @@ function visibility() {
   start();
 }
 function preference() {
+  phosphor?.clear();
   controller = new Controller(config);
   elapsed = 0;
   breakupElapsed = 0;
@@ -144,6 +158,7 @@ function fail(error) {
   figure.classList.remove("ready");
   canvas.classList.remove("ready");
   textEffect?.dispose();textEffect=undefined;
+  phosphor?.dispose();phosphor=undefined;
   figure.dataset.renderer = "fallback";
   experience.update(0,1,breakupElapsed);
   figure.setAttribute("aria-busy", "false");
@@ -156,6 +171,7 @@ function initialize() {
     if (motion.matches) entranceElapsed = entranceDuration;
     renderer = new PortraitGL(canvas, image, config);
     textEffect = new TextEffect(canvas, identity, config, motion);
+    try{phosphor=new Phosphor(renderer.gl);}catch{phosphor=undefined;}
     resize();
     figure.dataset.renderer = "webgl";
     figure.classList.add("ready");
@@ -192,6 +208,7 @@ image.onerror = () => fail();
 createTuner(config, () => {
   renderer?.applyConfig();
   textEffect?.refresh();
+  phosphor?.clear();
   controller.duration = controller.phase === "human"
     ? Math.max(controller.elapsed + 100, (config.timing.humanMin + config.timing.humanMax) / 2)
     : config.timing[controller.phase];
@@ -230,6 +247,7 @@ addEventListener(
     observer.disconnect();
     renderer?.dispose();
     textEffect?.dispose();
+    phosphor?.dispose();
     experience.dispose();
     figure.removeEventListener("pointermove", move);
     figure.removeEventListener("pointerenter", move);

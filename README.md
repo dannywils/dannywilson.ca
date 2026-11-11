@@ -64,6 +64,15 @@ Before this creative pass, the synchronized entrance was checkpointed as local
 tag `codex/checkpoint-before-creative-20261111` (commit `f2b66ba`) and saved preview
 version 19. The live domain remains unchanged.
 
+The larger headline and portrait form a tighter composition. `site/phosphor.mjs`
+adds a short afterimage from the actual rendered pixels, controlled by **Motion
+afterglow**. Max compositing keeps unchanged detail from accumulating brightness;
+frame-time decay and an 8-bit tail guard clear the trails completely. Red pixels
+bypass history so A/I and the eye retain their sharp ignition dips. Replay,
+layout changes and motion-preference changes clear the history. Reduced motion
+and a zero afterglow setting bypass the effect, and unavailable framebuffer
+support falls back to the ordinary interactive renderer.
+
 `site/portrait-gl.mjs` renders ASCII in a single WebGL draw
 (179 columns on desktop, 134 on mobile). It samples source luminance and edges,
 selects characters from a supersampled glyph atlas with eight alternatives per
@@ -178,6 +187,9 @@ release, click/tap recognition, separation from holds and drawing, persistent
 contact access, compact control layouts, and reduced motion.
 `node scripts/verify-depth.mjs` checks airborne foreshortening, exact settled and
 restored pixels, reduced motion, and phone/landscape layouts above the controls.
+`node scripts/verify-phosphor.mjs` checks source-only afterimages, stationary
+brightness, red flicker dips, complete high-refresh decay, resize/reduced-motion
+clearing, and continued rendering if the optional effect becomes unavailable.
 
 Push changes to `master` to publish through `.github/workflows/pages.yml`.
 The workflow can also be run manually from the Actions tab. GitHub Pages must
