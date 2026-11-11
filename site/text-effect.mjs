@@ -98,7 +98,7 @@ export class TextEffect {
     if(!this.renderer)return;
     const settled=reduced||assembly>=1;
     this.element.classList.toggle('email-settled',settled);
-    this.renderer.showAnchored(!settled&&document.activeElement!==this.element.querySelector('.email'));
+    this.renderer.showAnchored(true);
     const delta=Math.max(0,Math.min(.1,time-(this.lastTime??time)));this.lastTime=time;
     const p=this.pointer;
     if(brush){p.radius=brush.radius/this.bounds.width;p.reveal=brush.reveal;p.trail=this.config.shader.trailPersistence;}

@@ -170,14 +170,16 @@ particles already midway through a flight. `config.intro` shares the timing
 between the animation loop and shader. Hover restoration reverses the same paths.
 
 `site/text-effect.mjs` rasterizes the existing name and email letter shapes.
-The name passes through the portrait's exact ASCII fragment shader and glyph
+The name and email pass through the portrait's exact ASCII fragment shader and glyph
 atlas, including while assembled. Density, weight, tonal controls and character
 rewriting apply to both; the name has no separate texture renderer. Portrait-only
 eye, nose and shoulder masks do not affect the letters. Both assemble from
 the left alongside the portrait, then the name disintegrates with the face. The email
-cells are protected from subsequent disintegration; at the end of assembly the
-GPU email switches to the normal, underlined DOM link. Keyboard focus reveals the
-link immediately, and reduced motion skips its entrance. Hover
+cells are protected from subsequent disintegration and retain their live ASCII
+texture after assembly, using finer cells to keep the small address readable.
+The transparent DOM link preserves clicking, selection, its underline and focus
+outline. Before the renderer is ready, keyboard focus reveals the plain link;
+renderer failure also restores it. Reduced motion keeps its ASCII texture static. Hover
 and touch restore text locally. A/I share the same neutral ink as the other
 letters; normalized bounds select their delayed, reduced disintegration in the
 vertex shader. Bounds update with layout, so the effect survives phone sizing,

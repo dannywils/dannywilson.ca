@@ -208,13 +208,8 @@ void main() {
   vec2 size = imageSize * scale * placement.x;
   vec2 pos = vec2(uv.x,1.-uv.y);
   if (pos.x<0. || pos.x>1. || pos.y<0. || pos.y>1.) { gl_FragColor=vec4(0.); return; }
-  // Only the small contact link hands back to DOM text after its entrance.
-  // The name and photo both continue through the same ASCII pipeline below.
-  if(portraitMode<.5&&pos.x>=anchoredRegion.x&&pos.x<=anchoredRegion.z&&pos.y>=anchoredRegion.y&&pos.y<=anchoredRegion.w){
-    vec4 source=texture2D(portrait,pos);
-    gl_FragColor=anchoredVisible>.5?vec4(source.rgb*source.a*fragmentShade,source.a)*fragmentLife:vec4(0.);
-    return;
-  }
+  float anchored=portraitMode<.5&&pos.x>=anchoredRegion.x&&pos.x<=anchoredRegion.z&&pos.y>=anchoredRegion.y&&pos.y<=anchoredRegion.w?1.:0.;
+  if(anchored>.5&&anchoredVisible<.5){gl_FragColor=vec4(0.);return;}
   // A few thin horizontal slices move during the shared transition only.
   float slice = floor(pos.y*42.);
   float event = floor(time*13.);
@@ -222,6 +217,8 @@ void main() {
   float tear = (hash(vec2(slice,event+71.))-.5)*.026*selected*interference;
   pos.x += tear;
   vec2 grid = vec2(columns, floor(columns*imageSize.y/imageSize.x/1.3));
+  // Small contact type needs finer cells, but uses the identical atlas and shading.
+  grid *= mix(1.,3.,anchored);
   vec2 cell = floor(pos*grid);
   vec2 center = (cell+.5)/grid;
   vec4 sampleColor = texture2D(portrait, center);

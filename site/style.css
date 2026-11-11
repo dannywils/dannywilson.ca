@@ -45,6 +45,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .js-portrait:not(.portrait-unavailable) .identity:not(.email-settled) .email { color: var(--secondary) !important; text-decoration-color: #424946 !important; }
 }
+.js-portrait:not(.portrait-unavailable) .identity.text-ready .email { color: transparent !important; }
 .identity.text-ready .email:hover,
 .identity.text-ready .email:focus-visible { text-decoration-color: var(--paper); }
 h1 {
