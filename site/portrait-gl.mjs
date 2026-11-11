@@ -17,6 +17,7 @@ uniform float portraitMode;
 uniform vec4 identityA;
 uniform vec4 identityI;
 uniform vec2 identityControls;
+uniform vec4 anchoredRegion;
 uniform float time;
 uniform float breakupTime;
 uniform float sweepDuration;
@@ -47,7 +48,8 @@ void main() {
   float local=cellInteraction.x;
   float restored=smoothstep(.08,.8,local);
   float identity=max(inside(origin,identityA),inside(origin,identityI));
-  float amount=debrisControls.x*mix(1.,identityControls.y,identity);
+  float anchored=inside(origin,anchoredRegion);
+  float amount=debrisControls.x*mix(1.,identityControls.y,identity)*(1.-anchored);
   float released=step(hash(cell+113.2),amount)*step(.00001,amount);
   float seed=hash(cell+17.3);
   vec2 introCell=cell+entranceSeed;
@@ -276,8 +278,11 @@ varying float fragmentLife;
 varying vec2 cellInteraction;
 varying float fragmentShade;
 uniform sampler2D portrait;
+uniform vec4 anchoredRegion;
+uniform float anchoredVisible;
 void main() {
   vec2 sourceUV=vec2(uv.x,1.-uv.y);
+  if(anchoredVisible<.5&&sourceUV.x>=anchoredRegion.x&&sourceUV.x<=anchoredRegion.z&&sourceUV.y>=anchoredRegion.y&&sourceUV.y<=anchoredRegion.w){gl_FragColor=vec4(0.);return;}
   vec4 source=texture2D(portrait,sourceUV);
   vec3 ink=mix(source.rgb,vec3(.76,.97,1.),cellInteraction.y*.2);
   gl_FragColor=vec4(ink*source.a*fragmentShade,source.a)*fragmentLife;
@@ -353,6 +358,8 @@ export class PortraitGL {
           "identityA",
           "identityI",
           "identityControls",
+          "anchoredRegion",
+          "anchoredVisible",
           "time",
           "breakupTime",
           "sweepDuration",
@@ -510,6 +517,14 @@ export class PortraitGL {
     this.gl.useProgram(this.program);
     this.gl.uniform4fv(this.uniforms.identityA,regions[0]??[0,0,0,0]);
     this.gl.uniform4fv(this.uniforms.identityI,regions[1]??[0,0,0,0]);
+  }
+  setAnchoredBounds(region) {
+    this.gl.useProgram(this.program);
+    this.gl.uniform4fv(this.uniforms.anchoredRegion,region??[0,0,0,0]);
+  }
+  showAnchored(visible) {
+    this.gl.useProgram(this.program);
+    this.gl.uniform1f(this.uniforms.anchoredVisible,visible?1:0);
   }
   updateSource(image) {
     this.image=image;

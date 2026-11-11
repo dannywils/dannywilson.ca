@@ -103,7 +103,10 @@ function reposition() {
   draw();
 }
 function tick(now) {
-  if (disposed || document.hidden || motion.matches || !renderer) return;
+  if (disposed || document.hidden || !renderer) return;
+  // A media change can be observed before its change event is dispatched.
+  // Finish the static frame instead of freezing halfway through the entrance.
+  if (motion.matches) { preference(); return; }
   const delta = last ? Math.min(now - last, 100) : 0;
   last = now;
   elapsed += delta / 1000;

@@ -169,10 +169,12 @@ departure delay. This overlaps incoming and outgoing motion without jumping to
 particles already midway through a flight. `config.intro` shares the timing
 between the animation loop and shader. Hover restoration reverses the same paths.
 
-`site/text-effect.mjs` rasterizes the existing name letter shapes and
-feeds them through the same GPU cell motion. The name assembles from
-the left alongside the portrait, then disintegrates with the face. The email
-stays visible and clickable throughout the timeline. Hover
+`site/text-effect.mjs` rasterizes the existing name and email letter shapes and
+feeds them through the same GPU cell motion. Both assemble from
+the left alongside the portrait, then the name disintegrates with the face. The email
+cells are protected from subsequent disintegration; at the end of assembly the
+GPU email switches to the normal, underlined DOM link. Keyboard focus reveals the
+link immediately, and reduced motion skips its entrance. Hover
 and touch restore text locally. A/I share the same neutral ink as the other
 letters; normalized bounds select their delayed, reduced disintegration in the
 vertex shader. Bounds update with layout, so the effect survives phone sizing,
@@ -255,6 +257,10 @@ existing stored settings and shared-look format.
 Reveal, name texture reuse, spacing refresh, invalid/empty number-field recovery,
 and reduced motion. Invalid number fields return to the last accepted value on
 blur, keeping the displayed settings consistent with the renderer.
+
+`node scripts/verify-email.mjs` checks loading without an email flash, keyboard
+access during assembly, real email source cells in flight, exact/protected landing,
+the GPU-to-DOM handoff, mail clicks, Replay and reduced motion during the entrance.
 
 Push changes to `master` to publish through `.github/workflows/pages.yml`.
 The workflow can also be run manually from the Actions tab. GitHub Pages must
