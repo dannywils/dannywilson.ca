@@ -1,38 +1,197 @@
-
-
-html, body {
+:root {
+  color-scheme: dark;
+  --paper: #f4f1e7;
+  --red: #ff1531;
+  --background: #050606;
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--background);
+  color: var(--paper);
+}
+* {
+  box-sizing: border-box;
+}
+body {
   margin: 0;
+}
+.composition {
+  min-height: 100svh;
+  max-width: 1800px;
+  margin: auto;
+  position: relative;
   display: grid;
-  height: 100vh;
-  width: 100vw;
-  justify-content: center;
+  z-index: 1;
+  grid-template-columns: 1fr 1fr;
   align-items: center;
-  font-family: BlinkMacSystemFont,-apple-system,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,Helvetica,Arial,sans-serif;
+  padding: 5vw;
+  isolation: isolate;
   overflow: hidden;
-  text-align: center;
-  color: #fff;
-  background-color: #3273dc;
 }
-
+.identity {
+  z-index: 1;
+  padding-bottom: 1.5vw;
+  touch-action: pan-y pinch-zoom;
+}
+.identity.text-ready h1,
+.identity.text-ready h1 span,
+.identity.text-ready .email { color: transparent !important; text-shadow: none !important; }
+.js-portrait:not(.portrait-unavailable) .identity:not(.text-ready) h1,
+.js-portrait:not(.portrait-unavailable) .identity:not(.text-ready) h1 span,
+.js-portrait:not(.portrait-unavailable) .identity:not(.text-ready) .email { color: transparent !important; text-shadow: none !important; }
+.identity.text-ready .ai-letter:after { display: none; }
+.identity.text-ready .email:hover,
+.identity.text-ready .email:focus-visible { text-decoration-color: var(--paper); }
 h1 {
-  margin: 0 20px 10px 20px;
-  font-size: 4rem;
-  line-height: 1.125;
+  font-size: clamp(78px, 11.5vw, 190px);
+  font-weight: 750;
+  letter-spacing: var(--name-spacing, 0.026em);
+  line-height: 0.88;
+  margin: 0 0 4vw -0.065em;
 }
-
-h2 {
-  margin: 0 20px 20px 20px;
-  line-height: 1.25;
-  opacity: 0.85;
-  font-weight: 400;
+.name-line {
+  display: block;
+  white-space: nowrap;
 }
-
-a {
-  font-size: 2rem;
-  padding: 50px;
+.ai-letter {
+  position: relative;
+  display: inline-block;
+}
+.email {
+  display: inline-block;
+  font:
+    clamp(13px, 1.35vw, 20px)/1.6 "Courier New",
+    monospace;
+  color: #949b9a;
   text-decoration: none;
+  text-underline-offset: 7px;
+  padding: 8px 0;
+  transition: color 0.2s;
 }
-
-a:hover {
-  opacity: 0.6;
+.email:hover,
+.email:focus-visible {
+  color: var(--paper);
+  text-decoration: underline;
+}
+.email:focus-visible {
+  outline: 1px solid #99c6c7;
+  outline-offset: 8px;
+}
+.portrait {
+  position: relative;
+  margin: 0 -4vw 0 -2vw;
+  width: calc(100% + 6vw);
+  aspect-ratio: 1/1.12;
+  align-self: center;
+  pointer-events: auto;
+  touch-action: pan-y pinch-zoom;
+}
+.fallback {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  inset: 0;
+}
+.portrait-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+}
+.portrait-canvas.ready {
+  opacity: 1;
+}
+.fallback {
+  visibility: hidden;
+}
+.portrait[data-renderer="fallback"] .fallback,
+.portrait-unavailable .fallback {
+  visibility: visible;
+}
+[data-phase="interference"] .ai-letter,
+[data-phase="takeover"] .ai-letter {
+  color: var(--ai-ink, var(--red));
+  text-shadow:
+    0 0 5px rgb(255 21 49 / calc(var(--ai-glow, 1) * 0.6)),
+    0 0 20px rgb(255 21 49 / calc(var(--ai-glow, 1) * 0.38)),
+    0 0 42px rgb(255 21 49 / calc(var(--ai-glow, 1) * 0.16));
+}
+[data-phase="interference"] .ai-letter:after {
+  content: attr(data-letter);
+  position: absolute;
+  inset: 0;
+  color: var(--red);
+  clip-path: inset(39% 0 43%);
+  transform: translateX(5px);
+  animation: letter-tear 230ms steps(1) both;
+}
+@keyframes letter-tear {
+  0%,
+  100% {
+    transform: translateX(0);
+    clip-path: inset(39% 0 43%);
+  }
+  25% {
+    transform: translateX(-5px);
+    clip-path: inset(20% 0 65%);
+  }
+  55% {
+    transform: translateX(6px);
+    clip-path: inset(57% 0 30%);
+  }
+  80% {
+    transform: translateX(-3px);
+    clip-path: inset(39% 0 43%);
+  }
+}
+@media (min-width: 1800px) {
+  .composition {
+    padding: 90px;
+  }
+  .portrait {
+    margin: 0 -72px 0 -36px;
+    width: calc(100% + 108px);
+  }
+}
+@media (max-width: 700px) {
+  .composition {
+    padding: 54px 7vw 30px;
+    grid-template-columns: 1fr;
+    align-content: center;
+    gap: 12px;
+    overflow: hidden;
+  }
+  .identity {
+    padding: 0;
+  }
+  h1 {
+    font-size: clamp(64px, 19.5vw, 136px);
+    margin-bottom: 25px;
+    line-height: 0.9;
+  }
+  .email {
+    font-size: 14px;
+  }
+  .portrait {
+    width: min(100%, 440px);
+    margin: 0 auto;
+    aspect-ratio: 1/1;
+    max-height: 46svh;
+  }
+  .composition {
+    min-height: 100svh;
+  }
+  .fallback {
+    object-fit: contain;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+  .ai-letter:after {
+    display: none !important;
+  }
 }

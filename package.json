@@ -1,0 +1,13 @@
+{
+  "name": "dannywilson-ca",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "python -m http.server 8080 --directory site",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check site/main.mjs && node --check site/controller.mjs && node --check site/config.mjs && node --check site/portrait-gl.mjs && node --check site/tuner.mjs && node --check site/text-effect.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0"
+  }
+}

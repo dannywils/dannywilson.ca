@@ -1,0 +1,20 @@
+.tuner-toggle,.tuner button,.tuner input,.tuner select,.tuner textarea{font:inherit}
+.tuner-toggle{position:fixed;bottom:20px;left:20px;z-index:5;border:1px solid #495352;border-radius:6px;background:#111717;color:#e9eeea;padding:12px 16px;font:13px 'Courier New',monospace;cursor:pointer}
+.tuner{position:fixed;z-index:10;left:16px;top:16px;bottom:16px;width:340px;overflow-y:auto;overscroll-behavior:contain;background:#101616f7;color:#e6ece8;border:1px solid #3a4947;border-radius:10px;box-shadow:0 16px 60px #0009;font:13px/1.5 Arial,sans-serif;scrollbar-color:#53625f #101616}
+.tuner[hidden],.tuner-toggle[hidden],.tuner [hidden]{display:none!important}
+.tuner header{display:flex;justify-content:space-between;align-items:start;padding:18px 18px 12px;position:sticky;top:0;background:#101616;z-index:2;border-bottom:1px solid #293633}
+.tuner h2{font-size:19px;letter-spacing:-.02em;margin:0}.tuner header p{margin:4px 0 0;color:#a4b4ae;font-size:12px}
+.tuner button,.tuner select{border:1px solid #43534d;border-radius:5px;background:#202c27;color:#e9eeea;min-height:36px;padding:7px 10px;cursor:pointer}
+.tuner button:hover{background:#33473d}.tuner :focus-visible,.tuner-toggle:focus-visible{outline:2px solid #a8ddd0;outline-offset:3px}
+.tuner .tuner-close{font-size:22px;line-height:1;padding:4px 10px;background:transparent}
+.tuner-toolbar{padding:14px 18px;display:flex;gap:10px;align-items:end}.tuner-toolbar label{display:grid;gap:5px;flex:1}.tuner-toolbar select{width:100%;max-width:180px}
+.tuner details{border-top:1px solid #2e3c37;padding:0 18px 10px}.tuner summary{cursor:pointer;font-weight:600;padding:12px 0;color:#c6e0d4;min-height:44px}
+.tuner-row{display:grid;grid-template-columns:1fr 70px;gap:0 12px;align-items:center;margin:8px 0 14px}.tuner-row label{color:#cad4ce}
+.tuner input[type=number]{width:70px;background:#080e0b;border:1px solid #3f5147;color:#d4eddf;border-radius:4px;padding:5px;font:12px monospace}
+.tuner input[type=range]{grid-column:1/-1;width:100%;margin:8px 0 0;accent-color:#a5d8bf;min-height:28px;cursor:ew-resize}
+.tuner-color{display:flex;align-items:center;justify-content:space-between;margin:12px 0}.tuner input[type=color]{width:70px;height:34px;border:1px solid #43534d;background:#080e0b}
+.tuner footer{border-top:1px solid #2e3c37;padding:16px 18px;display:flex;gap:8px;flex-wrap:wrap}.tuner-status{width:100%;margin:4px 0;color:#afc5b9;font-size:12px}
+.tuner textarea{width:100%;min-height:150px;background:#080e0b;color:#d4eddf;border:1px solid #43534d;padding:10px;resize:vertical;font:12px monospace}
+@media(min-width:701px){.tuning-open .composition{margin-left:372px;width:calc(100% - 372px);padding:2vw;max-width:none}.tuning-open h1{font-size:clamp(30px,calc((100vw - 372px)*.105),150px)}.tuning-open .portrait{margin:0;width:100%}}
+@media(max-width:700px){.tuner{left:0;right:0;top:auto;bottom:0;width:100%;height:46svh;border-radius:14px 14px 0 0}.tuner-toggle{bottom:14px;left:14px}.tuning-open .identity{display:none}.tuning-open .composition{min-height:54svh;padding:8px 16px;align-content:center;gap:0}.tuning-open .portrait{height:50svh;max-height:50svh;width:min(100%,50svh);margin:0 auto}.tuner header{padding-top:12px}.tuner-toolbar{padding-top:10px}}
+@media(max-width:700px){.tuning-open .identity{display:block;position:absolute;top:16px;left:16px}.tuning-open h1{font-size:26px;line-height:.95;margin:0}.tuning-open .email{display:none}}

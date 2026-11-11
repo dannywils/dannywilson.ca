@@ -1,18 +1,47 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#209cee">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#050606" />
+    <meta name="description" content="Danny Wilson — personal homepage." />
     <title>Danny Wilson</title>
-    <link rel="stylesheet" href="/style.css">
-    <link rel="manifest" href="/manifest.webmanifest">
+    <script>document.documentElement.classList.add('js-portrait')</script>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/tuner.css" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preload" as="image" href="/assets/portrait.png" />
+    <noscript><style>.portrait .fallback { visibility: visible; }</style></noscript>
+    <script type="module" src="/main.mjs" onerror="document.documentElement.classList.add('portrait-unavailable')"></script>
   </head>
   <body>
-    <div id="___gatsby">
-      <h1>Danny Wilson</h1>
-      <h2>Software Developer in Halifax, Nova Scotia</h2>
-      <a href="mailto:danny@dannywilson.ca" title="Contact me"><span role="img" aria-label="Mail icon">📧</span></a>
-    </div>
+    <canvas class="portrait-canvas" aria-hidden="true"></canvas>
+    <main class="composition" data-phase="human">
+      <section class="identity" aria-label="Danny Wilson, software developer">
+        <h1 aria-label="Danny Wilson">
+          <span class="name-line" aria-hidden="true"
+            >D<span class="ai-letter" data-letter="A">A</span>NNY</span
+          ><span class="name-line" aria-hidden="true"
+            >W<span class="ai-letter" data-letter="I">I</span>LSON</span
+          >
+        </h1>
+        <a class="email" href="mailto:danny@dannywilson.ca"
+          >danny@dannywilson.ca</a
+        >
+      </section>
+      <figure
+        class="portrait"
+        data-renderer="loading"
+        role="img"
+        aria-label="ASCII portrait of Danny, with short hair, rectangular glasses and a slight smile."
+      >
+        <img
+          class="fallback"
+          src="/assets/portrait-static.svg"
+          alt=""
+          aria-hidden="true"
+        />
+      </figure>
+    </main>
   </body>
 </html>
