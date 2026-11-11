@@ -15,7 +15,7 @@ try{
     const results=[];
     for(const text of [false,true]){
       const pair=[Before,After].map(Renderer=>{
-        const r=new Renderer(document.createElement('canvas'),text?letters:image,structuredClone(config),{text});
+        const r=new Renderer(document.createElement('canvas'),text?letters:image,structuredClone(config),{text,idleGlitch:false});
         r.resize(390,600);r.gl.uniform1f(r.uniforms.entranceSeed,7);return r;
       });
       const changed=[];

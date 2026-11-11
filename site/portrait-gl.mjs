@@ -1,6 +1,7 @@
 // One GPU pass: each source fragment is a movable quad, rendered exactly once.
 // The source photograph is sampled only for tone/alpha; it is never composited.
 import {maxTapBursts} from './tap-motion.mjs';
+import {idleGlitchAt} from './idle-glitch.mjs';
 const vertexSource = `
 attribute vec2 position;
 attribute vec2 origin;
@@ -33,6 +34,7 @@ uniform float flightDepth;
 uniform vec4 taps[${maxTapBursts}];
 uniform vec3 tapTimings[${maxTapBursts}];
 uniform int tapCount;
+uniform vec3 idleGlitch;
 varying vec2 uv;
 varying float fragmentLife;
 varying vec2 cellInteraction;
@@ -194,6 +196,22 @@ void main() {
   fragmentShade*=1.-max(0.,-z)*travel*.35*flightDepth*live;
   localPosition=mat2(cos(angle),sin(angle),-sin(angle),cos(angle))*localPosition;
   vec2 screen=volumeCenter+(homeCenter-volumeCenter)*perspective+localPosition+offset*size*placement.x*perspective+incoming;
+  if(idleGlitch.x>0.&&restored<1.){
+    // Brief corruption of small source patches and thin rows, with no global
+    // shake. Quiet intervals return exactly to the ordinary ASCII rendering.
+    vec2 block=floor(characterCenter*characterGrid/vec2(8.,3.));
+    float row=floor(characterCenter.y*characterGrid.y);
+    float patch=step(.74,hash(block+idleGlitch.y));
+    float slice=step(.935,hash(vec2(row,idleGlitch.y+91.)));
+    float strength=idleGlitch.x*(1.-restored)*mix(1.,.3,identity);
+    float corruption=max(patch,slice)*strength;
+    float tear=(hash(vec2(row,idleGlitch.z+117.))-.5)*6.*slice;
+    vec2 jitter=vec2(hash(cell+idleGlitch.z*3.7),hash(cell+idleGlitch.z*9.1))-.5;
+    float glyphWidth=size.x*placement.x/columns;
+    screen+=(vec2(tear,0.)+jitter*.9*patch)*glyphWidth*strength*(1.-anchored);
+    arrivalGlitch=max(arrivalGlitch,corruption);
+    fragmentShade*=1.-corruption*.2;
+  }
   for(int tapIndex=0;tapIndex<${maxTapBursts};tapIndex++){
     if(tapIndex>=tapCount||interactionMask<.5||anchored>.5||restored>=1.)break;
     vec4 tap=taps[tapIndex];
@@ -456,6 +474,7 @@ export class PortraitGL {
           "taps[0]",
           "tapTimings[0]",
           "tapCount",
+          "idleGlitch",
           "interference",
           "takeover",
           "eye",
@@ -762,6 +781,10 @@ export class PortraitGL {
     );
     gl.uniform2f(u.pointer, pointer.x, pointer.y);
     gl.uniform1f(u.pointerStrength,reduced?0:(pointer.strength??1));
+    this.idleData??=new Float32Array(3);
+    if(!reduced&&assembly>=1&&this.options.idleGlitch!==false)idleGlitchAt(time,this.idleData);
+    else this.idleData.fill(0);
+    gl.uniform3fv(u.idleGlitch,this.idleData);
     const taps=!reduced&&assembly>=1?(pointer.taps??[]):[],dpr=this.pixelRatio||1;
     const count=Math.min(taps.length,maxTapBursts);
     this.tapData??=new Float32Array(maxTapBursts*4);

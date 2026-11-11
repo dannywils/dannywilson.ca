@@ -191,6 +191,13 @@ short row tears and rapid character scrambling inside local bursts. Cool phospho
 tints and brief dropouts stay local to those pieces. All corruption fades before
 capture. Each path reaches its exact source position with zero speed,
 avoiding a last-frame snap.
+After assembly, independent idle glitches recur in uneven double/triple bursts.
+Small patches rewrite characters faster, thin source rows shift sideways, and
+individual fragments jitter briefly with cool phosphor accents. Most of the
+scene remains readable; quiet intervals restore the ordinary ASCII rendering.
+The A/I treatment stays subtler, the email's link position stays fixed, and
+Reveal and reduced motion suppress the idle corruption. This clock is independent
+of touch and the eye ignition, and runs in the existing GPU pass.
 Incoming fragments start at 30% ink and gain full brightness as they gather. Afterglow
 starts at 8% of its tuned value and eases back to full strength during landing,
 keeping fast incoming pieces distinct without changing the floating scene.
