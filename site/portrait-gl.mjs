@@ -35,6 +35,7 @@ varying vec2 uv;
 varying float fragmentLife;
 varying vec2 cellInteraction;
 varying float fragmentShade;
+varying float interactionMask;
 float hash(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float noise(vec2 p) {
   vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
@@ -46,11 +47,23 @@ float inside(vec2 p,vec4 rect) {
 void main() {
   vec2 grid=meshGrid;
   vec2 cell=floor(origin*grid);
+  float identity=max(inside(origin,identityA),inside(origin,identityI));
+  // All sub-shards of an ASCII cell inherit the sampled character's immunity,
+  // including the tiny glyph edges extending beyond the DOM letter bounds.
+  vec2 characterGrid=vec2(columns,floor(columns*imageSize.y/imageSize.x/1.3));
+  vec2 characterCenter=(floor(origin*characterGrid)+.5)/characterGrid;
+  vec2 identityPad=.5/characterGrid+1./imageSize;
+  vec4 padded=vec4(-identityPad,identityPad);
+  float protectedA=inside(characterCenter,identityA+padded)*step(.00001,identityA.z-identityA.x);
+  float protectedI=inside(characterCenter,identityI+padded)*step(.00001,identityI.z-identityI.x);
+  interactionMask=1.-max(protectedA,protectedI)*(1.-portraitMode);
   cellInteraction=interaction*motion;
+  // A/I retain their automatic timing, but ignore all positive contact effects.
+  // Negative interaction remains available to the explicit Reveal button.
+  if(interactionMask<.5){cellInteraction.x=min(0.,cellInteraction.x);cellInteraction.y=0.;}
   float local=cellInteraction.x;
   // Positive interaction scatters; negative interaction is the explicit Reveal action.
   float restored=smoothstep(.08,.8,max(-local,0.));
-  float identity=max(inside(origin,identityA),inside(origin,identityI));
   float anchored=inside(origin,anchoredRegion);
   float amount=debrisControls.x*mix(1.,identityControls.y,identity)*(1.-anchored);
   float released=step(hash(cell+113.2),amount)*step(.00001,amount);
@@ -178,7 +191,7 @@ void main() {
     vec2 hit=volumeCenter+(homeCenter-volumeCenter)*hitPerspective+hitHeading*hitDistance*reach*size*placement.x*hitPerspective;
     vec2 fromTap=hit-tap.xy;
     float hitRadius=length(fromTap);
-    float influence=(1.-smoothstep(.15,1.,hitRadius/tap.z))*(1.-anchored)*(1.-restored);
+    float influence=(1.-smoothstep(.15,1.,hitRadius/tap.z))*(1.-anchored)*(1.-restored)*interactionMask;
     vec2 outward=hitRadius>1.?fromTap/hitRadius:vec2(cos(azimuth),sin(azimuth));
     vec2 tangent=vec2(-outward.y,outward.x);
     float spread=tap.w*influence;
@@ -194,6 +207,7 @@ void main() {
 `;
 const fragmentSource = `
 precision highp float;
+varying float interactionMask;
 varying vec2 uv;
 varying float fragmentLife;
 varying vec2 cellInteraction;
@@ -295,7 +309,7 @@ void main() {
   // Returning source glyphs briefly catch a cool phosphor edge as they settle.
   float landing=cellInteraction.y*smoothstep(.2,.8,cellInteraction.x);
   ink=mix(ink,vec3(.76,.97,1.),landing*.4);
-  float light = exp(-dot(center-pointer,center-pointer)*90.)*.12*motion*pointerStrength;
+  float light = exp(-dot(center-pointer,center-pointer)*90.)*.12*motion*pointerStrength*interactionMask;
   float sweep = exp(-pow((center.y-fract(time*.045))/.075,2.))*.07*motion;
   float intensity = (.12+1.08*pow(tone,1.15))+light*.5+sweep*.5+(rewrite-.5)*.035*motion;
   float eyeDistance = length((center-eye.xy)/eye.zw);

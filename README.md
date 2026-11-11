@@ -35,6 +35,9 @@ dip. The name stays uniformly off-white. Its A and I start releasing later and
 shed only 35% as many eligible shards as neighboring letters, giving a subtle
 AI reference through persistence rather than color or flashing. Their release
 delay and erosion multiplier are adjustable in Tune.
+The A in DANNY and I in WILSON ignore hover, touch, drag and tap bursts, including
+contact lighting. Their automatic cycle and explicit Reveal behavior remain intact.
+Protection includes the complete ASCII cells along each letter's edge.
 The name uses wider letter spacing. The page has no taglines. Hovering, drawing or
 holding a finger scatters nearby source pixels along their weightless paths.
 After release, the disturbance decays and those pixels reform naturally into the
