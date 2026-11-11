@@ -15,12 +15,14 @@ const groups = [
     ['centerY','Center · vertical',-.3,.3,.01],
     ['letterSpacing','Letter spacing',-.06,.06,.002],
   ]],
-  ['Disintegration', [
+  ['Timeline & lettering', [
     ['cycleDuration','Cycle length · seconds',8,60,1],
     ['erosionReach','Peak erosion',.2,1.6,.05],
     ['textBreakup','Text erosion',0,1,.05],
     ['identityDelay','A / I release delay',0,2,.05],
     ['identityBreakup','A / I erosion multiplier',0,1,.05],
+  ]],
+  ['Fragments & motion', [
     ['fragmentation','Shard detail',1,3,1],
     ['driftSpread','Weightless spread',0,2,.05],
     ['breakup','Amount',0,1,.02],
@@ -108,10 +110,10 @@ export function createTuner(config,onChange,onPreview,onReplay=()=>{}){
   function sync(){for(const [key,inputs] of controls)for(const input of inputs)input.value=values[key];}
   function open(value){panel.hidden=!value;toggle.hidden=value;toggle.setAttribute('aria-expanded',String(value));document.body.classList.toggle('tuning-open',value);if(value)panel.querySelector('.tuner-close').focus();else toggle.focus();}
   toggle.addEventListener('click',()=>open(true));panel.querySelector('.tuner-close').addEventListener('click',()=>open(false));
-  panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();open(false);}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!panel.hidden){e.stopPropagation();open(false);}});
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-  panel.querySelector('[data-action="replay"]').addEventListener('click',()=>{onReplay();status.textContent=reduced.matches?'Reduced motion is enabled. The portrait stays still.':'Disintegration restarted.';});
-  panel.querySelector('[data-action="preview"]').addEventListener('click',()=>{if(reduced.matches){status.textContent='Reduced motion is enabled. The preview stays still.';return;}onPreview();status.textContent='Playing the takeover.';});
+  panel.querySelector('[data-action="replay"]').addEventListener('click',()=>{onReplay();status.textContent=reduced.matches?'Reduced motion is enabled. The portrait stays still.':'Cycle restarted.';});
+  panel.querySelector('[data-action="preview"]').addEventListener('click',()=>{if(reduced.matches){status.textContent='Reduced motion is enabled. The preview stays still.';return;}onPreview();status.textContent='Previewing the eye flicker.';});
   panel.querySelector('select').addEventListener('change',e=>{
     const presets={current:{},clean:{breakup:0,contrast:1.2,density:190,scrambleHz:3},ghost:{breakup:1,breakupCenter:.60,particleSpeed:.8,randomness:1.4,debrisDensity:.28},coarse:{density:100,glyphWeight:2,brightness:1.1}};
     values=sanitize({...defaults,...presets[e.target.value]});sync();apply();status.textContent='Starting point applied.';

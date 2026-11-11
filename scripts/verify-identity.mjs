@@ -23,15 +23,20 @@ try{
         if(home[i+3]>100&&a[i+3]<home[i+3]*.5)n++;
       }return n;
     });
-    const normalEarly=[0,0],delayed=[0,0];
-    for(let t=.5;t<=8&&normalEarly.some(v=>!v);t+=.5){
+    const normalEarly=[0,0],delayed=[0,0],normalStart=[0,0],delayedStart=[0,0];
+    // Compare when visible release starts; a tiny single-frame pixel ratio
+    // varies with font layout and does not measure a temporal delay reliably.
+    for(let t=.5;t<=8&&delayedStart.some(v=>!v);t+=.25){
       const normal=lost(sample(0,1,t)),held=lost(sample(.7,1,t));
-      for(let i=0;i<2;i++)if(!normalEarly[i]&&normal[i]>20){normalEarly[i]=normal[i];delayed[i]=held[i];}
+      for(let i=0;i<2;i++){
+        if(!normalStart[i]&&normal[i]>20){normalStart[i]=t;normalEarly[i]=normal[i];delayed[i]=held[i];}
+        if(!delayedStart[i]&&held[i]>20)delayedStart[i]=t;
+      }
     }
     const normalLate=lost(sample(0,1,20)),retained=lost(sample(0,.35,20));
     for(let i=0;i<180;i++)r.updateInteraction(i/60,false,{x:-2,y:-2,strength:0,reveal:1});
     const gathered=sample(.7,.35,20);
-    const result={normalEarly,delayed,normalLate,retained,sameHome:same(home,heldHome),noRed:same(heldHome,flicker),gathered:same(home,gathered),error:r.gl.getError()};
+    const result={normalEarly,delayed,normalStart,delayedStart,normalLate,retained,sameHome:same(home,heldHome),noRed:same(heldHome,flicker),gathered:same(home,gathered),error:r.gl.getError()};
     effect.dispose();return result;
   });
   const results=[];
@@ -40,7 +45,7 @@ try{
     const r=await probe();results.push({width,...r});console.log('Identity probe:',{width,...r});
     assert.ok(r.sameHome&&r.noRed,'A/I have exactly the same neutral rendering during every eye phase');
     for(let i=0;i<2;i++){
-      assert.ok(r.normalEarly[i]>0&&r.delayed[i]<r.normalEarly[i]*.7,'Each letter starts releasing later');
+      assert.ok(r.normalStart[i]>0&&r.delayedStart[i]>r.normalStart[i],'Each letter starts releasing later');
       assert.ok(r.normalLate[i]>0&&r.retained[i]<r.normalLate[i]*.5,'Each letter releases fewer source pieces');
     }
     assert.ok(r.gathered,'Reveal restores every original letter pixel');assert.equal(r.error,0);

@@ -159,9 +159,10 @@ departure delay. This overlaps incoming and outgoing motion without jumping to
 particles already midway through a flight. `config.intro` shares the timing
 between the animation loop and shader. Hover restoration reverses the same paths.
 
-`site/text-effect.mjs` rasterizes the existing name and email letter shapes and
-feeds them through the same GPU cell motion. The name and email assemble from
-the left alongside the portrait, then disintegrate with the face. Hover
+`site/text-effect.mjs` rasterizes the existing name letter shapes and
+feeds them through the same GPU cell motion. The name assembles from
+the left alongside the portrait, then disintegrates with the face. The email
+stays visible and clickable throughout the timeline. Hover
 and touch restore text locally. A/I share the same neutral ink as the other
 letters; normalized bounds select their delayed, reduced disintegration in the
 vertex shader. Bounds update with layout, so the effect survives phone sizing,
@@ -232,6 +233,12 @@ subdivision, and desktop/phone viewport frame timing.
 `node scripts/verify-identity.mjs` compares identical A/I source pixels with and
 without retention: delayed release, fewer departures, no phase-dependent red,
 exact restoration, and desktop/phone bounds.
+
+`node scripts/verify-polish.mjs` checks compact, phone, landscape and desktop
+layouts, persistent contact details, 44px action targets and tuner inputs,
+16px phone fields, Escape-to-close, focus return, and the mail link. The tuning
+panel separates timeline/lettering from fragment motion; controls retain the
+existing stored settings and shared-look format.
 
 Push changes to `master` to publish through `.github/workflows/pages.yml`.
 The workflow can also be run manually from the Actions tab. GitHub Pages must

@@ -41,7 +41,7 @@ export class TextEffect {
     const walker=document.createTreeWalker(this.element,NodeFilter.SHOW_TEXT);
     while(walker.nextNode()){
       const node=walker.currentNode,parent=node.parentElement;
-      if(!parent.closest('h1,.email'))continue;
+      if(!parent.closest('h1'))continue;
       const style=getComputedStyle(parent);
       for(let i=0;i<node.length;i++){
         if(!node.data[i].trim())continue;
@@ -49,7 +49,7 @@ export class TextEffect {
         const box=range.getBoundingClientRect();
         if(!box.width||!box.height)continue;
         letters.push({char:node.data[i],box,font:`${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`,
-          accent:!!parent.closest('.ai-letter'),email:!!parent.closest('.email')});
+          accent:!!parent.closest('.ai-letter')});
       }
     }
     if(!letters.length)return;
@@ -64,7 +64,7 @@ export class TextEffect {
       ctx.font=letter.font;ctx.textBaseline='alphabetic';
       const metrics=ctx.measureText(letter.char),ascent=metrics.fontBoundingBoxAscent,descent=metrics.fontBoundingBoxDescent;
       const x=letter.box.left-left,y=letter.box.top-top+(letter.box.height-ascent-descent)/2+ascent;
-      ctx.fillStyle=letter.email?'#949b9a':'#f4f1e7';
+      ctx.fillStyle='#f4f1e7';
       ctx.fillText(letter.char,x,y);
     }
     this.textConfig={...this.config,ascii:{...this.config.ascii},shader:{...this.config.shader,
