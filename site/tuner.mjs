@@ -23,7 +23,14 @@ const groups = [
     ['particleSpeed','Speed',0,1.5,.02],
     ['particleTravel','Travel distance',0,.6,.01],
     ['randomness','Randomness / turbulence',0,1.5,.05],
+    ['windCurl','Wind curl',0,2,.05],
+    ['fragmentSpin','Fragment rotation',0,2,.05],
+    ['streamReach','Stream reach',0,2,.05],
     ['debrisDensity','Particle density',0,.6,.01],
+  ]],
+  ['Touch & reveal', [
+    ['brushSize','Brush size · pixels',40,200,2],
+    ['trailPersistence','Trail persistence · seconds',.2,2,.05],
   ]],
   ['Character animation', [
     ['scrambleHz','Rewrite speed',0,16,.5],

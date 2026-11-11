@@ -17,6 +17,8 @@ uniform float sweepDuration;
 uniform float motion;
 uniform float assembly;
 uniform float entranceSeed;
+uniform vec3 flowControls;
+uniform vec2 introTiming;
 varying vec2 uv;
 varying float fragmentLife;
 varying vec2 cellInteraction;
@@ -29,13 +31,17 @@ void main() {
   float restored=smoothstep(.08,.8,local);
   float released=step(hash(cell+113.2),debrisControls.x)*step(.00001,debrisControls.x);
   float seed=hash(cell+17.3);
+  vec2 introCell=cell+entranceSeed;
+  float settleAt=mix(introTiming.y,1.,hash(introCell+219.3));
   float rate=mix(1.,.6+seed*1.5,debrisControls.y);
   // A one-way front crosses each source cell once. There is no respawn cycle.
   float velocity=(max(dissolve.y,.1)+.12)/max(sweepDuration,.1);
   float threshold=mix(dissolve.x,dissolve.y,hash(cell+91.7));
-  float departure=max(0.,(threshold-origin.x)/velocity)+.15+hash(cell+43.8)*.6;
+  float departure=max(0.,(threshold-origin.x)/velocity);
   float flightDuration=clamp(.55/max(dissolve.w,.03)/max(rate,.2),.8,6.);
-  float age=clamp((breakupTime-departure)/flightDuration,0.,1.)*motion*step(.00001,dissolve.w);
+  // Main starts this clock at 72% of the intro. A cell departs immediately after
+  // its own arrival when the dissolve front has reached it, without a shared hold.
+  float age=clamp((breakupTime-(settleAt-introTiming.y)*introTiming.x-departure)/flightDuration,0.,1.)*motion*step(.00001,dissolve.w);
   // Restoration reverses the same flight back to the original source position.
   float flight=age*released*(1.-restored);
   float burst=hash(cell+59.1);
@@ -43,19 +49,27 @@ void main() {
   float curl=sin(flight*(8.+burst*10.)+seed*6.283)*flight*flight;
   vec2 offset=vec2(distance+curl*.018*debrisControls.y,
     ((seed-.5)*flight*flight*.18+curl*.04)*debrisControls.y);
-  float persistence=mix(.12,1.,clamp(debrisControls.z/.6,0.,1.));
+  // Neighboring rows share a gust, while individual fragments curl out of it.
+  float ribbon=origin.y*19.+seed*.7;
+  float wind=sin(ribbon+flight*9.)-sin(ribbon);
+  offset+=vec2(pow(flight,1.5)*(.04+.018*sin(flight*15.+ribbon)),
+    wind*pow(flight,1.35)*.055)*flowControls.x*debrisControls.y;
+  // A sparse cohort travels across the screen; the rest sheds as fine local dust.
+  float drifter=step(hash(cell+71.3),debrisControls.z)*step(.0001,debrisControls.z);
+  float persistence=mix(.22+burst*.16,.82+burst*.18,drifter);
   fragmentLife=1.-smoothstep(persistence*.45,persistence,flight);
   vec2 size=imageSize*min(portraitBounds.z/imageSize.x,portraitBounds.w/imageSize.y);
   vec2 homeCenter=(origin-.5+placement.yz)*size*placement.x+portraitBounds.xy+portraitBounds.zw*.5;
+  offset.x+=max(0.,(resolution.x-homeCenter.x)/(size.x*placement.x))*pow(flight,1.65)*flowControls.z*drifter;
   // Every cell begins just beyond the viewport's left edge, independent of the portrait box.
-  vec2 introCell=cell+entranceSeed;
   float delay=.04+hash(introCell+201.7)*.3;
-  float progress=clamp((assembly-delay)/(.5+hash(introCell+219.3)*.14),0.,1.);
+  float progress=clamp((assembly-delay)/(settleAt-delay),0.,1.);
   // Independent stop/start clocks: each cell stalls, surges, and catches up.
   float steps=5.+floor(hash(introCell+241.1)*7.);
   float segment=floor(progress*steps);
   float pause=.14+hash(introCell+segment*7.3)*.24;
-  float surge=smoothstep(pause,pause+.2+hash(introCell+segment*19.7)*.3,fract(progress*steps));
+  float surgeEnd=mix(pause+.2+hash(introCell+segment*19.7)*.3,1.,step(steps-1.,segment));
+  float surge=smoothstep(pause,surgeEnd,fract(progress*steps));
   float arrival=smoothstep(0.,1.,min(1.,(segment+surge)/steps));
   float remaining=1.-arrival;
   float glyphWidth=size.x*placement.x/columns;
@@ -69,13 +83,16 @@ void main() {
   vec2 incoming=vec2((-homeCenter.x-glyphWidth*(1.+seed*4.))*remaining,
     ((hash(introCell+231.9)-.5)*.45+sin(progress*(9.+seed*13.)+seed*6.283)*.14)*remaining*size.y*placement.x);
   incoming+=jitter*vec2(resolution.x*.035,size.y*.065)*glitch+vec2(rowTear,0.);
-  float live=smoothstep(.94,1.,assembly);
+  float live=smoothstep(.98,1.,progress);
   offset*=live;
   float flicker=1.-glitch*(.25+hash(introCell+glitchFrame*31.1)*.5);
   fragmentLife=mix(1.,fragmentLife,live)*smoothstep(delay,delay+.08,assembly)*flicker;
   // UVs stay anchored to the original face cell while its geometry moves.
   uv=vec2(position.x,1.-position.y);
-  vec2 screen=(position+offset-.5+placement.yz)*size*placement.x+portraitBounds.xy+portraitBounds.zw*.5+incoming;
+  float angle=(seed-.5)*pow(flight,1.4)*2.4*flowControls.y*live;
+  vec2 localPosition=(position-origin)*size*placement.x;
+  localPosition=mat2(cos(angle),sin(angle),-sin(angle),cos(angle))*localPosition;
+  vec2 screen=homeCenter+localPosition+offset*size*placement.x+incoming;
   gl_Position=vec4(screen.x/resolution.x*2.-1.,1.-screen.y/resolution.y*2.,0.,1.);
 }
 `;
@@ -284,6 +301,8 @@ export class PortraitGL {
           "motion",
           "assembly",
           "entranceSeed",
+          "flowControls",
+          "introTiming",
           "interference",
           "takeover",
           "eye",
@@ -416,6 +435,8 @@ export class PortraitGL {
     gl.uniform1f(u.eyeGlow,c.eye.glow);
     gl.uniform1f(u.nameGlow,c.nameGlow??1);
     gl.uniform1f(u.sweepDuration,s.sweepDuration??18);
+    gl.uniform3f(u.flowControls,s.windCurl??.9,s.fragmentSpin??.65,s.streamReach??1.2);
+    gl.uniform2f(u.introTiming,c.intro.duration,c.intro.flowStart);
     this.updateMesh();
   }
   get sourceWidth(){return this.image.naturalWidth||this.image.width;}
@@ -458,6 +479,7 @@ export class PortraitGL {
     this.gl.bufferData(this.gl.ARRAY_BUFFER,vertices,this.gl.STATIC_DRAW);
     this.interactions=new Float32Array(columns*rows*12);
     this.interactionActive=false;
+    this.previousPointer=null;
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER,this.interactionBuffer);
     this.gl.bufferData(this.gl.ARRAY_BUFFER,this.interactions,this.gl.DYNAMIC_DRAW);
   }
@@ -466,16 +488,27 @@ export class PortraitGL {
     this.interactionTime=time;
     const strength=reduced?0:(pointer.strength??(pointer.x>=0&&pointer.y>=0?1:0));
     const reveal=reduced?0:(pointer.reveal??0);
+    const aspect=this.sourceHeight/this.sourceWidth;
+    const previous=this.previousPointer;
+    this.previousPointer=!reduced&&strength>.05?{x:pointer.x,y:pointer.y}:null;
+    const sx=previous?previous.x-pointer.x:0,sy=previous?(previous.y-pointer.y)*aspect:0;
+    const lengthSquared=sx*sx+sy*sy;
+    // Sweep the brush across the path between frames so quick gestures leave no holes.
+    const sweeping=!!previous&&strength>.05&&lengthSquared>1e-8&&lengthSquared<.7;
     if(strength<.001&&reveal<.001&&!this.interactionActive)return;
     const data=this.interactions,columns=this.meshColumns,rows=this.meshRows;
     const attack=1-Math.exp(-delta/.12),release=1-Math.exp(-delta/(pointer.trail??.45));
     let active=false;
     for(let y=0;y<rows;y++)for(let x=0;x<columns;x++){
       const i=(y*columns+x)*12;
-      const dx=(x+.5)/columns-pointer.x,dy=((y+.5)/rows-pointer.y)*this.sourceHeight/this.sourceWidth;
+      let dx=(x+.5)/columns-pointer.x,dy=((y+.5)/rows-pointer.y)*aspect;
+      const along=sweeping?Math.max(0,Math.min(1,(dx*sx+dy*sy)/lengthSquared)):0;
+      dx-=sx*along;dy-=sy*along;
       const radial=Math.max(0,1-Math.sqrt(dx*dx+dy*dy)/(pointer.radius??.16));
       const target=Math.max(reveal,radial*radial*(3-2*radial)*strength);
-      let amount=data[i]+(target-data[i])*(target>data[i]?attack:release);
+      // A passing stroke catches cells promptly; a held point still gathers gently.
+      const catchUp=sweeping?Math.max(attack,Math.min(.95,Math.sqrt(lengthSquared)*12)):attack;
+      let amount=data[i]+(target-data[i])*(target>data[i]?catchUp:release);
       if(reduced||amount<.0001)amount=0;
       const charge=reduced?0:Math.max(data[i+1]*Math.exp(-delta/.18),Math.min(1,Math.max(0,amount-data[i])/Math.max(delta,.001)*.2));
       for(let v=0;v<6;v++){data[i+v*2]=amount;data[i+v*2+1]=charge;}
@@ -486,6 +519,7 @@ export class PortraitGL {
     this.gl.bufferSubData(this.gl.ARRAY_BUFFER,0,data);
   }
   resetInteraction() {
+    this.previousPointer=null;
     this.interactions.fill(0);this.interactionActive=false;
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER,this.interactionBuffer);
     this.gl.bufferSubData(this.gl.ARRAY_BUFFER,0,this.interactions);

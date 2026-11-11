@@ -10,7 +10,7 @@ try {
     const c=structuredClone(config);
     c.ascii.desktopColumns=c.ascii.mobileColumns=32;
     Object.assign(c.shader,{scrambleHz:0,glitchBandSpeed:0,densityJitter:0,breakup:0,
-      dissolveStart:.3,dissolveEnd:.4,randomness:0,particleTravel:.6,particleSpeed:.5,debrisDensity:.6});
+      dissolveStart:.3,dissolveEnd:.4,randomness:0,fragmentSpin:0,windCurl:0,streamReach:0,particleTravel:.6,particleSpeed:.5,debrisDensity:.6});
     // One non-transparent source cell: any extra debris would be invented content.
     const source=document.createElement('canvas');source.width=source.height=256;
     const ctx=source.getContext('2d');ctx.fillStyle='#b0b0b0';

@@ -43,7 +43,7 @@ try{
   });
   assert.equal(pixelChecks.handoffChanged,0,'Assembly hands off without a jump');
   assert.ok(pixelChecks.introEmpty,'Text begins as incoming fragments rather than complete letters');
-  assert.equal(pixelChecks.launchChanged,0,'The first 50 ms do not splice in already-travelling particles');
+  assert.ok(pixelChecks.launchChanged>0&&pixelChecks.launchChanged<pixelChecks.laterChanged*.15,'The first 50 ms begin moving gradually, with no dead interval');
   assert.ok(pixelChecks.laterChanged>1000,'Disintegration still starts progressively');
   assert.ok(pixelChecks.namePixels>10000&&pixelChecks.departed>500,'Actual letter pixels leave their original positions');
   assert.ok(pixelChecks.accentRed>100&&pixelChecks.otherRed===0,'Only A/I and their bloom turn red');

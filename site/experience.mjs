@@ -1,5 +1,5 @@
 // A screen-space brush lets a single gesture gather both the portrait and type.
-export function createExperience({ root, motion, onMove, onLeave, onReplay }) {
+export function createExperience({ root, motion, config, onMove, onLeave, onReplay }) {
   const rail = document.querySelector('.experience');
   const hint = rail.querySelector('.experience-hint');
   const reveal = rail.querySelector('[data-scene="reveal"]');
@@ -65,7 +65,7 @@ export function createExperience({ root, motion, onMove, onLeave, onReplay }) {
         state.gather = Math.min(1, Math.max(0, (heldTime - .18) / 2.2));
         onMove({ clientX: x, clientY: y, isPrimary: true, gather: true });
       } else state.gather *= Math.exp(-delta / .3);
-      state.radius = (coarse.matches ? 78 : 96) + Math.pow(state.gather, 1.7) * Math.hypot(innerWidth, innerHeight) * 4;
+      state.radius = config.shader.brushSize*(coarse.matches ? .82 : 1) + Math.pow(state.gather, 1.7) * Math.hypot(innerWidth, innerHeight) * 4;
       const target = pinned || state.gather > .98 ? 1 : 0;
       state.reveal += (target - state.reveal) * (1 - Math.exp(-delta / .28));
       const interacting = active && ready && assembly === 1 && breakupTime > 1 && !pinned;
@@ -74,7 +74,7 @@ export function createExperience({ root, motion, onMove, onLeave, onReplay }) {
       // The cursor marks the gathering gesture, not an artificial clipping boundary.
       cursor.style.setProperty('--gather', state.gather);
       cursor.style.setProperty('--ring-size', `${18 + state.gather * 62}px`);
-      const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to dissolve' : held ? 'Gathering' : coarse.matches ? 'Touch to reveal · hold to gather' : 'Move to reveal · hold to gather';
+      const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to dissolve' : held ? (state.gather===1?'Release to scatter':'Gathering') : coarse.matches ? 'Draw to reveal · hold to gather' : 'Move to reveal · hold to gather';
       if (message !== lastHint) { hint.textContent = message; lastHint = message; }
       rail.dataset.state = assembly < 1 ? 'assembling' : pinned ? 'revealed' : 'live';
     },

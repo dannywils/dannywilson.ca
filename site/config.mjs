@@ -15,6 +15,11 @@ export const publishedLook = Object.freeze({
   breakupCenter: 0.72,
   feather: 0.59,
   sweepDuration: 18,
+  windCurl: .9,
+  fragmentSpin: .65,
+  streamReach: 1.2,
+  brushSize: 96,
+  trailPersistence: .9,
   particleSpeed: 0.2,
   particleTravel: 0.18,
   randomness: 1.5,
@@ -37,7 +42,8 @@ export const publishedLook = Object.freeze({
 export function applyLook(config, values) {
   for (const key of ['contrast','brightness','exposure','gamma','glyphWeight',
     'noseContrast','zoom','centerX','centerY','breakup','randomness','particleSpeed',
-    'particleTravel','debrisDensity','scrambleHz','densityJitter','glitchBandSpeed','sweepDuration'])
+    'particleTravel','debrisDensity','scrambleHz','densityJitter','glitchBandSpeed','sweepDuration',
+    'windCurl','fragmentSpin','streamReach','brushSize','trailPersistence'])
     config.shader[key] = values[key];
   config.ascii.desktopColumns = values.density;
   config.ascii.mobileColumns = Math.round(values.density * .75);
@@ -58,6 +64,7 @@ export function applyLook(config, values) {
 }
 
 export const config = {
+  intro: { duration: 4.8, flowStart: .72 },
   email: 'danny@dannywilson.ca',
   portrait: '/assets/portrait.png',
   timing: { recovery: 260 },

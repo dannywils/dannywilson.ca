@@ -36,16 +36,19 @@ The name uses wider letter spacing. The page has no taglines. Hovering or holdin
 a finger restores nearby source pixels by reversing their flight back into place.
 The effect follows source coordinates through zoom and placement. Restored pixels
 dissolve again after release, cancellation, leaving the area, or losing focus.
-Keyboard focus restores the email too. Vertical touch scrolling and pinch zoom
-remain available. Reduced motion keeps the complete portrait and text static.
+Keyboard focus restores the email too. The portrait accepts drawing in any
+direction on touchscreens; pinch zoom remains available. The rest of the page
+still allows vertical scrolling. Reduced motion keeps the complete portrait and text static.
 
 The interaction strip provides **Replay** for the complete entrance and **Reveal**
 to gather the entire scene until **Release** is selected. Moving across the page
 leaves a short restoration trail. Pressing and holding expands the brush from the
 pointer to the whole scene over about 2.4 seconds; lifting releases the pixels.
 Both the portrait and type share a screen-space brush, so gathering works across
-their boundaries. Returning glyphs briefly catch a cool phosphor tint. A small
-ring marks the active gesture without implying a clipping box. Touch cancellation,
+their boundaries. Fast strokes sweep the intervening path rather than skipping
+cells between frames. Returning glyphs briefly catch a cool phosphor tint. Small
+corner marks follow the brush; holding draws a progress ring that completes when
+the scene is gathered. Touch cancellation,
 focus loss and hidden tabs end the hold. The buttons offer a keyboard alternative;
 reduced motion keeps the scene still and disables animation actions.
 
@@ -74,8 +77,12 @@ dissolve button. Departing fragments finish fading after the front passes.
 Each cell is drawn once: its original source coordinates, shading and character
 move with it, leaving its position empty. No separate debris glyphs are generated.
 The characters keep rewriting during flight. Vertex motion varies speed,
-acceleration and curl per cell. Particle density controls how long departing
-cells stay visible. Boundary softness spans 0.01–2 portrait widths, including
+acceleration and curl per cell. Shared gusts curl through neighboring rows and
+fragments rotate as they depart, with their source pixels attached. Particle
+density selects a sparse cohort of longer-lived fragments that can drift toward
+the viewport's right edge; the rest fades as local dust. Wind curl, fragment
+rotation, stream reach, brush size and trail persistence have dedicated controls.
+Boundary softness spans 0.01–2 portrait widths, including
 values wider than the whole image. The central features stay intact at the
 default boundary. Thin displaced slices intensify the synchronized
 takeover. A dark crimson accent with a restrained halo is confined to one eye. The source
@@ -95,9 +102,12 @@ the screen edge clipping them. Scroll and resize keep the destination aligned.
 Each load varies the cells' delays, stop/start bursts, curling paths, jitter,
 brief dimming, and horizontal glitch slices. These disturbances taper away as
 each cell settles, preserving the exact final portrait.
-Disintegration has its own clock, starting at zero after assembly, with staggered
-departures from rest. It never blends in particles already midway through a
-flight. Hover restoration follows those same paths in reverse with eased influence.
+Disintegration begins during the final 28% of assembly. Each cell can depart only
+after its own arrival and when the dissolve front reaches it. The last intro step
+finishes at the cell's landing time; there is no global idle interval or extra
+departure delay. This overlaps incoming and outgoing motion without jumping to
+particles already midway through a flight. `config.intro` shares the timing
+between the animation loop and shader. Hover restoration reverses the same paths.
 
 `site/text-effect.mjs` rasterizes the existing name and email letter shapes and
 feeds them through the same GPU cell motion. The name and email assemble from
@@ -146,6 +156,9 @@ disappearance, restoration of dissolved text, release, and replay.
 `node scripts/verify-experience.mjs` checks whole-scene keyboard reveal/release,
 progressive gathering, replayed assembly, phone hold/cancellation, and reduced
 motion using actual rendered pixel counts.
+`node scripts/verify-flow.mjs` checks overlapping arrival/departure for text and
+portrait, continuity across the intro boundary, fast brush strokes, and vertical
+drawing in an emulated touch browser.
 
 Push changes to `master` to publish through `.github/workflows/pages.yml`.
 The workflow can also be run manually from the Actions tab. GitHub Pages must

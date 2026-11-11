@@ -21,10 +21,10 @@ let controller = new Controller(config),
   entranceElapsed = 0,
   breakupElapsed = 0,
   disposed = false;
-const entranceDuration = 4800;
+const entranceDuration = config.intro.duration*1000;
 const pointer = { x: -2, y: -2, tx: -2, ty: -2, strength: 0, targetStrength: 0 };
 const image = new Image();
-const experience = createExperience({root,motion,
+const experience = createExperience({root,motion,config,
   onMove(e) { move(e); textEffect?.movePointer(e); if(e.gather)pointer.targetStrength=1; },
   onLeave: leaveAll,
   onReplay() {
@@ -50,7 +50,7 @@ function draw() {
     const width=image.naturalWidth*Math.min(b.width/image.naturalWidth,b.height/image.naturalHeight)*config.shader.zoom;
     pointer.radius=experience.state.radius/width;
     pointer.reveal=experience.state.reveal;
-    pointer.trail=.8;
+    pointer.trail=config.shader.trailPersistence;
     figure.dataset.entrance = assembly < 1 ? "assembling" : "settled";
     figure.setAttribute("aria-busy", String(assembly < 1));
     renderer.render(elapsed, controller.phase, motion.matches, pointer, light, assembly, breakupElapsed);
@@ -77,8 +77,9 @@ function tick(now) {
   last = now;
   elapsed += delta / 1000;
   const liveDelta=Math.max(0,delta-Math.max(0,entranceDuration-entranceElapsed));
+  const dissolveDelta=Math.max(0,delta-Math.max(0,entranceDuration*config.intro.flowStart-entranceElapsed));
   entranceElapsed = Math.min(entranceDuration, entranceElapsed + delta);
-  breakupElapsed += liveDelta / 1000;
+  breakupElapsed += dissolveDelta / 1000;
   experience.update(delta/1000, Math.min(1,entranceElapsed/entranceDuration), breakupElapsed);
   if (controller.update(liveDelta)) sync();
   const follow = 1 - Math.exp(-delta / 65);

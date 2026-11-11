@@ -95,11 +95,16 @@ h1 {
   opacity: 0; transition: opacity .3s;
 }
 .gather-cursor.active { opacity: 1; }
-.gather-cursor i {
+.gather-cursor svg {
   position: absolute; width: var(--ring-size, 18px); height: var(--ring-size, 18px);
-  transform: translate(-50%, -50%); border: 1px solid #bad3d33b; border-radius: 50%;
+  transform: translate(-50%, -50%); overflow: visible; fill: none;
 }
-.gather-cursor.held i { border-color: #bad3d377; border-top-color: #a13b32; }
+.gather-cursor svg * { vector-effect: non-scaling-stroke; stroke-width: 1; }
+.brush-marks { stroke: #bad3d36b; }
+.gather-track { stroke: #bad3d32e; opacity: 0; }
+.gather-progress { stroke: #b65548; stroke-dasharray: calc(var(--gather, 0) * 100) 100; transform-origin: 24px 24px; transform: rotate(-90deg); opacity: 0; }
+.gather-cursor.held .brush-marks { opacity: 0; }
+.gather-cursor.held .gather-track, .gather-cursor.held .gather-progress { opacity: 1; }
 .tuning-open .experience-hint, .tuning-open .gather-cursor { visibility: hidden; }
 .tuning-open .experience { justify-content: flex-end; pointer-events: none; }
 .tuning-open .scene-actions { pointer-events: auto; }
@@ -112,6 +117,7 @@ h1 {
   .gather-cursor.active { opacity: .65; }
 }
 @media (prefers-reduced-motion: reduce) { .gather-cursor { display: none; } }
+@media (pointer: coarse) { .composition .portrait { touch-action: pinch-zoom; } }
 .email:hover,
 .email:focus-visible {
   color: var(--paper);
