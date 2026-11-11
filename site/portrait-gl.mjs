@@ -1,5 +1,6 @@
 // One GPU pass: each source fragment is a movable quad, rendered exactly once.
 // The source photograph is sampled only for tone/alpha; it is never composited.
+import {maxTapBursts} from './tap-motion.mjs';
 const vertexSource = `
 attribute vec2 position;
 attribute vec2 origin;
@@ -29,8 +30,9 @@ uniform vec2 introTiming;
 uniform float erosionStructure;
 uniform float fragmentDepth;
 uniform float flightDepth;
-uniform vec4 tap;
-uniform vec2 tapTiming;
+uniform vec4 taps[${maxTapBursts}];
+uniform vec3 tapTimings[${maxTapBursts}];
+uniform int tapCount;
 varying vec2 uv;
 varying float fragmentLife;
 varying vec2 cellInteraction;
@@ -178,7 +180,10 @@ void main() {
   fragmentShade*=1.-max(0.,-z)*travel*.35*flightDepth*live;
   localPosition=mat2(cos(angle),sin(angle),-sin(angle),cos(angle))*localPosition;
   vec2 screen=volumeCenter+(homeCenter-volumeCenter)*perspective+localPosition+offset*size*placement.x*perspective+incoming;
-  if(tap.z>0.&&motion>.5&&assembly>=1.){
+  for(int tapIndex=0;tapIndex<${maxTapBursts};tapIndex++){
+    if(tapIndex>=tapCount)break;
+    vec4 tap=taps[tapIndex];
+    vec3 tapTiming=tapTimings[tapIndex];
     // Freeze selection at the tap: hit the displayed pieces, including their
     // existing drift and depth, rather than the original source-image location.
     float hitAge=clamp((tapTiming.y-(settleAt-introTiming.y)*introTiming.x-departure)/flightDuration,0.,1.)*step(.00001,dissolve.w);
@@ -191,13 +196,23 @@ void main() {
     vec2 hit=volumeCenter+(homeCenter-volumeCenter)*hitPerspective+hitHeading*hitDistance*reach*size*placement.x*hitPerspective;
     vec2 fromTap=hit-tap.xy;
     float hitRadius=length(fromTap);
-    float influence=(1.-smoothstep(.15,1.,hitRadius/tap.z))*(1.-anchored)*(1.-restored)*interactionMask;
+    // A ragged, connected pressure field replaces the clean circular cutout.
+    // Its seed stays fixed for this impact; nearby fragments tear in patches.
+    vec2 patch=fromTap/tap.z;
+    float coarse=noise(patch*2.7+tapTiming.z);
+    float fine=noise(patch*7.3+tapTiming.z+31.7);
+    float edge=.58+coarse*.57+fine*.2;
+    float influence=(1.-smoothstep(.02,edge,hitRadius/tap.z))*(1.-anchored)*(1.-restored)*interactionMask;
     vec2 outward=hitRadius>1.?fromTap/hitRadius:vec2(cos(azimuth),sin(azimuth));
     vec2 tangent=vec2(-outward.y,outward.x);
     float spread=tap.w*influence;
-    // Each selected shard coasts out from the impact, then follows a slower
-    // attraction back. The whole displacement is exactly zero at either endpoint.
-    vec2 drift=outward*(.18+hash(cell+701.3)*1.5)+tangent*(seed-.5)*.55*sin(tapTiming.x*1.3);
+    // A broad range of projected velocities leaves suspended fragments inside
+    // the impact, instead of evacuating the center into a uniform bright ring.
+    float scatter=hash(cell+tapTiming.z+701.3);
+    float turn=(hash(cell+tapTiming.z+733.1)-.5)*2.6;
+    float lingering=1.-smoothstep(.23,.35,hash(cell+tapTiming.z+739.7));
+    float speed=mix(.035+pow(scatter,2.)*2.1,.015+scatter*.035,lingering);
+    vec2 drift=(outward*cos(turn)+tangent*sin(turn))*speed;
     screen+=drift*tap.z*spread;
     screen+=localPosition*z*.35*spread;
     fragmentShade*=1.-max(0.,-z)*.18*spread;
@@ -413,8 +428,9 @@ export class PortraitGL {
           "erosionStructure",
           "fragmentDepth",
           "flightDepth",
-          "tap",
-          "tapTiming",
+          "taps[0]",
+          "tapTimings[0]",
+          "tapCount",
           "interference",
           "takeover",
           "eye",
@@ -720,9 +736,22 @@ export class PortraitGL {
     );
     gl.uniform2f(u.pointer, pointer.x, pointer.y);
     gl.uniform1f(u.pointerStrength,reduced?0:(pointer.strength??1));
-    const tap=!reduced&&assembly>=1?pointer.tap:null,dpr=this.pixelRatio||1;
-    gl.uniform4f(u.tap,(tap?.x??0)*dpr,(tap?.y??0)*dpr,(tap?.width??0)*dpr,tap?.strength??0);
-    gl.uniform2f(u.tapTiming,tap?.age??0,tap?.breakupTime??breakupTime);
+    const taps=!reduced&&assembly>=1?(pointer.taps??[]):[],dpr=this.pixelRatio||1;
+    const count=Math.min(taps.length,maxTapBursts);
+    this.tapData??=new Float32Array(maxTapBursts*4);
+    this.tapTimingData??=new Float32Array(maxTapBursts*3);
+    for(let i=0;i<count;i++){
+      const tap=taps[i],p=i*4,t=i*3;
+      this.tapData[p]=tap.x*dpr;this.tapData[p+1]=tap.y*dpr;
+      this.tapData[p+2]=tap.width*dpr;this.tapData[p+3]=tap.strength;
+      this.tapTimingData[t]=tap.age;this.tapTimingData[t+1]=tap.breakupTime??breakupTime;
+      this.tapTimingData[t+2]=tap.seed??0;
+    }
+    gl.uniform1i(u.tapCount,count);
+    if(count){
+      gl.uniform4fv(u['taps[0]'],this.tapData);
+      gl.uniform3fv(u['tapTimings[0]'],this.tapTimingData);
+    }
     if(this.options.clear!==false){gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);}
     if(this.indexed)gl.drawElements(gl.TRIANGLES,this.indexCount,gl.UNSIGNED_INT,0);
     else gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);

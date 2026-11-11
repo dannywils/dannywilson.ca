@@ -68,8 +68,11 @@ Holding never expands the brush. A quick tap selects a broader local patch
 including existing flight and depth. Those same source pieces drift outward from
 the tap for 1.1 seconds, then pull home over 2.7 seconds. Screen coordinates and
 device-pixel ratio stay consistent for both text and portrait. The selected cohort
-stays fixed; there is no travelling selection wave. Holds and drags keep their
-gentler local deformation.
+stays fixed; there is no travelling selection wave. Each impact has an uneven,
+seeded contour and varied fragment velocities, leaving suspended pieces through
+the center instead of a clean circular hole. Up to 16 bursts overlap with separate
+clocks; new touches never replace a burst already in flight. Holds and drags keep
+their gentler local deformation.
 Lifting lets them reform. Motion reduction, cancellation or loss of focus end
 the gesture. The persistent **Contact** link
 keeps email reachable throughout the animation.

@@ -1,4 +1,4 @@
-import {tapProgress,tapDuration,tapDriftSeconds} from './tap-motion.mjs';
+import {addTap,advanceTaps,tapDriftSeconds} from './tap-motion.mjs';
 // A screen-space brush scatters the portrait and type; the cycle reforms them.
 export function createExperience({ root, motion, config, onMove, onLeave, onReplay, onSkip }) {
   const rail = document.querySelector('.experience');
@@ -15,7 +15,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   let captured=null,multitouch=false;
   let pressedAt=0,startX=0,startY=0,travel=0;
   const touches=new Set();
-  const state = { radius: 90, reveal: 0, gather: 0, pulse:null };
+  const state = { radius: 90, reveal: 0, gather: 0, taps:[] };
   const on = (el, type, fn) => { el.addEventListener(type, fn); listeners.push([el, type, fn]); };
   const reset = () => {
     held = false; active = false;
@@ -23,14 +23,14 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
     if(id!==null&&root.hasPointerCapture(id))root.releasePointerCapture(id);
     cursor.classList.remove('active', 'held'); onLeave();
   };
-  const cancelGesture=()=>{state.pulse=null;state.gather=0;reset();};
+  const cancelGesture=()=>{state.gather=0;reset();};
   const syncReveal = () => {
     reveal.setAttribute('aria-pressed',String(pinned));
     reveal.querySelector('span').textContent=pinned?'Release':'Reveal';
     reveal.title=pinned?'Resume the dissolve and reform cycle':'Reveal the complete portrait and name';
   };
   const release = () => {
-    pinned=false;state.reveal=0;state.gather=0;state.pulse=null;reset();syncReveal();
+    pinned=false;state.reveal=0;state.gather=0;state.taps.length=0;reset();syncReveal();
   };
   const move = e => {
     if (!interactive || motion.matches || e.isPrimary === false || multitouch) return;
@@ -46,13 +46,13 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
     if (!interactive || multitouch || e.isPrimary === false || e.button > 0 || e.target.closest('a,button,input,select,textarea')) return;
     held = true;
     captured=e.pointerId;
-    pressedAt=performance.now();startX=e.clientX;startY=e.clientY;travel=0;state.pulse=null;
+    pressedAt=performance.now();startX=e.clientX;startY=e.clientY;travel=0;
     root.setPointerCapture(e.pointerId); move(e);
   });
   on(root, 'pointerup', e => {
     if(e.isPrimary===false||e.pointerId!==captured)return;
     if(held&&performance.now()-pressedAt<280&&travel<10&&interactive&&!pinned){
-      state.pulse={x:e.clientX,y:e.clientY,width:Math.min(coarse.matches?108:150,state.radius*1.9),age:0,strength:0};
+      addTap(state.taps,{x:e.clientX,y:e.clientY,width:Math.min(coarse.matches?108:150,state.radius*1.9)});
     }
     held = false;
     captured=null;
@@ -71,7 +71,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   on(document, 'visibilitychange', () => { if (document.hidden) {touches.clear();multitouch=false;cancelGesture();} });
   on(reveal, 'click', () => {
     pinned = !pinned;
-    state.pulse=null;
+    state.taps.length=0;
     syncReveal();
   });
   on(replay, 'click', () => {
@@ -90,11 +90,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
       enabled = figure.dataset.renderer === 'webgl';
       const ready = enabled && !motion.matches;
       interactive=ready&&assembly===1;
-      if(state.pulse){
-        state.pulse.age+=delta;
-        state.pulse.strength=tapProgress(state.pulse.age);
-        if(state.pulse.age>=tapDuration||!interactive)state.pulse=null;
-      }
+      if(interactive)advanceTaps(state.taps,delta);else state.taps.length=0;
       const nextAssembling=assembly<1;
       if(assembling!==nextAssembling||!replay.dataset.entranceAction){
         assembling=nextAssembling;replay.dataset.entranceAction=assembling?'skip':'replay';
@@ -119,7 +115,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
       // The cursor marks the gathering gesture, not an artificial clipping boundary.
       cursor.style.setProperty('--gather', state.gather);
       cursor.style.setProperty('--ring-size', held?'24px':'18px');
-      const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to resume' : held ? 'Release to reform' : state.pulse ? (state.pulse.age<tapDriftSeconds?'Drifting':'Reforming') : coarse.matches ? 'Tap to scatter · drag to deform' : 'Click to scatter · move to deform';
+      const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to resume' : held ? 'Release to reform' : state.taps.length ? (state.taps.some(tap=>tap.age<tapDriftSeconds)?'Drifting':'Reforming') : coarse.matches ? 'Tap to scatter · drag to deform' : 'Click to scatter · move to deform';
       if (message !== lastHint) { hint.textContent = message; lastHint = message; }
       rail.dataset.state = assembly < 1 ? 'assembling' : pinned ? 'revealed' : 'live';
     },

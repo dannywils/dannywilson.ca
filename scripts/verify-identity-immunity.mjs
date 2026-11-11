@@ -29,7 +29,7 @@ try{
           r.resetInteraction();const home=sample(clock);
           for(let i=0;i<90;i++)r.updateInteraction(i/60,false,pointer);
           const hovered=sample(clock,pointer);
-          const tapped=sample(clock,{...pointer,tap:{x:b.left+pointer.x*b.width,y:b.top+pointer.y*b.height,width:150,age:1.1,strength:1,breakupTime:clock}});
+          const tapped=sample(clock,{...pointer,taps:[{x:b.left+pointer.x*b.width,y:b.top+pointer.y*b.height,width:150,age:1.1,strength:1,breakupTime:clock}]});
           result.push({letter:['A','I','D'][index],clock,hover:changed(home,hovered),tap:changed(home,tapped),pixels:home.filter((v,i)=>i%4===3&&v>20).length});
         }
       }

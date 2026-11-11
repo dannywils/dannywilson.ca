@@ -61,9 +61,8 @@ function draw() {
     pointer.radius=experience.state.radius/width;
     pointer.reveal=experience.state.reveal;
     pointer.trail=config.shader.trailPersistence;
-    const pulse=experience.state.pulse;
-    if(pulse)pulse.breakupTime??=timeline.erosion;
-    pointer.tap=pulse;
+    for(const tap of experience.state.taps)tap.breakupTime??=timeline.erosion;
+    pointer.taps=experience.state.taps;
     figure.dataset.entrance = assembly < 1 ? "assembling" : "settled";
     figure.setAttribute("aria-busy", String(assembly < 1));
     let usePhosphor=!!phosphor&&!motion.matches&&config.shader.afterglow>0;

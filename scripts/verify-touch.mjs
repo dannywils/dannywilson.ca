@@ -31,7 +31,7 @@ try{
   assert.equal(local.radius,radius,'Four-second holds retain exactly the initial contact radius');
   assert.ok(local.near>.9);assert.equal(local.far,0,'Only source cells at the touched spot deform');
   assert.equal(local.name,0,'Holding the face does not affect the distant name');
-  assert.equal(await page.evaluate(()=>!!window.touchPhoto.testPointer.tap),false,'Holding does not trigger a tap burst');
+  assert.equal(await page.evaluate(()=>window.touchPhoto.testPointer.taps.length),0,'Holding does not trigger a tap burst');
   await page.screenshot({path:'output/touch-scatter-active.png'});
   assert.equal(await page.locator('.portrait').evaluate(e=>e.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true}))),false,'Long-press gathering suppresses the artwork context menu');
   assert.ok(await page.locator('.gather-cursor').evaluate(e=>e.classList.contains('held')));
@@ -53,7 +53,7 @@ try{
   await page.touchscreen.tap(195,460);
   await page.waitForTimeout(120);
   const burst=await page.evaluate(()=>{
-    const r=window.touchPhoto,p=r.testPointer.tap;
+    const r=window.touchPhoto,p=r.testPointer.taps[0];
     if(!p)return null;
     return {x:p.x,y:p.y,width:p.width,strength:p.strength};
   });
@@ -61,14 +61,30 @@ try{
   assert.equal(burst.x,195);assert.equal(burst.y,460,'Tap coordinates are passed unchanged in screen space');
   assert.ok(burst.width>70&&burst.width<=108,'Tap selects a broader local patch');
   await page.waitForTimeout(900);
-  assert.ok(await page.evaluate(()=>window.touchPhoto.testPointer.tap?.strength)>.95,'Pieces are still out in space after one second');
+  assert.ok(await page.evaluate(()=>window.touchPhoto.testPointer.taps[0]?.strength)>.95,'Pieces are still out in space after one second');
   await page.screenshot({path:'output/touch-local-burst.png'});
   await page.waitForTimeout(1400);
-  const returning=await page.evaluate(()=>window.touchPhoto.testPointer.tap?.strength);
+  const returning=await page.evaluate(()=>window.touchPhoto.testPointer.taps[0]?.strength);
   assert.ok(returning>.15&&returning<.7,'The slower pull home is still underway after two seconds');
   await page.screenshot({path:'output/touch-burst-return.png'});
   await page.waitForTimeout(1600);
-  assert.equal(await page.evaluate(()=>!!window.touchPhoto.testPointer.tap),false,'Burst completes naturally');
+  assert.equal(await page.evaluate(()=>window.touchPhoto.testPointer.taps.length),0,'Burst completes naturally');
+  await page.touchscreen.tap(165,420);await page.waitForTimeout(1100);
+  const first=await page.evaluate(()=>({...window.touchPhoto.testPointer.taps[0]}));
+  await send('touchStart',[{x:245,y:490,id:1}]);await page.waitForTimeout(60);
+  assert.equal(await page.evaluate(()=>window.touchPhoto.testPointer.taps[0]?.seed),first.seed,'A new press does not clear the first burst');
+  await send('touchEnd');await page.waitForTimeout(180);
+  const overlap=await page.evaluate(()=>window.touchPhoto.testPointer.taps.map(t=>({...t})));
+  assert.equal(overlap.length,2,'Two independent tap bursts coexist');
+  assert.equal(overlap[0].seed,first.seed);assert.ok(overlap[0].age>first.age);
+  assert.ok(overlap[1].age<.5&&overlap[1].strength>0,'New tap starts on its own clock');
+  await page.screenshot({path:'output/touch-overlapping-bursts.png'});
+  await page.waitForTimeout(2700);
+  const remaining=await page.evaluate(()=>window.touchPhoto.testPointer.taps.map(t=>({...t})));
+  assert.equal(remaining.length,1,'The first finishes without removing the second');
+  assert.equal(remaining[0].seed,overlap[1].seed);assert.ok(remaining[0].strength>0);
+  await page.waitForTimeout(1200);
+  assert.equal(await page.evaluate(()=>window.touchPhoto.testPointer.taps.length),0);
   await page.locator('.email').evaluate(e=>e.addEventListener('click',event=>{event.preventDefault();window.contactTapped=true;}));
   await page.locator('.email').tap();assert.ok(await page.evaluate(()=>window.contactTapped));
   assert.ok(await page.locator('.gather-cursor').evaluate(e=>!e.classList.contains('held')),'Email taps do not capture a drawing gesture');
@@ -114,5 +130,5 @@ try{
   await page.locator('[data-scene="reveal"]').tap();assert.equal(await page.locator('[data-scene="reveal"]').getAttribute('aria-pressed'),'false');
   await page.screenshot({path:'output/touch-phone.png'});
   assert.deepEqual(errors,[]);
-  console.log('Touch QA passed: fixed local holds, accurate broader tap, one-second drift, slow return, pinch cancellation, email, controls and tuner scrolling.');
+  console.log('Touch QA passed: independent overlapping taps, fixed local holds, accurate broader tap, one-second drift, slow return, pinch cancellation, email, controls and tuner scrolling.');
 }finally{await browser.close();}

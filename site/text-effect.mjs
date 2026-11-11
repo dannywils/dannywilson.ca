@@ -99,7 +99,7 @@ export class TextEffect {
     const delta=Math.max(0,Math.min(.1,time-(this.lastTime??time)));this.lastTime=time;
     const p=this.pointer;
     if(brush){p.radius=brush.radius/this.bounds.width;p.reveal=brush.reveal;p.trail=this.config.shader.trailPersistence;}
-    p.tap=brush?.pulse??null;
+    p.taps=brush?.taps??[];
     if(reduced||!interactive){p.strength=0;if(reduced)p.targetStrength=0;}
     else{
       const follow=1-Math.exp(-delta/.065);p.x+=(p.tx-p.x)*follow;p.y+=(p.ty-p.y)*follow;
