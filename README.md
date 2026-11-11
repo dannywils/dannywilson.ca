@@ -17,7 +17,7 @@ Its `publishedLook` contains Danny's selected settings and supplies both the
 initial renderer configuration and the tuner's Reset action. Existing device
 adjustments remain saved; Reset loads the latest published look.
 
-Open **Tune appearance** (or append `?tune` to the preview URL) for live GPU
+Open **Tune** (or append `?tune` to the preview URL) for live GPU
 controls: character density/weight, contrast, brightness, shadow curve, nose
 detail, portrait placement, breakup boundary, particles, turbulence, rewrite
 speed, letter spacing, and synchronized eye/name ignition. On phones the panel
@@ -38,6 +38,22 @@ The effect follows source coordinates through zoom and placement. Restored pixel
 dissolve again after release, cancellation, leaving the area, or losing focus.
 Keyboard focus restores the email too. Vertical touch scrolling and pinch zoom
 remain available. Reduced motion keeps the complete portrait and text static.
+
+The interaction strip provides **Replay** for the complete entrance and **Reveal**
+to gather the entire scene until **Release** is selected. Moving across the page
+leaves a short restoration trail. Pressing and holding expands the brush from the
+pointer to the whole scene over about 2.4 seconds; lifting releases the pixels.
+Both the portrait and type share a screen-space brush, so gathering works across
+their boundaries. Returning glyphs briefly catch a cool phosphor tint. A small
+ring marks the active gesture without implying a clipping box. Touch cancellation,
+focus loss and hidden tabs end the hold. The buttons offer a keyboard alternative;
+reduced motion keeps the scene still and disables animation actions.
+
+`site/experience.mjs` coordinates these gestures and the utility strip. The
+appearance controls retain every original slider, preset and settings export.
+Before this creative pass, the synchronized entrance was checkpointed as local
+tag `codex/checkpoint-before-creative-20261111` (commit `f2b66ba`) and saved preview
+version 19. The live domain remains unchanged.
 
 `site/portrait-gl.mjs` renders ASCII in a single WebGL draw
 (179 columns on desktop, 134 on mobile). It samples source luminance and edges,
@@ -127,6 +143,9 @@ script-load failure, and the handoff to the normal renderer.
 departing, A/I-only red lighting, hover/touch release, the email link, and reduced motion.
 `node scripts/verify-sweep.mjs` checks right-to-left departure order, permanent
 disappearance, restoration of dissolved text, release, and replay.
+`node scripts/verify-experience.mjs` checks whole-scene keyboard reveal/release,
+progressive gathering, replayed assembly, phone hold/cancellation, and reduced
+motion using actual rendered pixel counts.
 
 Push changes to `master` to publish through `.github/workflows/pages.yml`.
 The workflow can also be run manually from the Actions tab. GitHub Pages must

@@ -171,6 +171,9 @@ void main() {
   float glyph = glyphAt(pos,grid,index,alternate,size);
   float edge = clamp(abs(l-surrounding)*7.,0.,1.);
   vec3 ink = mix(paper,cyan, .13+edge*.45+step(.88,seed)*.23+band*.12);
+  // Returning source glyphs briefly catch a cool phosphor edge as they settle.
+  float landing=cellInteraction.y*smoothstep(.2,.8,cellInteraction.x);
+  ink=mix(ink,vec3(.76,.97,1.),landing*.4);
   float light = exp(-dot(center-pointer,center-pointer)*90.)*.12*motion*pointerStrength;
   float sweep = exp(-pow((center.y-fract(time*.045))/.075,2.))*.07*motion;
   float intensity = (.12+1.08*pow(tone,1.15))+light*.5+sweep*.5+(rewrite-.5)*.035*motion;
@@ -192,6 +195,7 @@ const textFragmentSource = `
 precision highp float;
 varying vec2 uv;
 varying float fragmentLife;
+varying vec2 cellInteraction;
 uniform sampler2D portrait;
 uniform sampler2D textGlow;
 uniform vec3 paper;
@@ -203,6 +207,7 @@ void main() {
   float accent=clamp(source.r-source.g,0.,1.);
   vec3 ink=mix(source.rgb,paper,accent);
   ink=mix(ink,vec3(1.,.08235,.19216)*takeover,accent*step(.001,takeover));
+  ink=mix(ink,vec3(.76,.97,1.),cellInteraction.y*.2*(1.-accent*step(.001,takeover)));
   float glow=texture2D(textGlow,sourceUV).a*takeover*nameGlow;
   gl_FragColor=vec4(ink*source.a+vec3(1.,.08235,.19216)*glow,clamp(source.a+glow,0.,1.))*fragmentLife;
 }
@@ -460,23 +465,30 @@ export class PortraitGL {
     const delta=Math.max(0,Math.min(.1,time-(this.interactionTime??time)));
     this.interactionTime=time;
     const strength=reduced?0:(pointer.strength??(pointer.x>=0&&pointer.y>=0?1:0));
-    if(strength<.001&&!this.interactionActive)return;
+    const reveal=reduced?0:(pointer.reveal??0);
+    if(strength<.001&&reveal<.001&&!this.interactionActive)return;
     const data=this.interactions,columns=this.meshColumns,rows=this.meshRows;
-    const attack=1-Math.exp(-delta/.12),release=1-Math.exp(-delta/.45);
+    const attack=1-Math.exp(-delta/.12),release=1-Math.exp(-delta/(pointer.trail??.45));
     let active=false;
     for(let y=0;y<rows;y++)for(let x=0;x<columns;x++){
       const i=(y*columns+x)*12;
       const dx=(x+.5)/columns-pointer.x,dy=((y+.5)/rows-pointer.y)*this.sourceHeight/this.sourceWidth;
-      const radial=Math.max(0,1-Math.sqrt(dx*dx+dy*dy)/.16);
-      const target=radial*radial*(3-2*radial)*strength;
+      const radial=Math.max(0,1-Math.sqrt(dx*dx+dy*dy)/(pointer.radius??.16));
+      const target=Math.max(reveal,radial*radial*(3-2*radial)*strength);
       let amount=data[i]+(target-data[i])*(target>data[i]?attack:release);
       if(reduced||amount<.0001)amount=0;
-      for(let v=0;v<6;v++){data[i+v*2]=amount;data[i+v*2+1]=0;}
+      const charge=reduced?0:Math.max(data[i+1]*Math.exp(-delta/.18),Math.min(1,Math.max(0,amount-data[i])/Math.max(delta,.001)*.2));
+      for(let v=0;v<6;v++){data[i+v*2]=amount;data[i+v*2+1]=charge;}
       active ||= amount>.0001;
     }
     this.interactionActive=active;
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER,this.interactionBuffer);
     this.gl.bufferSubData(this.gl.ARRAY_BUFFER,0,data);
+  }
+  resetInteraction() {
+    this.interactions.fill(0);this.interactionActive=false;
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER,this.interactionBuffer);
+    this.gl.bufferSubData(this.gl.ARRAY_BUFFER,0,this.interactions);
   }
   resize(width, height, bounds = {left:0,top:0,width,height}) {
     const gl = this.gl,

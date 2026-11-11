@@ -3,6 +3,7 @@ import { Controller } from "./controller.mjs";
 import { PortraitGL } from "./portrait-gl.mjs";
 import { createTuner } from "./tuner.mjs";
 import { TextEffect } from "./text-effect.mjs";
+import { createExperience } from "./experience.mjs";
 const root = document.querySelector(".composition");
 const figure = document.querySelector(".portrait");
 const canvas = document.querySelector("canvas");
@@ -23,6 +24,15 @@ let controller = new Controller(config),
 const entranceDuration = 4800;
 const pointer = { x: -2, y: -2, tx: -2, ty: -2, strength: 0, targetStrength: 0 };
 const image = new Image();
+const experience = createExperience({root,motion,
+  onMove(e) { move(e); textEffect?.movePointer(e); if(e.gather)pointer.targetStrength=1; },
+  onLeave: leaveAll,
+  onReplay() {
+    entranceElapsed=0;breakupElapsed=0;controller=new Controller(config);
+    renderer?.resetInteraction();textEffect?.renderer?.resetInteraction();
+    sync();start();
+  }
+});
 function sync() {
   root.dataset.phase = controller.phase;
 }
@@ -36,10 +46,15 @@ function draw() {
   );
   const assembly = motion.matches ? 1 : Math.min(1, entranceElapsed / entranceDuration);
   if (renderer) {
+    const b=figure.getBoundingClientRect();
+    const width=image.naturalWidth*Math.min(b.width/image.naturalWidth,b.height/image.naturalHeight)*config.shader.zoom;
+    pointer.radius=experience.state.radius/width;
+    pointer.reveal=experience.state.reveal;
+    pointer.trail=.8;
     figure.dataset.entrance = assembly < 1 ? "assembling" : "settled";
     figure.setAttribute("aria-busy", String(assembly < 1));
     renderer.render(elapsed, controller.phase, motion.matches, pointer, light, assembly, breakupElapsed);
-    textEffect?.render(elapsed,controller.phase,motion.matches,light,breakupElapsed,assembly===1,assembly);
+    textEffect?.render(elapsed,controller.phase,motion.matches,light,breakupElapsed,assembly===1,assembly,experience.state);
     renderer.gl.useProgram(renderer.program);
   }
 }
@@ -64,6 +79,7 @@ function tick(now) {
   const liveDelta=Math.max(0,delta-Math.max(0,entranceDuration-entranceElapsed));
   entranceElapsed = Math.min(entranceDuration, entranceElapsed + delta);
   breakupElapsed += liveDelta / 1000;
+  experience.update(delta/1000, Math.min(1,entranceElapsed/entranceDuration), breakupElapsed);
   if (controller.update(liveDelta)) sync();
   const follow = 1 - Math.exp(-delta / 65);
   pointer.x += (pointer.tx - pointer.x) * follow;
@@ -76,6 +92,7 @@ function start() {
   cancelAnimationFrame(frame);
   last = 0;
   if (!renderer) return;
+  experience.update(0,motion.matches?1:entranceElapsed/entranceDuration,breakupElapsed);
   if (!motion.matches && !document.hidden) frame = requestAnimationFrame(tick);
   else draw();
 }
@@ -120,6 +137,7 @@ function fail(error) {
   canvas.classList.remove("ready");
   textEffect?.dispose();textEffect=undefined;
   figure.dataset.renderer = "fallback";
+  experience.update(0,1,breakupElapsed);
   figure.setAttribute("aria-busy", "false");
   controller = new Controller(config);
   sync();
@@ -135,6 +153,7 @@ function initialize() {
     figure.classList.add("ready");
     canvas.classList.add("ready");
     document.documentElement.classList.remove('portrait-unavailable');
+    experience.update(0,motion.matches?1:entranceElapsed/entranceDuration,breakupElapsed);
     start();
   } catch (error) {
     renderer = undefined;
@@ -203,6 +222,7 @@ addEventListener(
     observer.disconnect();
     renderer?.dispose();
     textEffect?.dispose();
+    experience.dispose();
     figure.removeEventListener("pointermove", move);
     figure.removeEventListener("pointerenter", move);
     figure.removeEventListener("pointerdown", down);

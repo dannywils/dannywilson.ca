@@ -15,8 +15,9 @@ export class TextEffect {
       const p=this.pointer,b=this.bounds;
       p.tx=(e.clientX-b.left)/b.width;p.ty=(e.clientY-b.top)/b.height;
       if(p.strength<.01){p.x=p.tx;p.y=p.ty;}
-      p.targetStrength=1;
+      p.targetStrength=e.gather||(p.tx>=0&&p.tx<=1&&p.ty>=0&&p.ty<=1)?1:0;
     };
+    this.movePointer=move;
     on('pointerenter',move);on('pointermove',move);
     on('pointerdown',e=>{move(e);if(e.isPrimary!==false&&e.pointerType!=='mouse'&&!e.target.closest('.email'))element.setPointerCapture(e.pointerId);});
     on('pointerup',e=>{if(e.pointerType!=='mouse')this.leave();});
@@ -78,10 +79,11 @@ export class TextEffect {
     else this.renderer=new PortraitGL(this.canvas,this.source,this.textConfig,{text:true,glow:this.glow,clear:false});
     this.renderer.resize(innerWidth,innerHeight,this.bounds);
   }
-  render(time,phase,reduced,light,breakupTime,interactive=true,assembly=1){
+  render(time,phase,reduced,light,breakupTime,interactive=true,assembly=1,brush){
     if(!this.renderer)return;
     const delta=Math.max(0,Math.min(.1,time-(this.lastTime??time)));this.lastTime=time;
     const p=this.pointer;
+    if(brush){p.radius=brush.radius/this.bounds.width;p.reveal=brush.reveal;p.trail=.8;}
     if(reduced||!interactive){p.strength=0;if(reduced)p.targetStrength=0;}
     else{
       const follow=1-Math.exp(-delta/.065);p.x+=(p.tx-p.x)*follow;p.y+=(p.ty-p.y)*follow;
