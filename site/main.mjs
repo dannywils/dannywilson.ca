@@ -23,6 +23,7 @@ let controller = new Controller(config),
   elapsed = 0,
   entranceElapsed = 0,
   breakupElapsed = 0,
+  introCueFired = false,
   disposed = false;
 const entranceDuration = config.intro.duration*1000;
 const pointer = { x: -2, y: -2, tx: -2, ty: -2, strength: 0, targetStrength: 0 };
@@ -31,7 +32,7 @@ const experience = createExperience({root,motion,config,
   onMove(e) { move(e); textEffect?.movePointer(e); if(e.gather)pointer.targetStrength=1; },
   onLeave: leaveAll,
   onReplay() {
-    entranceElapsed=0;breakupElapsed=0;controller=new Controller(config);
+    entranceElapsed=0;breakupElapsed=0;introCueFired=false;controller=new Controller(config);
     phosphor?.clear();
     renderer?.resetInteraction();textEffect?.renderer?.resetInteraction();
     sync();start();
@@ -96,12 +97,18 @@ function tick(now) {
   const delta = last ? Math.min(now - last, 100) : 0;
   last = now;
   elapsed += delta / 1000;
-  const liveDelta=Math.max(0,delta-Math.max(0,entranceDuration-entranceElapsed));
+  const beforeEntrance=entranceElapsed;
   const dissolveDelta=Math.max(0,delta-Math.max(0,entranceDuration*config.intro.flowStart-entranceElapsed));
   entranceElapsed = Math.min(entranceDuration, entranceElapsed + delta);
   breakupElapsed += dissolveDelta / 1000;
   experience.update(delta/1000, Math.min(1,entranceElapsed/entranceDuration), breakupElapsed);
-  if (controller.update(liveDelta)) sync();
+  let lightDelta=introCueFired?delta:0;
+  const ignitionAt=entranceDuration*config.intro.ignition;
+  if(!introCueFired&&entranceElapsed>=ignitionAt){
+    introCueFired=true;controller.ignite();sync();
+    lightDelta=Math.max(0,beforeEntrance+delta-ignitionAt);
+  }
+  if(lightDelta>0&&controller.update(lightDelta))sync();
   const follow = 1 - Math.exp(-delta / 65);
   pointer.x += (pointer.tx - pointer.x) * follow;
   pointer.y += (pointer.ty - pointer.y) * follow;
@@ -147,6 +154,7 @@ function preference() {
   elapsed = 0;
   breakupElapsed = 0;
   if (motion.matches) entranceElapsed = entranceDuration;
+  introCueFired=entranceElapsed===entranceDuration;
   leaveAll();
   pointer.strength = 0;
   sync();
@@ -168,7 +176,7 @@ function fail(error) {
 }
 function initialize() {
   try {
-    if (motion.matches) entranceElapsed = entranceDuration;
+    if (motion.matches) {entranceElapsed=entranceDuration;introCueFired=true;}
     renderer = new PortraitGL(canvas, image, config);
     textEffect = new TextEffect(canvas, identity, config, motion);
     try{phosphor=new Phosphor(renderer.gl);}catch{phosphor=undefined;}
@@ -214,9 +222,7 @@ createTuner(config, () => {
     : config.timing[controller.phase];
   draw();
 }, () => {
-  controller.phase = "interference";
-  controller.elapsed = 0;
-  controller.duration = config.timing.interference;
+  controller.ignite();
   sync();
   start();
 }, () => {

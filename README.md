@@ -28,8 +28,9 @@ published defaults. Reset restores the published look. Test flicker respects
 the device's reduced-motion preference.
 
 One controller drives human → interference → takeover → recovery. The first
-takeover happens three seconds after assembly finishes, with later intervals randomized around
-that value. The name's A/I and one eye light up
+ignition starts at 90% of the entrance, while the final cells are still landing.
+Replay restages this cue; later intervals vary around three seconds.
+The name's A/I and one eye light up
 and recover together. A shared, uneven ignition envelope (1.7× speed) drives the
 name's red glow and the eye's brightness, with a brief later voltage dip.
 The name uses wider letter spacing. The page has no taglines. Hovering or holding
@@ -97,6 +98,11 @@ fragments rotate as they depart, with their source pixels attached. Particle
 depth adds edge-on projection and directional dimming to airborne cells. Both
 return exactly to their flat source appearance when gathered; the settled face
 and type are unaffected. The **Fragment depth** control can reduce or disable it.
+**Near / far depth** adds different apparent distances to incoming and departing
+source cells: a few pass closer to the lens while others recede. Scale and shading
+return exactly to their original values at home, including when restored by touch.
+The utility strip stays subdued during assembly and becomes fully visible when
+the entrance finishes, or immediately on hover or keyboard focus.
 Particle density selects a sparse cohort of longer-lived fragments that can drift toward
 the viewport's right edge; the rest fades as local dust. Wind curl, fragment
 rotation, stream reach, brush size and trail persistence have dedicated controls.
@@ -190,6 +196,9 @@ restored pixels, reduced motion, and phone/landscape layouts above the controls.
 `node scripts/verify-phosphor.mjs` checks source-only afterimages, stationary
 brightness, red flicker dips, complete high-refresh decay, resize/reduced-motion
 clearing, and continued rendering if the optional effect becomes unavailable.
+`node scripts/verify-cinema.mjs` checks the timed entrance ignition and Replay,
+matching text/portrait light envelopes, uninterrupted breakup, and near/far
+projection with exact home, restored, and reduced-motion pixels.
 
 Push changes to `master` to publish through `.github/workflows/pages.yml`.
 The workflow can also be run manually from the Actions tab. GitHub Pages must

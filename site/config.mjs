@@ -20,6 +20,7 @@ export const publishedLook = Object.freeze({
   streamReach: 1.2,
   erosionStructure: .68,
   fragmentDepth: .8,
+  flightDepth: .8,
   afterglow: .08,
   brushSize: 96,
   trailPersistence: .9,
@@ -46,7 +47,7 @@ export function applyLook(config, values) {
   for (const key of ['contrast','brightness','exposure','gamma','glyphWeight',
     'noseContrast','zoom','centerX','centerY','breakup','randomness','particleSpeed',
     'particleTravel','debrisDensity','scrambleHz','densityJitter','glitchBandSpeed','sweepDuration',
-    'windCurl','fragmentSpin','fragmentDepth','afterglow','streamReach','erosionStructure','brushSize','trailPersistence'])
+    'windCurl','fragmentSpin','fragmentDepth','flightDepth','afterglow','streamReach','erosionStructure','brushSize','trailPersistence'])
     config.shader[key] = values[key];
   config.ascii.desktopColumns = values.density;
   config.ascii.mobileColumns = Math.round(values.density * .75);
@@ -67,7 +68,7 @@ export function applyLook(config, values) {
 }
 
 export const config = {
-  intro: { duration: 4.8, flowStart: .72 },
+  intro: { duration: 4.8, flowStart: .72, ignition: .9 },
   email: 'danny@dannywilson.ca',
   portrait: '/assets/portrait.png',
   timing: { recovery: 260 },

@@ -10,6 +10,11 @@ export class Controller {
     const t = this.config.timing;
     return t.humanMin + this.random() * (t.humanMax - t.humanMin);
   }
+  ignite() {
+    this.phase='interference';
+    this.elapsed=0;
+    this.duration=this.config.timing.interference;
+  }
   update(delta) {
     this.elapsed += delta;
     if (this.elapsed < this.duration) return false;

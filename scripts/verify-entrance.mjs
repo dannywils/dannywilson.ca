@@ -33,7 +33,8 @@ try {
   const result=await page.evaluate(async()=>{
     const {PortraitGL}=await import('/portrait-gl.mjs'),{config}=await import('/config.mjs');
     const c=structuredClone(config);c.ascii.desktopColumns=c.ascii.mobileColumns=32;
-    Object.assign(c.shader,{breakup:0,zoom:1,centerX:0,centerY:0,scrambleHz:0,glitchBandSpeed:0});
+    // Isolate screen-edge travel; near/far projection has separate coverage in verify-cinema.
+    Object.assign(c.shader,{breakup:0,flightDepth:0,zoom:1,centerX:0,centerY:0,scrambleHz:0,glitchBandSpeed:0});
     async function probe(column,breakup=false){
       const source=document.createElement('canvas');source.width=source.height=256;
       const ctx=source.getContext('2d');ctx.fillStyle='#cccccc';ctx.fillRect(column/32*256,8/24*256,256/32,256/24);

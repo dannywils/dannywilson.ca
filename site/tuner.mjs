@@ -26,6 +26,7 @@ const groups = [
     ['windCurl','Wind curl',0,2,.05],
     ['fragmentSpin','Fragment rotation',0,2,.05],
     ['fragmentDepth','Fragment depth',0,1.5,.05],
+    ['flightDepth','Near / far depth',0,1.5,.05],
     ['streamReach','Stream reach',0,2,.05],
     ['erosionStructure','Connected erosion',0,1,.02],
     ['debrisDensity','Particle density',0,.6,.01],

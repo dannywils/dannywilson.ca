@@ -21,6 +21,7 @@ uniform vec3 flowControls;
 uniform vec2 introTiming;
 uniform float erosionStructure;
 uniform float fragmentDepth;
+uniform float flightDepth;
 varying vec2 uv;
 varying float fragmentLife;
 varying vec2 cellInteraction;
@@ -82,6 +83,8 @@ void main() {
   float surge=smoothstep(pause,surgeEnd,fract(progress*steps));
   float arrival=smoothstep(0.,1.,min(1.,(segment+surge)/steps));
   float remaining=1.-arrival;
+  float plane=mix(-.5,.2,hash(introCell+307.1))+step(.86,hash(introCell+313.5))*1.4;
+  float approach=(1.-smoothstep(.12,.9,arrival))*flightDepth*motion;
   float glyphWidth=size.x*placement.x/columns;
   float unsettled=smoothstep(.025,.12,progress)*(1.-smoothstep(.72,1.,progress));
   float glitchFrame=floor(assembly*(75.+hash(introCell+263.2)*95.));
@@ -93,6 +96,7 @@ void main() {
   vec2 incoming=vec2((-homeCenter.x-glyphWidth*(1.+seed*4.))*remaining,
     ((hash(introCell+231.9)-.5)*.45+sin(progress*(9.+seed*13.)+seed*6.283)*.14)*remaining*size.y*placement.x);
   incoming+=jitter*vec2(resolution.x*.035,size.y*.065)*glitch+vec2(rowTear,0.);
+  incoming.y+=plane*sin(progress*3.14159)*remaining*size.y*.12*flightDepth*motion;
   float live=smoothstep(.98,1.,progress);
   offset*=live;
   float flicker=1.-glitch*(.25+hash(introCell+glitchFrame*31.1)*.5);
@@ -108,6 +112,11 @@ void main() {
   localPosition.x*=mix(1.,.28+.72*facing,airborne);
   localPosition.y*=mix(1.,.72+.28*abs(cos(flight*(2.+seed*3.)*fragmentDepth)),airborne);
   fragmentShade=1.-airborne*(1.-facing)*.3;
+  // Different source cells pass nearer or farther from the lens. Their scale and
+  // lighting return to exactly one at home; the settled face never changes shape.
+  float lensScale=max(.3,1.+plane*(approach+pow(flight,1.3)*flightDepth*live));
+  localPosition*=lensScale;
+  fragmentShade*=1.-clamp(-plane,0.,.5)*.4*clamp(approach+flight*flightDepth*live,0.,1.);
   localPosition=mat2(cos(angle),sin(angle),-sin(angle),cos(angle))*localPosition;
   vec2 screen=homeCenter+localPosition+offset*size*placement.x+incoming;
   gl_Position=vec4(screen.x/resolution.x*2.-1.,1.-screen.y/resolution.y*2.,0.,1.);
@@ -324,6 +333,7 @@ export class PortraitGL {
           "introTiming",
           "erosionStructure",
           "fragmentDepth",
+          "flightDepth",
           "interference",
           "takeover",
           "eye",
@@ -460,6 +470,7 @@ export class PortraitGL {
     gl.uniform2f(u.introTiming,c.intro.duration,c.intro.flowStart);
     gl.uniform1f(u.erosionStructure,s.erosionStructure??.68);
     gl.uniform1f(u.fragmentDepth,s.fragmentDepth??.8);
+    gl.uniform1f(u.flightDepth,s.flightDepth??.8);
     this.updateMesh();
   }
   get sourceWidth(){return this.image.naturalWidth||this.image.width;}

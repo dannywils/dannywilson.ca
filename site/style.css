@@ -75,7 +75,10 @@ h1 {
   bottom: max(20px, env(safe-area-inset-bottom));
   display: flex; align-items: center; justify-content: space-between; gap: 24px;
   font: 11px/1.4 'Courier New', monospace;
+  transition: opacity .7s ease;
 }
+.experience[data-state="assembling"] { opacity: .3; }
+.experience:focus-within, .experience:hover { opacity: 1; }
 .experience-hint { margin: 0; color: #929390; letter-spacing: .025em; }
 .scene-actions { display: flex; align-items: center; gap: 20px; }
 .scene-actions :is(button,a) {
