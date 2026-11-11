@@ -153,17 +153,18 @@ the viewport; the portrait's layout rectangle controls its destination and scale
 not clipping. Incoming and departing cells can cross that rectangle, with only
 the screen edge clipping them. Scroll and resize keep the destination aligned.
 Each load varies the cells' delays and paths. Nearby cells gather in soft clusters,
-with scattered early arrivals and late stragglers. A continuous approach blends
-in occasional stalls, slight rotation, and brief glitch slices. Glitches have
-smooth attack/release envelopes and fade before the final approach. Short launch
-delays and initial momentum bring pieces into view in the opening half-second;
-stalls begin only after they are moving. A cubic approach still reaches each
-exact source position with zero speed, avoiding a last-frame snap.
+with scattered early arrivals and late stragglers. Cubic flight paths bend from
+a broad cloud at the left screen edge, with shared arcs inside each cluster and
+independently paced acceleration. An early cohort enters in the opening half-second;
+later groups join at staggered times. Continuous surges replace regular stop/start
+steps. Slight rotation and brief glitch slices have smooth envelopes and fade
+before capture. Each path reaches its exact source position with zero speed,
+avoiding a last-frame snap.
 Incoming fragments start at 30% ink and gain full brightness as they gather. Afterglow
-starts at 30% of its tuned value and eases back to full strength during landing,
+starts at 8% of its tuned value and eases back to full strength during landing,
 keeping fast incoming pieces distinct without changing the floating scene.
 Disintegration begins during the final 28% of assembly. Each cell can depart only
-after its own arrival and when the dissolve front reaches it. The last intro step
+after its own arrival and when the dissolve front reaches it. The final approach
 finishes at the cell's landing time; there is no global idle interval or extra
 departure delay. This overlaps incoming and outgoing motion without jumping to
 particles already midway through a flight. `config.intro` shares the timing

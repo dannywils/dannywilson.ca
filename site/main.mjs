@@ -81,7 +81,7 @@ function draw() {
     if(usePhosphor){
       // Fast incoming pieces stay distinct; full afterglow returns as they land.
       const landing=Math.max(0,Math.min(1,(assembly-.65)/.35));
-      const introTrail=.3+.7*landing*landing*(3-2*landing);
+      const introTrail=.08+.92*landing*landing*(3-2*landing);
       phosphor.present(elapsed,config.shader.afterglow*introTrail);
     }
     renderer.gl.useProgram(renderer.program);

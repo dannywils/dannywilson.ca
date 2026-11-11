@@ -55,8 +55,8 @@ void main() {
   vec2 introCell=cell+entranceSeed;
   // Nearby pieces gather in soft clusters, with independent late stragglers.
   // Both renderers use the same normalized rhythm without a rigid wipe front.
-  float cluster=noise(origin*vec2(5.,7.)+17.3);
-  float arrivalOrder=pow(hash(introCell+219.3),1.15)*(.65+cluster*.25+origin.x*.1);
+  float cluster=noise(origin*vec2(5.,7.)+entranceSeed*.13+17.3);
+  float arrivalOrder=pow(clamp(cluster*.64+pow(hash(introCell+219.3),1.4)*.32+origin.x*.04,0.,1.),2.);
   float settleAt=mix(introTiming.y,1.,arrivalOrder);
   float rate=mix(1.,.6+seed*1.5,debrisControls.y);
   // A bounded scene clock advances and retreats this front. Returning uses the
@@ -96,19 +96,13 @@ void main() {
   vec2 size=imageSize*min(portraitBounds.z/imageSize.x,portraitBounds.w/imageSize.y);
   vec2 homeCenter=(origin-.5+placement.yz)*size*placement.x+portraitBounds.xy+portraitBounds.zw*.5;
   // Every cell begins just beyond the viewport's left edge, independent of the portrait box.
-  float delay=.005+cluster*.018+hash(introCell+201.7)*.055;
+  float early=step(.84,hash(introCell+203.1));
+  float delay=mix(.012+cluster*.19+hash(introCell+201.7)*.065,.004+seed*.02,early);
   float progress=clamp((assembly-delay)/(settleAt-delay),0.,1.);
-  // A flowing approach with occasional stalls. The final approach is continuous,
-  // so a late glitch cannot snap a piece into its exact home position.
-  float steps=4.+floor(hash(introCell+241.1)*5.);
-  float segment=floor(progress*steps);
-  float pause=.14+hash(introCell+segment*7.3)*.24;
-  float surgeEnd=mix(pause+.2+hash(introCell+segment*19.7)*.3,1.,step(steps-1.,segment));
-  float surge=smoothstep(pause,surgeEnd,fract(progress*steps));
-  float stepped=min(1.,(segment+surge)/steps);
-  float stagger=mix(.3,.8,hash(introCell+251.9))*smoothstep(.12,.3,progress)*(1.-smoothstep(.65,.94,progress));
-  float approachClock=mix(progress,stepped,stagger);
-  // Launch with momentum instead of a long ease-in; still arrive with zero speed.
+  // Continuous, independently paced approaches replace the regular stop/start steps.
+  // The clock remains monotonic; broad surges feel like drifting into capture.
+  float tempo=hash(introCell+241.1);
+  float approachClock=progress+sin(progress*3.14159)*(tempo-.5)*.42;
   float arrival=approachClock*(.8+approachClock*(1.4-approachClock*1.2));
   float remaining=1.-arrival;
   float plane=mix(-.5,.2,hash(introCell+307.1))+step(.86,hash(introCell+313.5))*1.4;
@@ -124,8 +118,17 @@ void main() {
   float rowFrame=floor(rowClock);
   float rowTear=(hash(vec2(cell.y,rowFrame+entranceSeed))-.5)*resolution.x*.025
     *step(.93,hash(vec2(cell.y+77.,rowFrame)))*unsettled*pow(sin(fract(rowClock)*3.14159),4.);
-  vec2 incoming=vec2((-homeCenter.x-glyphWidth*(1.+seed*4.))*remaining,
-    ((hash(introCell+231.9)-.5)*.6+sin(progress*(4.+seed*5.)+seed*6.283)*.22)*remaining*size.y*placement.x);
+  // Cubic paths bend out of a broad launch cloud at the left screen edge.
+  // Nearby source pieces share an arc, with fine variation within each cluster.
+  float arc=(noise(origin*vec2(4.,6.)+entranceSeed*.07+83.)-.5)*1.3;
+  float scatter=hash(introCell+231.9)-.5;
+  float launchY=(arc+scatter*.42)*min(resolution.y,size.y*placement.x);
+  float margin=glyphWidth*(2.+hash(introCell+237.1)*12.);
+  vec2 launch=vec2(-homeCenter.x-margin,launchY);
+  vec2 bend=vec2(-homeCenter.x*(.25+tempo*.5)-margin*.35,launchY*.7+arc*size.y*.3);
+  vec2 capture=vec2(-size.x*placement.x*(.025+seed*.13),-arc*size.y*.13);
+  vec2 incoming=launch*remaining*remaining*remaining
+    +3.*bend*remaining*remaining*arrival+3.*capture*remaining*arrival*arrival;
   incoming+=jitter*vec2(resolution.x*.025,size.y*.045)*glitch+vec2(rowTear,0.);
   incoming.y+=plane*sin(progress*3.14159)*remaining*size.y*.12*flightDepth*motion;
   float live=smoothstep(.98,1.,progress);

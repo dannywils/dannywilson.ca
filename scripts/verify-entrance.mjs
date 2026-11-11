@@ -71,16 +71,24 @@ try {
         reducedStill:reducedStart.pixels.every((v,i)=>v===reducedEnd.pixels[i]),error:r.gl.getError()};
       r.dispose();return result;
     }
-    return {left:await probe(12),right:await probe(20),debris:await probe(31,true)};
+    const image=new Image();image.src=config.portrait;await image.decode();
+    const scene=new PortraitGL(document.createElement('canvas'),image,structuredClone(config));
+    scene.resize(640,480,{left:360,top:120,width:240,height:240});
+    scene.gl.uniform1f(scene.uniforms.entranceSeed,7);
+    scene.render(0,'human',false,{x:-2,y:-2,strength:0},0,.08,0);
+    const earlyPixels=new Uint8Array(640*480*4),gl=scene.gl;gl.readPixels(0,0,640,480,gl.RGBA,gl.UNSIGNED_BYTE,earlyPixels);
+    const earlyVisible=earlyPixels.filter((v,i)=>i%4===3&&v>20).length;scene.dispose();
+    return {left:await probe(12),right:await probe(20),debris:await probe(31,true),earlyVisible};
   });
+  assert.ok(result.earlyVisible>20,'The opening cohort enters within the first half-second');
   for(const side of [result.left,result.right]){
     assert.equal(side.startCount,0,'The first frame contains no completed portrait');
     assert.ok(side.middleCount>20&&side.endCount>20);
     assert.ok(side.exactLanding,'Cells land on the exact normal rendering');
     assert.ok(side.reducedStill,'Reduced motion skips travel');assert.equal(side.error,0);
     assert.ok(side.firstVisible<30,'Glyphs first appear at the screen edge, far outside the portrait box');
-    assert.ok(side.firstVisibleAt<.12,'Source fragments enter view within the opening half-second');
-    assert.ok(side.pauses>0&&side.bursts>0,'Flight alternates between stalls and bursts');
+    assert.ok(side.firstVisibleAt<.35,'Later cohorts join during the first third of the entrance');
+    assert.ok(side.pauses>0&&side.bursts>0,'Flight varies between slow capture and quicker travel');
     assert.ok(side.verticalRange>15,'Flight has substantial vertical variation');
     assert.ok(side.randomized&&side.stableDestination,'Reload seeds vary the journey without changing the destination');
   }
@@ -92,6 +100,12 @@ try {
   assert.equal(await reduced.locator('.fallback').isVisible(),false);
   const failed=await browser.newPage();await failed.route('**/main.mjs',route=>route.abort());
   await failed.goto('http://localhost:8080');assert.ok(await failed.locator('.fallback').isVisible(),'Script load failure still reveals the fallback');
+  const phone=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
+  phone.on('pageerror',e=>errors.push(e.message));
+  await phone.goto('http://localhost:8080');await phone.waitForSelector('[data-entrance="assembling"]');
+  await phone.waitForTimeout(1300);await phone.screenshot({path:'output/entrance-phone-early.png'});
+  await phone.waitForTimeout(1500);await phone.screenshot({path:'output/entrance-phone-capture.png'});
+  await phone.waitForSelector('[data-entrance="settled"]');
   assert.deepEqual(errors,[]);
   console.log('Entrance QA passed:',result);
 } finally {await browser.close();}
