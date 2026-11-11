@@ -12,7 +12,8 @@ try{
   const point={x:195,y:460,id:1};
   const gather=()=>page.locator('.gather-cursor').evaluate(e=>Number(e.style.getPropertyValue('--gather')));
   await send('touchStart',[point]);await page.waitForTimeout(800);
-  assert.ok(await gather()>.15,'A stationary hold expands the restoration brush');
+  assert.ok(await gather()>.15,'A stationary hold expands the scattering brush');
+  await page.screenshot({path:'output/touch-scatter-active.png'});
   assert.equal(await page.locator('.portrait').evaluate(e=>e.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true}))),false,'Long-press gathering suppresses the artwork context menu');
   assert.ok(await page.locator('.gather-cursor').evaluate(e=>e.classList.contains('held')));
   await send('touchStart',[point,{x:270,y:510,id:2}]);await page.waitForTimeout(120);
@@ -29,7 +30,7 @@ try{
   await send('touchCancel');await page.waitForTimeout(80);
   assert.equal(await gather(),0);
   await page.touchscreen.tap(195,460);
-  await page.waitForFunction(()=>document.querySelector('.experience-hint').textContent==='Recalling');
+  await page.waitForFunction(()=>document.querySelector('.experience-hint').textContent==='Scattering');
   await page.waitForTimeout(1900);
   await page.locator('.email').evaluate(e=>e.addEventListener('click',event=>{event.preventDefault();window.contactTapped=true;}));
   await page.locator('.email').tap();assert.ok(await page.evaluate(()=>window.contactTapped));

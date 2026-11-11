@@ -5,12 +5,11 @@ const smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3
 // swell. The original face stays present even after minutes without interaction.
 export function sceneTimeline(seconds,settings){
   const t=Math.max(0,seconds),period=Math.max(8,settings.cycleDuration??26);
-  const clock=Math.max(0,t-1.6)/period;
+  const clock=t/period+.08;
   const phase=clock%1;
-  const swell=smooth(.12,.48,phase)*(1-smooth(.52,.96,phase));
+  const swell=smooth(0,.42,phase)*(1-smooth(.42,1,phase));
   const variation=.92+.08*Math.sin(clock*Math.PI*2*.618);
-  const reach=(settings.sweepDuration??18)*.12*(settings.erosionReach??1);
-  const breath=.55+.09*Math.sin(phase*Math.PI*2);
-  const erosion=smooth(0,1.6,t)*(breath+reach*swell*variation);
-  return {erosion,swell,phase,returning:phase>.52&&phase<.96};
+  const reach=(settings.sweepDuration??18)*.15*(settings.erosionReach??1);
+  const erosion=smooth(0,1.6,t)*reach*swell*variation;
+  return {erosion,swell,phase,returning:phase>.42};
 }

@@ -45,16 +45,17 @@ try{
   console.log('Timeline samples:',JSON.stringify(samples));
   for(const [name,sample] of Object.entries(samples)){
     assert.ok(sample.frames.every(f=>f.count>sample.full*(name==='text'?.65:.42)),`${name} stays present at every sampled time`);
-    assert.ok(sample.frames.find(f=>f.time===27.6).count>sample.frames.find(f=>f.time===14).count*(name==='text'?1.03:1.1),`${name} reconstructs after erosion`);
+    assert.equal(sample.frames.find(f=>f.time===23).count,sample.full,`${name} completely reforms before the next cycle`);
+    assert.ok(sample.frames.find(f=>f.time===23).count>sample.frames.find(f=>f.time===10).count*(name==='text'?1.03:1.1),`${name} reconstructs after erosion`);
     assert.ok(sample.gathered>=sample.full*.99&&sample.reduced===sample.reducedHome,'Gather and reduced motion preserve the original');
     assert.equal(sample.error,0);
   }
   await page.waitForSelector('[data-entrance="settled"]');
-  for(const [time,label] of [[6,'readable'],[14,'erosion'],[23,'return']]){
+  for(const [time,label] of [[2,'readable'],[10,'erosion'],[23,'return']]){
     await page.evaluate(t=>window.timelineAt=t,time);await page.waitForTimeout(300);
     await page.screenshot({path:`output/timeline-${label}.png`});
   }
-  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>window.timelineAt=14);await page.waitForTimeout(300);
+  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>window.timelineAt=10);await page.waitForTimeout(300);
   await page.screenshot({path:'output/timeline-phone.png'});
   const pixels=()=>page.evaluate(()=>new Promise(resolve=>window.captureTimeline=resolve));
   const eroded=await pixels();
@@ -66,10 +67,10 @@ try{
   assert.ok(released<revealed*.98&&released>0,'Release rejoins the current erosion, never black');
   const cdp=await page.context().newCDPSession(page);
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:195,y:480,id:1}]});
-  await page.waitForTimeout(3600);const gathered=await pixels();
-  assert.ok(gathered>released*1.05,'Holding on the portrait restores the living scene');
+  await page.waitForTimeout(3600);const scattered=await pixels();
+  assert.ok(scattered<released*.95,'Holding on the portrait scatters the living scene');
   await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
   await page.waitForFunction(()=>!document.querySelector('.gather-cursor').classList.contains('held'));
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-  assert.deepEqual(errors,[]);console.log('Living timeline, reconstruction, readable text, restoration and phone layout passed.');
+  assert.deepEqual(errors,[]);console.log('Living timeline, complete reconstruction, explicit Reveal, touch scattering and phone layout passed.');
 }finally{await browser.close();}

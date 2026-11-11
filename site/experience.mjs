@@ -1,4 +1,4 @@
-// A screen-space brush lets a single gesture gather both the portrait and type.
+// A screen-space brush scatters the portrait and type; the cycle reforms them.
 export function createExperience({ root, motion, config, onMove, onLeave, onReplay, onSkip }) {
   const rail = document.querySelector('.experience');
   const hint = rail.querySelector('.experience-hint');
@@ -25,7 +25,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   const syncReveal = () => {
     reveal.setAttribute('aria-pressed',String(pinned));
     reveal.querySelector('span').textContent=pinned?'Release':'Reveal';
-    reveal.title=pinned?'Release the portrait and name':'Reveal the complete portrait and name';
+    reveal.title=pinned?'Resume the dissolve and reform cycle':'Reveal the complete portrait and name';
   };
   const release = () => {
     pinned=false;state.reveal=0;state.gather=0;state.pulse=null;reset();syncReveal();
@@ -109,20 +109,20 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
       replay.disabled = !ready;
       if (held && ready && assembly === 1) {
         heldTime += delta;
-        // A short intentional hold, then an accelerating circle of restoration.
+        // A short intentional hold expands the area of disintegration.
         state.gather = Math.min(1, Math.max(0, (heldTime - .18) / 2.2));
         onMove({ clientX: x, clientY: y, isPrimary: true, gather: true });
       } else state.gather *= Math.exp(-delta / .3);
       state.radius = config.shader.brushSize*(coarse.matches ? .82 : 1) + Math.pow(state.gather, 1.7) * Math.hypot(innerWidth, innerHeight) * 4;
-      const target = pinned || state.gather > .98 ? 1 : 0;
+      const target = pinned ? 1 : 0;
       state.reveal += (target - state.reveal) * (1 - Math.exp(-delta / .28));
-      const interacting = active && ready && assembly === 1 && breakupTime > 1 && !pinned;
+      const interacting = active && ready && assembly === 1 && !pinned;
       cursor.classList.toggle('active', interacting);
       cursor.classList.toggle('held', held && interacting);
       // The cursor marks the gathering gesture, not an artificial clipping boundary.
       cursor.style.setProperty('--gather', state.gather);
       cursor.style.setProperty('--ring-size', `${18 + state.gather * 62}px`);
-      const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to dissolve' : held ? (state.gather===1?'Release to scatter':travel>12&&heldTime<.18?'Tracing':'Gathering') : state.pulse ? 'Recalling' : coarse.matches ? 'Touch to reveal · hold to gather' : 'Move, click or hold to reveal';
+      const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to resume' : held ? (state.gather===1?'Release to reform':travel>12&&heldTime<.18?'Scattering':'Hold to scatter further') : state.pulse ? 'Scattering' : coarse.matches ? 'Touch to scatter · release to reform' : 'Move to scatter · let go to reform';
       if (message !== lastHint) { hint.textContent = message; lastHint = message; }
       rail.dataset.state = assembly < 1 ? 'assembling' : pinned ? 'revealed' : 'live';
     },

@@ -35,11 +35,11 @@ dip. The name stays uniformly off-white. Its A and I start releasing later and
 shed only 35% as many eligible shards as neighboring letters, giving a subtle
 AI reference through persistence rather than color or flashing. Their release
 delay and erosion multiplier are adjustable in Tune.
-The name uses wider letter spacing. The page has no taglines. Hovering or holding
-a finger restores nearby source pixels by reversing their flight back into place.
-The effect follows source coordinates through zoom and placement. Restored pixels
-dissolve again after release, cancellation, leaving the area, or losing focus.
-Keyboard focus restores the email too. The portrait accepts drawing in any
+The name uses wider letter spacing. The page has no taglines. Hovering, drawing or
+holding a finger scatters nearby source pixels along their weightless paths.
+After release, the disturbance decays and those pixels reform naturally into the
+current stage of the automatic cycle. The email stays readable and clickable.
+The effect follows source coordinates through zoom and placement. The portrait accepts drawing in any
 direction on touchscreens; pinch zoom remains available. The rest of the page
 still allows vertical scrolling. Reduced motion keeps the complete portrait and text static.
 
@@ -47,8 +47,8 @@ still allows vertical scrolling. Reduced motion keeps the complete portrait and 
 entrance: light edge activity leaves the identity readable, an asymmetric swell
 opens the silhouette into a weightless cloud, then a longer return brings the same source fragments home.
 The front remains bounded; the portrait never ends in black. Successive swells
-vary gently in strength, and continuous values at cycle boundaries avoid a reset
-or hitch. The name sheds only a quarter of the eligible cells, retaining its
+vary gently in strength, and the erosion clock returns to zero each cycle so the
+scene fully reforms without a reset or hitch. The automatic name motion sheds only a quarter of the eligible cells, retaining its
 letter shapes throughout. **Cycle length**, **Peak erosion**, and **Text erosion**
 are independently adjustable in Tune. **Restart cycle** restarts this motion;
 **Replay** restages the full entrance and red ignition.
@@ -58,19 +58,18 @@ reveal when the tuner is closed; Restart cycle also clears that reveal state.
 
 The interaction strip provides **Replay** for the complete entrance and **Reveal**
 to gather the entire scene until **Release** is selected. Moving across the page
-leaves a short restoration trail. Pressing and holding expands the brush from the
-pointer to the whole scene over about 2.4 seconds; lifting releases the pixels.
-Clicking or briefly tapping without dragging sends a travelling recall wave
-through the actual source cells, then lets them dissolve again. It takes 1.8
-seconds to cross the viewport; each visited cell returns along its existing
-flight path. Long holds and drawing do not also trigger the wave, and motion
+leaves a short disintegration trail. Pressing and holding expands the destructive
+brush from the pointer to the whole scene over about 2.4 seconds; lifting lets it reform.
+Clicking or briefly tapping without dragging sends a travelling scattering wave
+through the actual source cells, then lets them return. It takes 1.8 seconds to
+cross the viewport. Long holds and drawing do not also trigger the wave, and motion
 reduction, cancellation or loss of focus stop it. The persistent **Contact** link
 keeps email reachable throughout the animation.
-Both the portrait and type share a screen-space brush, so gathering works across
+Both the portrait and type share a screen-space brush, so scattering works across
 their boundaries. One gesture handler owns pointer capture for the scene. A second
-finger cancels gathering for native pinch zoom until all fingers lift. Moving
+finger cancels scattering for native pinch zoom until all fingers lift. Moving
 more than ten pixels restarts the stationary-hold timer, so drawing does not
-accidentally expand to a full-scene reveal. Artwork suppresses touch text selection
+accidentally expand to a full-scene disturbance. Artwork suppresses touch text selection
 and the hold context menu; the email keeps native link interactions. Phone controls
 use four equal touch targets at least 48 pixels tall, keep the Contact label at
 320 pixels wide, and respect screen safe areas. Tuner sliders wait for a tap or
@@ -78,7 +77,7 @@ horizontal drag before applying touch edits, so vertical scrolling does not chan
 the look. Fast strokes sweep the intervening path rather than skipping
 cells between frames. Returning glyphs briefly catch a cool phosphor tint. Small
 corner marks follow the brush; holding draws a progress ring that completes when
-the scene is gathered. Touch cancellation,
+the scattering radius reaches the whole scene. Touch cancellation,
 focus loss and hidden tabs end the hold. The buttons offer a keyboard alternative;
 reduced motion keeps the scene still and disables animation actions.
 
@@ -111,9 +110,9 @@ outline stable. Explicit glyph sampling avoids atlas mip blur. Roughly the
 silhouette breaks into individually transported source fragments, then the boundary
 retreats to restore them. The scene timeline bounds the renderer's erosion clock,
 preserving the face instead of advancing through complete disappearance. The
-underlying sweep speed remains adjustable alongside the starting center. Hover,
-touch and Reveal can gather cells at any point in the automatic cycle; release
-blends back into the current stage rather than restarting it.
+underlying sweep speed remains adjustable alongside the starting center. Hover and
+touch scatter cells at any point in the automatic cycle; the explicit Reveal
+button gathers them. Releasing either blends back into the current stage.
 Each character cell is divided into four independently moving pieces by default.
 The character atlas and tonal sampling stay at their original resolution, so
 subdivision preserves the assembled face. **Shard detail** adjusts this division
@@ -129,7 +128,7 @@ return exactly to their flat source appearance when gathered; the settled face
 and type are unaffected. The **Fragment depth** control can reduce or disable it.
 **Near / far depth** adds different apparent distances to incoming and departing
 source cells: a few pass closer to the lens while others recede. Scale and shading
-return exactly to their original values at home, including when restored by touch.
+return exactly to their original values at home as a touch disturbance fades.
 The utility strip stays subdued during assembly and becomes fully visible when
 the entrance finishes, or immediately on hover or keyboard focus.
 Particle density selects a sparse cohort of longer-lived, farther-travelling
@@ -176,7 +175,7 @@ after its own arrival and when the dissolve front reaches it. The final approach
 finishes at the cell's landing time; there is no global idle interval or extra
 departure delay. This overlaps incoming and outgoing motion without jumping to
 particles already midway through a flight. `config.intro` shares the timing
-between the animation loop and shader. Hover restoration reverses the same paths.
+between the animation loop and shader. Touch and natural recovery use the same paths.
 
 `site/text-effect.mjs` rasterizes the existing name and email letter shapes.
 The name and email pass through the portrait's exact ASCII fragment shader and glyph
@@ -189,7 +188,7 @@ texture after assembly, using finer cells to keep the small address readable.
 The transparent DOM link preserves clicking, selection and its focus
 outline. Before the renderer is ready, keyboard focus reveals the plain link;
 renderer failure also restores it. Reduced motion keeps its ASCII texture static. Hover
-and touch restore text locally. A/I share the same neutral ink as the other
+and touch scatter text locally. A/I share the same neutral ink as the other
 letters; normalized bounds select their delayed, reduced disintegration in the
 vertex shader. Bounds update with layout, so the effect survives phone sizing,
 letter-spacing changes and tuning. The original DOM text remains for semantics, selection, keyboard focus,
@@ -233,7 +232,7 @@ imports, reset, mobile controls, and the reduced-motion preview behavior.
 `node scripts/verify-disintegration.mjs` tracks a single source glyph's pixels
 as it leaves the face, checking shape retention and that no duplicate remains.
 `node scripts/verify-interaction.mjs` checks hover, held touch, cancellation,
-coordinate mapping, local GPU restoration, complete disappearance, release,
+coordinate mapping, local GPU scattering, exact recovery after release,
 and reduced motion.
 `node scripts/verify-entrance.mjs` checks delayed loading without a fallback
 flash, left-edge entry for both halves of the face, travel beyond the portrait
@@ -263,7 +262,10 @@ matching text/portrait light envelopes, uninterrupted breakup, and near/far
 projection with exact home, restored, and reduced-motion pixels.
 `node scripts/verify-timeline.mjs` samples ten minutes of cycle continuity and
 rendered portrait/text presence across several cycles, including return from
-peak erosion, gathering, reduced motion, and phone layouts.
+peak erosion, complete reconstruction, explicit Reveal, destructive touch,
+reduced motion, and phone layouts.
+`node scripts/verify-scatter.mjs` checks source-pixel displacement in both portrait
+and text, exact natural recovery, Reveal overriding touch, and reduced motion.
 `node scripts/verify-gravity.mjs` checks source shards travelling in all four
 screen directions, absence of invented pixels, exact assembled detail after
 subdivision, and desktop/phone viewport frame timing.

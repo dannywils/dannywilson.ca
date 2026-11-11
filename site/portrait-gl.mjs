@@ -46,7 +46,8 @@ void main() {
   vec2 cell=floor(origin*grid);
   cellInteraction=interaction*motion;
   float local=cellInteraction.x;
-  float restored=smoothstep(.08,.8,local);
+  // Positive interaction scatters; negative interaction is the explicit Reveal action.
+  float restored=smoothstep(.08,.8,max(-local,0.));
   float identity=max(inside(origin,identityA),inside(origin,identityI));
   float anchored=inside(origin,anchoredRegion);
   float amount=debrisControls.x*mix(1.,identityControls.y,identity)*(1.-anchored);
@@ -76,8 +77,11 @@ void main() {
   // Main starts this clock at 72% of the intro. A cell departs immediately after
   // its own arrival when the dissolve front has reached it, without a shared hold.
   float age=clamp((breakupTime-(settleAt-introTiming.y)*introTiming.x-departure)/flightDuration,0.,1.)*motion*step(.00001,dissolve.w);
-  // Restoration reverses the same flight back to the original source position.
-  float flight=age*released*(1.-restored);
+  // Touch pushes actual source shards farther along their weightless flight.
+  // Its decaying trail returns them continuously to the current automatic cycle.
+  float disturbance=smoothstep(.02,.9,max(local,0.))*(1.-anchored)*mix(1.,.7,identity);
+  float automatic=age*released;
+  float flight=(automatic+(1.-automatic)*disturbance*(.72+hash(cell+59.1)*.12))*(1.-restored);
   float burst=hash(cell+59.1);
   // Independent velocities on a sphere: no shared wind, downward gravity, or
   // screen-right destination. Each shard keeps its original source UVs.
@@ -607,13 +611,14 @@ export class PortraitGL {
         const edge=Math.max(0,Math.min(1,(Math.abs(distance-pulse.radius)-pulse.width*.3)/(pulse.width*.7)));
         wave=1-edge*edge*(3-2*edge);
       }
-      const target=Math.max(reveal,wave,radial*radial*(3-2*radial)*strength);
-      // A passing stroke catches cells promptly; a held point still gathers gently.
-      let amount=data[i]+(target-data[i])*(target>data[i]?catchUp:release);
-      if(reduced||amount<.0001)amount=0;
-      const charge=reduced?0:Math.max(data[i+1]*chargeRelease,Math.min(1,Math.max(0,amount-data[i])/chargeDelta*.2));
+      const scatter=Math.max(wave,radial*radial*(3-2*radial)*strength);
+      const target=scatter*(1-reveal)-reveal;
+      const attacking=Math.abs(target)>Math.abs(data[i])||target*data[i]<0;
+      let amount=data[i]+(target-data[i])*(attacking?catchUp:release);
+      if(reduced||Math.abs(amount)<.0001)amount=0;
+      const charge=reduced?0:Math.max(data[i+1]*chargeRelease,Math.min(1,Math.max(0,data[i]-amount)/chargeDelta*.2));
       for(let v=0;v<this.verticesPerCell;v++){data[i+v*2]=amount;data[i+v*2+1]=charge;}
-      active ||= amount>.0001;
+      active ||= Math.abs(amount)>.0001;
     }
     this.interactionActive=active;
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER,this.interactionBuffer);

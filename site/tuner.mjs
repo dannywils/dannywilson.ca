@@ -40,7 +40,7 @@ const groups = [
     ['erosionStructure','Connected erosion',0,1,.02],
     ['debrisDensity','Particle density',0,.6,.01],
   ]],
-  ['Touch & reveal', [
+  ['Touch & scatter', [
     ['brushSize','Brush size · pixels',40,200,2],
     ['trailPersistence','Trail persistence · seconds',.2,2,.05],
   ]],
