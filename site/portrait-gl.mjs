@@ -166,6 +166,9 @@ varying vec2 cellInteraction;
 varying float fragmentShade;
 uniform sampler2D portrait;
 uniform sampler2D atlas;
+uniform float portraitMode;
+uniform vec4 anchoredRegion;
+uniform float anchoredVisible;
 uniform vec2 resolution;
 uniform vec4 portraitBounds;
 uniform vec2 imageSize;
@@ -205,10 +208,17 @@ void main() {
   vec2 size = imageSize * scale * placement.x;
   vec2 pos = vec2(uv.x,1.-uv.y);
   if (pos.x<0. || pos.x>1. || pos.y<0. || pos.y>1.) { gl_FragColor=vec4(0.); return; }
+  // Only the small contact link hands back to DOM text after its entrance.
+  // The name and photo both continue through the same ASCII pipeline below.
+  if(portraitMode<.5&&pos.x>=anchoredRegion.x&&pos.x<=anchoredRegion.z&&pos.y>=anchoredRegion.y&&pos.y<=anchoredRegion.w){
+    vec4 source=texture2D(portrait,pos);
+    gl_FragColor=anchoredVisible>.5?vec4(source.rgb*source.a*fragmentShade,source.a)*fragmentLife:vec4(0.);
+    return;
+  }
   // A few thin horizontal slices move during the shared transition only.
   float slice = floor(pos.y*42.);
   float event = floor(time*13.);
-  float selected = step(.90, hash(vec2(slice,event)));
+  float selected = step(.90, hash(vec2(slice,event)))*portraitMode;
   float tear = (hash(vec2(slice,event+71.))-.5)*.026*selected*interference;
   pos.x += tear;
   vec2 grid = vec2(columns, floor(columns*imageSize.y/imageSize.x/1.3));
@@ -225,7 +235,7 @@ void main() {
   l = clamp(l+(l-surrounding)*1.1,0.,1.);
   // Limit contrast to the bridge and tip; stop before the moustache.
   vec2 noseDelta=(center-vec2(.51,.425))/vec2(.065,.07);
-  float nose=exp(-dot(noseDelta,noseDelta)*1.4)*(1.-smoothstep(.46,.48,center.y));
+  float nose=exp(-dot(noseDelta,noseDelta)*1.4)*(1.-smoothstep(.46,.48,center.y))*portraitMode;
   float broad=(lum(texture2D(portrait,center+vec2(.022,0.)).rgb)
     +lum(texture2D(portrait,center-vec2(.022,0.)).rgb)
     +lum(texture2D(portrait,center+vec2(0.,.022)).rgb)
@@ -234,7 +244,7 @@ void main() {
   l=clamp((l-.5)*toneControls.x+.5,0.,1.);
   float tone = clamp(pow(l,toneControls.z)*exposure,0.,1.);
   float seed = hash(cell);
-  float fade = 1.-smoothstep(.78,1.,center.y);
+  float fade = 1.-smoothstep(.78,1.,center.y)*portraitMode;
   float silhouette = sampleColor.a * fade;
   // Sparse shoulders, but preserve dark glasses and facial structure.
   if (l<.065 && seed>.38) silhouette *= .08;
@@ -258,34 +268,16 @@ void main() {
   float sweep = exp(-pow((center.y-fract(time*.045))/.075,2.))*.07*motion;
   float intensity = (.12+1.08*pow(tone,1.15))+light*.5+sweep*.5+(rewrite-.5)*.035*motion;
   float eyeDistance = length((center-eye.xy)/eye.zw);
-  float eyeMask = (1.-smoothstep(.72,1.15,eyeDistance))*takeover;
+  float eyeMask = (1.-smoothstep(.72,1.15,eyeDistance))*takeover*portraitMode;
   vec3 red = eyeColor;
   ink = mix(ink,red,eyeMask);
   float opacity = glyph*silhouette*intensity;
   // Tight phosphor halo, still restricted to the eye rather than the lens.
-  float halo = exp(-eyeDistance*eyeDistance*4.)*takeover*eyeGlow*sampleColor.a;
+  float halo = exp(-eyeDistance*eyeDistance*4.)*takeover*eyeGlow*sampleColor.a*portraitMode;
   vec3 color = ink*opacity + red*halo;
   // Cyan channel separation in the displaced slices, never over the whole face.
   color += cyan*glyph*silhouette*selected*interference*.12;
   gl_FragColor=vec4(color*toneControls.y*fragmentShade,clamp(opacity+halo,0.,1.))*fragmentLife;
-}
-`;
-
-const textFragmentSource = `
-precision highp float;
-varying vec2 uv;
-varying float fragmentLife;
-varying vec2 cellInteraction;
-varying float fragmentShade;
-uniform sampler2D portrait;
-uniform vec4 anchoredRegion;
-uniform float anchoredVisible;
-void main() {
-  vec2 sourceUV=vec2(uv.x,1.-uv.y);
-  if(anchoredVisible<.5&&sourceUV.x>=anchoredRegion.x&&sourceUV.x<=anchoredRegion.z&&sourceUV.y>=anchoredRegion.y&&sourceUV.y<=anchoredRegion.w){gl_FragColor=vec4(0.);return;}
-  vec4 source=texture2D(portrait,sourceUV);
-  vec3 ink=mix(source.rgb,vec3(.76,.97,1.),cellInteraction.y*.2);
-  gl_FragColor=vec4(ink*source.a*fragmentShade,source.a)*fragmentLife;
 }
 `;
 
@@ -320,7 +312,7 @@ export class PortraitGL {
       gl.attachShader(this.program, compile(gl.VERTEX_SHADER, vertexSource));
       gl.attachShader(
         this.program,
-        compile(gl.FRAGMENT_SHADER, options.text ? textFragmentSource : fragmentSource),
+        compile(gl.FRAGMENT_SHADER, fragmentSource),
       );
       gl.linkProgram(this.program);
       if (!gl.getProgramParameter(this.program, gl.LINK_STATUS))

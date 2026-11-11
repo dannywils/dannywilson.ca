@@ -169,8 +169,11 @@ departure delay. This overlaps incoming and outgoing motion without jumping to
 particles already midway through a flight. `config.intro` shares the timing
 between the animation loop and shader. Hover restoration reverses the same paths.
 
-`site/text-effect.mjs` rasterizes the existing name and email letter shapes and
-feeds them through the same GPU cell motion. Both assemble from
+`site/text-effect.mjs` rasterizes the existing name and email letter shapes.
+The name passes through the portrait's exact ASCII fragment shader and glyph
+atlas, including while assembled. Density, weight, tonal controls and character
+rewriting apply to both; the name has no separate texture renderer. Portrait-only
+eye, nose and shoulder masks do not affect the letters. Both assemble from
 the left alongside the portrait, then the name disintegrates with the face. The email
 cells are protected from subsequent disintegration; at the end of assembly the
 GPU email switches to the normal, underlined DOM link. Keyboard focus reveals the
