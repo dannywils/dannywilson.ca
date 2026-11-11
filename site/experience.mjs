@@ -12,6 +12,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   let x = -100, y = -100, lastHint = '';
   let interactive=false,assembling=true;
   let captured=null,multitouch=false;
+  let pressedAt=0,startX=0,startY=0,travel=0;
   const touches=new Set();
   const state = { radius: 90, reveal: 0, gather: 0, pulse:null };
   const on = (el, type, fn) => { el.addEventListener(type, fn); listeners.push([el, type, fn]); };
@@ -35,6 +36,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
     if(e.target?.closest('a,button,input,select,textarea')){if(!held)reset();return;}
     if(e.pointerType==='touch'&&!held)return;
     x = e.clientX; y = e.clientY; active = true;
+    if(held)travel=Math.max(travel,Math.hypot(x-startX,y-startY));
     cursor.style.setProperty('--x', `${x}px`); cursor.style.setProperty('--y', `${y}px`);
     onMove({clientX:x,clientY:y,isPrimary:true,gather:held});
   };
@@ -43,10 +45,14 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
     if (!interactive || multitouch || e.isPrimary === false || e.button > 0 || e.target.closest('a,button,input,select,textarea')) return;
     held = true;
     captured=e.pointerId;
+    pressedAt=performance.now();startX=e.clientX;startY=e.clientY;travel=0;state.pulse=null;
     root.setPointerCapture(e.pointerId); move(e);
   });
   on(root, 'pointerup', e => {
     if(e.isPrimary===false||e.pointerId!==captured)return;
+    if(held&&performance.now()-pressedAt<280&&travel<10&&interactive&&!pinned){
+      state.pulse={x:e.clientX,y:e.clientY,radius:0,width:state.radius,age:0,strength:0};
+    }
     held = false;
     captured=null;
     if (root.hasPointerCapture(e.pointerId)) root.releasePointerCapture(e.pointerId);
@@ -83,6 +89,12 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
       enabled = figure.dataset.renderer === 'webgl';
       const ready = enabled && !motion.matches;
       interactive=ready&&assembly===1;
+      if(state.pulse){
+        state.pulse.age+=delta;
+        // A fixed contact patch gets a fast impulse, never an expanding wave.
+        state.pulse.strength=3*(1-Math.exp(-state.pulse.age/.025))*Math.exp(-state.pulse.age/.24);
+        if(state.pulse.age>.65||!interactive)state.pulse=null;
+      }
       const nextAssembling=assembly<1;
       if(assembling!==nextAssembling||!replay.dataset.entranceAction){
         assembling=nextAssembling;replay.dataset.entranceAction=assembling?'skip':'replay';

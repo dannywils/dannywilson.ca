@@ -100,7 +100,7 @@ export class TextEffect {
     const p=this.pointer;
     if(brush){p.radius=brush.radius/this.bounds.width;p.reveal=brush.reveal;p.trail=this.config.shader.trailPersistence;}
     const pulse=brush?.pulse,b=this.bounds;
-    p.pulse=pulse?{x:(pulse.x-b.left)/b.width,y:(pulse.y-b.top)/b.height,radius:pulse.radius/b.width,width:pulse.width/b.width}:null;
+    p.pulse=pulse?{x:(pulse.x-b.left)/b.width,y:(pulse.y-b.top)/b.height,radius:pulse.radius/b.width,width:pulse.width/b.width,strength:pulse.strength}:null;
     if(reduced||!interactive){p.strength=0;if(reduced)p.targetStrength=0;}
     else{
       const follow=1-Math.exp(-delta/.065);p.x+=(p.tx-p.x)*follow;p.y+=(p.ty-p.y)*follow;

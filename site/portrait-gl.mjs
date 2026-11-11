@@ -81,7 +81,8 @@ void main() {
   // Its decaying trail returns them continuously to the current automatic cycle.
   float disturbance=smoothstep(.02,.9,max(local,0.))*(1.-anchored)*mix(1.,.7,identity);
   float automatic=age*released;
-  float flight=(automatic+(1.-automatic)*disturbance*(.28+hash(cell+59.1)*.08))*(1.-restored);
+  float impact=smoothstep(1.,2.,max(local,0.));
+  float flight=(automatic+(1.-automatic)*disturbance*(.28+hash(cell+59.1)*.08+impact*.3))*(1.-restored);
   float burst=hash(cell+59.1);
   // Independent velocities on a sphere: no shared wind, downward gravity, or
   // screen-right destination. Each shard keeps its original source UVs.
@@ -596,6 +597,7 @@ export class PortraitGL {
     if(strength<.001&&reveal<.001&&!pulse&&!this.interactionActive)return;
     const data=this.interactions,columns=this.meshColumns,rows=this.meshRows;
     const attack=1-Math.exp(-delta/.12),release=1-Math.exp(-delta/(pointer.trail??.45));
+    const impulseAttack=1-Math.exp(-delta/.035),impulseRelease=1-Math.exp(-delta/.24);
     const chargeRelease=Math.exp(-delta/.18),chargeDelta=Math.max(delta,.001);
     const catchUp=sweeping?Math.max(attack,Math.min(.95,Math.sqrt(lengthSquared)*12)):attack;
     let active=false;
@@ -609,12 +611,13 @@ export class PortraitGL {
       if(pulse){
         const distance=Math.hypot((x+.5)/columns-pulse.x,((y+.5)/rows-pulse.y)*aspect);
         const edge=Math.max(0,Math.min(1,(Math.abs(distance-pulse.radius)-pulse.width*.3)/(pulse.width*.7)));
-        wave=1-edge*edge*(3-2*edge);
+        wave=(1-edge*edge*(3-2*edge))*(pulse.strength??1);
       }
       const scatter=Math.max(wave,radial*radial*(3-2*radial)*strength);
       const target=scatter*(1-reveal)-reveal;
       const attacking=Math.abs(target)>Math.abs(data[i])||target*data[i]<0;
-      let amount=data[i]+(target-data[i])*(attacking?catchUp:release);
+      const response=wave>0?(attacking?impulseAttack:impulseRelease):(attacking?catchUp:release);
+      let amount=data[i]+(target-data[i])*response;
       if(reduced||Math.abs(amount)<.0001)amount=0;
       const charge=reduced?0:Math.max(data[i+1]*chargeRelease,Math.min(1,Math.max(0,data[i]-amount)/chargeDelta*.2));
       for(let v=0;v<this.verticesPerCell;v++){data[i+v*2]=amount;data[i+v*2+1]=charge;}

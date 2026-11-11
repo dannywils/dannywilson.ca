@@ -47,9 +47,24 @@ try{
   assert.ok(await gather()<.06,'Drawing for three seconds does not become a full-scene hold');
   await send('touchCancel');await page.waitForTimeout(80);
   assert.equal(await gather(),0);
+  await page.waitForTimeout(800);
+  await page.evaluate(()=>{window.touchPhoto.resetInteraction();window.touchType.resetInteraction();});
   await page.touchscreen.tap(195,460);
-  await page.waitForTimeout(150);
-  assert.equal(await page.evaluate(()=>!!window.touchPhoto.testPointer.pulse),false,'Tapping does not launch a spreading wave');
+  await page.waitForTimeout(120);
+  const burst=await page.evaluate(()=>{
+    const r=window.touchPhoto,p=r.testPointer.pulse;let peak=0,far=0;
+    if(!p)return null;
+    for(let y=0;y<r.meshRows;y++)for(let x=0;x<r.meshColumns;x++){
+      const v=r.interactions[(y*r.meshColumns+x)*r.interactionStride];peak=Math.max(peak,v);
+      if(Math.hypot((x+.5)/r.meshColumns-p.x,((y+.5)/r.meshRows-p.y)*r.sourceHeight/r.sourceWidth)>p.width*1.05)far=Math.max(far,v);
+    }
+    return {peak,far,radius:p.radius,width:p.width,brush:r.testPointer.radius};
+  });
+  assert.ok(burst&&burst.peak>1.2,'A tap kicks harder than a sustained touch');
+  assert.equal(burst.radius,0);assert.equal(burst.width,burst.brush);assert.equal(burst.far,0,'The burst stays inside the contact patch');
+  await page.screenshot({path:'output/touch-local-burst.png'});
+  await page.waitForTimeout(650);
+  assert.equal(await page.evaluate(()=>!!window.touchPhoto.testPointer.pulse),false,'The brief impulse finishes without travelling across the scene');
   await page.locator('.email').evaluate(e=>e.addEventListener('click',event=>{event.preventDefault();window.contactTapped=true;}));
   await page.locator('.email').tap();assert.ok(await page.evaluate(()=>window.contactTapped));
   assert.ok(await page.locator('.gather-cursor').evaluate(e=>!e.classList.contains('held')),'Email taps do not capture a drawing gesture');
@@ -95,5 +110,5 @@ try{
   await page.locator('[data-scene="reveal"]').tap();assert.equal(await page.locator('[data-scene="reveal"]').getAttribute('aria-pressed'),'false');
   await page.screenshot({path:'output/touch-phone.png'});
   assert.deepEqual(errors,[]);
-  console.log('Touch QA passed: fixed local radius through long holds, no distant influence or tap wave, pinch cancellation, email, controls and tuner scrolling.');
+  console.log('Touch QA passed: fixed local holds, stronger bounded tap burst, no distant influence, pinch cancellation, email, controls and tuner scrolling.');
 }finally{await browser.close();}

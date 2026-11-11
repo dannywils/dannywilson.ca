@@ -65,7 +65,7 @@ function draw() {
     pointer.pulse=pulse?{
       x:(pulse.x-b.left-b.width/2)/width+.5-config.shader.centerX,
       y:(pulse.y-b.top-b.height/2)/(width*image.naturalHeight/image.naturalWidth)+.5-config.shader.centerY,
-      radius:pulse.radius/width,width:pulse.width/width
+      radius:pulse.radius/width,width:pulse.width/width,strength:pulse.strength
     }:null;
     figure.dataset.entrance = assembly < 1 ? "assembling" : "settled";
     figure.setAttribute("aria-busy", String(assembly < 1));
