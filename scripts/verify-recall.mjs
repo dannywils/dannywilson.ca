@@ -12,7 +12,7 @@ try {
     const c=structuredClone(config);c.ascii.desktopColumns=c.ascii.mobileColumns=48;
     const r=new PortraitGL(document.createElement('canvas'),source,c,{text:true});r.resize(500,500);
     const p={x:-2,y:-2,strength:0,trail:.4};
-    const at=x=>r.interactions[(Math.floor(.4*r.meshRows)*r.meshColumns+Math.floor(x*r.meshColumns))*12];
+    const at=x=>r.interactions[(Math.floor(.4*r.meshRows)*r.meshColumns+Math.floor(x*r.meshColumns))*r.interactionStride];
     let near,earlyFar,lateFar;
     for(let i=0;i<=90;i++){
       r.updateInteraction(i/60,false,{...p,pulse:{x:.2,y:.4,radius:i/60*.65,width:.12}});

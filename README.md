@@ -186,7 +186,7 @@ Screen readers receive
 the name, email and portrait description. A static ASCII SVG serves as the
 no-JavaScript and renderer-failure fallback.
 
-The built-in image tool extracted `site/assets/portrait.png` from the supplied
+The built-in image tool extracted `source-assets/portrait.png` from the supplied
 photo. Prompt: “Make an accurate photographic head and upper shoulders cutout.
 Preserve this exact man's face, hair, rectangular glasses, expression and facial
 proportions. Remove bathroom, background, phone and hand. Reconstruct only the
@@ -201,6 +201,16 @@ Run `npm ci`, `npm run check`, and `npm test`. With the preview server running,
 `node scripts/verify.mjs` runs browser QA using installed Microsoft Edge,
 saves desktop, interference, takeover and mobile screenshots in ignored `output/`.
 The static SVG preserves the previous bright ASCII treatment as a fallback.
+The live portrait uses `site/assets/portrait.webp`, a lossless encoding with
+identical decoded RGBA pixels. The original PNG stays outside the deployed assets.
+The SVG is requested only for no-JavaScript or renderer/script failure, avoiding
+an unused 983 KB download on the WebGL path.
+
+The fragment mesh uses four indexed vertices per cell where WebGL supports
+32-bit indices, with the original six-vertex path as a compatibility fallback.
+This reduces vertex processing and interaction buffer size by one third without
+changing source density, shard count or motion. Shared decay constants are
+calculated once per interaction update instead of once per cell.
 The checks cover state transitions, red-eye lighting and recovery, neutral text,
 320–1440 px layouts, reduced motion, keyboard focus, email, WebGL rendering,
 GPU context loss/restoration, unavailable WebGL, and no-JS fallback.
@@ -261,6 +271,14 @@ blur, keeping the displayed settings consistent with the renderer.
 `node scripts/verify-email.mjs` checks loading without an email flash, keyboard
 access during assembly, real email source cells in flight, exact/protected landing,
 the GPU-to-DOM handoff, mail clicks, Replay and reduced motion during the entrance.
+
+`node scripts/verify-optimization.mjs` compares indexed and legacy rendering
+pixel-for-pixel through entry, settled and disintegrating frames for both portrait
+and type; it also compares interaction state and tests conditional fallback loading.
+`node scripts/profile.mjs <label>` writes local resource and CPU measurements to
+`output/profile-<label>.json`. On the development host, uncompressed requested
+resources dropped from 2,696,088 to 1,099,845 bytes (59%); these figures are not
+physical-phone timing or CDN transfer measurements.
 
 Push changes to `master` to publish through `.github/workflows/pages.yml`.
 The workflow can also be run manually from the Actions tab. GitHub Pages must

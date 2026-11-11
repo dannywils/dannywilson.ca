@@ -159,6 +159,9 @@ h1 {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
   inset: 0;
 }
 .portrait-canvas {
@@ -179,6 +182,7 @@ h1 {
 .portrait[data-renderer="fallback"] .fallback,
 .portrait-unavailable .fallback {
   visibility: visible;
+  background-image: url('/assets/portrait-static.svg');
 }
 @media (min-width: 1800px) {
   .composition {

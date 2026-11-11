@@ -327,6 +327,11 @@ export class PortraitGL {
         throw new Error(gl.getProgramInfoLog(this.program));
       gl.useProgram(this.program);
       this.buffer = gl.createBuffer();
+      // Four unique corners per shard; retain the triangle path for older WebGL.
+      this.indexed=options.indexed!==false&&!!gl.getExtension('OES_element_index_uint');
+      this.verticesPerCell=this.indexed?4:6;
+      this.interactionStride=this.verticesPerCell*2;
+      if(this.indexed)this.indexBuffer=gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
       const position = gl.getAttribLocation(this.program, "position");
       gl.enableVertexAttribArray(position);
@@ -545,6 +550,7 @@ export class PortraitGL {
     gl.enableVertexAttribArray(a.origin);gl.vertexAttribPointer(a.origin,2,gl.FLOAT,false,16,8);
     gl.bindBuffer(gl.ARRAY_BUFFER,this.interactionBuffer);
     gl.enableVertexAttribArray(a.interaction);gl.vertexAttribPointer(a.interaction,2,gl.FLOAT,false,8,0);
+    if(this.indexBuffer)gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.indexBuffer);
     this.textures.forEach((texture,i)=>{gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,texture);});
   }
   updateMesh() {
@@ -555,8 +561,8 @@ export class PortraitGL {
     this.gl.uniform2f(this.uniforms.meshGrid,columns,rows);
     if(this.meshColumns===columns && this.meshRows===rows)return;
     this.meshColumns=columns;this.meshRows=rows;
-    const vertices=new Float32Array(columns*rows*6*4);
-    const corners=[[0,0],[1,0],[0,1],[0,1],[1,0],[1,1]];
+    const vertices=new Float32Array(columns*rows*this.verticesPerCell*4);
+    const corners=this.indexed?[[0,0],[1,0],[0,1],[1,1]]:[[0,0],[1,0],[0,1],[0,1],[1,0],[1,1]];
     let i=0;
     for(let y=0;y<rows;y++)for(let x=0;x<columns;x++)for(const [dx,dy] of corners){
       vertices[i++]=(x+dx)/columns;vertices[i++]=(y+dy)/rows;
@@ -565,7 +571,14 @@ export class PortraitGL {
     this.vertexCount=vertices.length/4;
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER,this.buffer);
     this.gl.bufferData(this.gl.ARRAY_BUFFER,vertices,this.gl.STATIC_DRAW);
-    this.interactions=new Float32Array(columns*rows*12);
+    if(this.indexed){
+      const indices=new Uint32Array(columns*rows*6),order=[0,1,2,2,1,3];
+      for(let cell=0;cell<columns*rows;cell++)for(let v=0;v<6;v++)indices[cell*6+v]=cell*4+order[v];
+      this.indexCount=indices.length;
+      this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER,this.indexBuffer);
+      this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER,indices,this.gl.STATIC_DRAW);
+    }
+    this.interactions=new Float32Array(columns*rows*this.interactionStride);
     this.interactionActive=false;
     this.previousPointer=null;
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER,this.interactionBuffer);
@@ -587,9 +600,11 @@ export class PortraitGL {
     if(strength<.001&&reveal<.001&&!pulse&&!this.interactionActive)return;
     const data=this.interactions,columns=this.meshColumns,rows=this.meshRows;
     const attack=1-Math.exp(-delta/.12),release=1-Math.exp(-delta/(pointer.trail??.45));
+    const chargeRelease=Math.exp(-delta/.18),chargeDelta=Math.max(delta,.001);
+    const catchUp=sweeping?Math.max(attack,Math.min(.95,Math.sqrt(lengthSquared)*12)):attack;
     let active=false;
     for(let y=0;y<rows;y++)for(let x=0;x<columns;x++){
-      const i=(y*columns+x)*12;
+      const i=(y*columns+x)*this.interactionStride;
       let dx=(x+.5)/columns-pointer.x,dy=((y+.5)/rows-pointer.y)*aspect;
       const along=sweeping?Math.max(0,Math.min(1,(dx*sx+dy*sy)/lengthSquared)):0;
       dx-=sx*along;dy-=sy*along;
@@ -602,11 +617,10 @@ export class PortraitGL {
       }
       const target=Math.max(reveal,wave,radial*radial*(3-2*radial)*strength);
       // A passing stroke catches cells promptly; a held point still gathers gently.
-      const catchUp=sweeping?Math.max(attack,Math.min(.95,Math.sqrt(lengthSquared)*12)):attack;
       let amount=data[i]+(target-data[i])*(target>data[i]?catchUp:release);
       if(reduced||amount<.0001)amount=0;
-      const charge=reduced?0:Math.max(data[i+1]*Math.exp(-delta/.18),Math.min(1,Math.max(0,amount-data[i])/Math.max(delta,.001)*.2));
-      for(let v=0;v<6;v++){data[i+v*2]=amount;data[i+v*2+1]=charge;}
+      const charge=reduced?0:Math.max(data[i+1]*chargeRelease,Math.min(1,Math.max(0,amount-data[i])/chargeDelta*.2));
+      for(let v=0;v<this.verticesPerCell;v++){data[i+v*2]=amount;data[i+v*2+1]=charge;}
       active ||= amount>.0001;
     }
     this.interactionActive=active;
@@ -665,13 +679,15 @@ export class PortraitGL {
     gl.uniform2f(u.pointer, pointer.x, pointer.y);
     gl.uniform1f(u.pointerStrength,reduced?0:(pointer.strength??1));
     if(this.options.clear!==false){gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);}
-    gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
+    if(this.indexed)gl.drawElements(gl.TRIANGLES,this.indexCount,gl.UNSIGNED_INT,0);
+    else gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
   }
   dispose() {
     const gl = this.gl;
     this.textures?.forEach((t) => gl.deleteTexture(t));
     this.shaders?.forEach((s) => gl.deleteShader(s));
     if (this.buffer) gl.deleteBuffer(this.buffer);
+    if (this.indexBuffer) gl.deleteBuffer(this.indexBuffer);
     if (this.interactionBuffer) gl.deleteBuffer(this.interactionBuffer);
     if (this.program) gl.deleteProgram(this.program);
   }

@@ -37,7 +37,7 @@ try {
     const stroke={x:.2,y:.4,strength:1,radius:.035,trail:.9};
     photo.resetInteraction();photo.updateInteraction(0,false,stroke);
     photo.updateInteraction(1/60,false,{...stroke,x:.55});
-    const at=(x,y)=>photo.interactions[(Math.floor(y*photo.meshRows)*photo.meshColumns+Math.floor(x*photo.meshColumns))*12];
+    const at=(x,y)=>photo.interactions[(Math.floor(y*photo.meshRows)*photo.meshColumns+Math.floor(x*photo.meshColumns))*photo.interactionStride];
     const middle=at(.375,.4),outside=at(.375,.7);
     photo.updateInteraction(2/60,false,{...stroke,x:.55,strength:0});
     const lingering=at(.375,.4);

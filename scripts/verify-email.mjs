@@ -5,7 +5,7 @@ try{
   const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   let release;const gate=new Promise(resolve=>release=resolve);
-  await page.route('**/assets/portrait.png',async route=>{await gate;await route.continue();});
+  await page.route('**/assets/portrait.webp',async route=>{await gate;await route.continue();});
   await page.goto('http://localhost:8080',{waitUntil:'domcontentloaded'});
   const email=page.locator('.email');
   assert.equal(await email.evaluate(e=>getComputedStyle(e).color),'rgba(0, 0, 0, 0)','No static email flashes before assembly');

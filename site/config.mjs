@@ -76,7 +76,7 @@ export function applyLook(config, values) {
 export const config = {
   intro: { duration: 4.8, flowStart: .72, ignition: .9 },
   email: 'danny@dannywilson.ca',
-  portrait: '/assets/portrait.png',
+  portrait: '/assets/portrait.webp',
   timing: { recovery: 260 },
   ascii: { color: [250, 250, 240], cyan: [168, 225, 232], red: '#ff1531' },
   eye: {},

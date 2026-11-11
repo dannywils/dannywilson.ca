@@ -5,7 +5,7 @@ try {
   const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   let release;const gate=new Promise(resolve=>release=resolve);
-  await page.route('**/assets/portrait.png',async route=>{await gate;await route.continue();});
+  await page.route('**/assets/portrait.webp',async route=>{await gate;await route.continue();});
   await page.goto('http://localhost:8080',{waitUntil:'domcontentloaded'});
   await page.waitForTimeout(250);
   assert.equal(await page.locator('.fallback').isVisible(),false,'No alternate portrait appears while the source loads');

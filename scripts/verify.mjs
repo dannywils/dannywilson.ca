@@ -245,7 +245,7 @@ await fallback.goto("http://localhost:8080");
 assert.ok(
   await fallback
     .locator(".fallback")
-    .evaluate((e) => e.complete && e.naturalWidth > 0),
+    .evaluate((e) => getComputedStyle(e).backgroundImage.includes('portrait-static.svg') && performance.getEntriesByType('resource').some(r=>r.name.endsWith('/portrait-static.svg')&&r.responseEnd>0)),
 );
 assert.deepEqual(errors, []);
 await browser.close();

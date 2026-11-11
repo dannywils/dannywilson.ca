@@ -48,12 +48,12 @@ try {
     const make=()=>{const r=new PortraitGL(document.createElement('canvas'),img,c);r.resize(600,600);return r;};
     const active=make(),neutral=make(),p={x:.43,y:.35,strength:1};
     for(let i=0;i<=60;i++)active.updateInteraction(i/60,false,p);
-    const cell=(x,y)=>(Math.floor(y*active.meshRows)*active.meshColumns+Math.floor(x*active.meshColumns))*12;
+    const cell=(x,y)=>(Math.floor(y*active.meshRows)*active.meshColumns+Math.floor(x*active.meshColumns))*active.interactionStride;
     const near=cell(p.x,p.y),far=cell(.8,.7);
     const strength=active.interactions[near],distant=active.interactions[far];
     let farSourceInfluence=0;
     for(let y=0;y<active.meshRows;y++)for(let x=Math.ceil(active.meshColumns*.8);x<active.meshColumns;x++)
-      farSourceInfluence+=active.interactions[(y*active.meshColumns+x)*12];
+      farSourceInfluence+=active.interactions[(y*active.meshColumns+x)*active.interactionStride];
     const read=r=>{const gl=r.gl,a=new Uint8Array(600*600*4);gl.readPixels(0,0,600,600,gl.RGBA,gl.UNSIGNED_BYTE,a);return a;};
     active.render(1,'human',false,p,0,1,60);const a=read(active);
     neutral.render(1,'human',false,{x:-2,y:-2,strength:0},0,1,60);const b=read(neutral);
