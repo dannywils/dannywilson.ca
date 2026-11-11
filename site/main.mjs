@@ -93,8 +93,11 @@ function resize() {
   if (!renderer) return;
   const b = figure.getBoundingClientRect();
   portraitBounds=b;
-  renderer.resize(innerWidth, innerHeight, b);
-  textEffect?.refresh();
+  // Mobile browser chrome can make CSS viewport units differ from innerHeight.
+  // Render both layers in the actual canvas's CSS-pixel coordinate system.
+  const surface=canvas.getBoundingClientRect();
+  renderer.resize(surface.width,surface.height,b,surface);
+  textEffect?.refresh(surface);
   phosphor?.clear();
   draw();
 }
@@ -223,6 +226,7 @@ image.onload = () => {
   initialize();
   observer.observe(figure);
   observer.observe(identity);
+  observer.observe(canvas);
 };
 image.onerror = () => fail();
 createTuner(config, () => {
@@ -251,6 +255,8 @@ document.addEventListener("visibilitychange", visibility);
 addEventListener("blur", leaveAll);
 addEventListener("resize", resize);
 addEventListener("scroll", reposition, { passive: true });
+window.visualViewport?.addEventListener('resize',resize);
+window.visualViewport?.addEventListener('scroll',resize);
 motion.addEventListener("change", preference);
 addEventListener(
   "pagehide",
@@ -268,6 +274,8 @@ addEventListener(
     removeEventListener("blur", leaveAll);
     removeEventListener("resize", resize);
     removeEventListener("scroll", reposition);
+    window.visualViewport?.removeEventListener('resize',resize);
+    window.visualViewport?.removeEventListener('scroll',resize);
     motion.removeEventListener("change", preference);
   },
   { once: true },

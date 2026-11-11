@@ -695,11 +695,12 @@ export class PortraitGL {
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER,this.interactionBuffer);
     this.gl.bufferSubData(this.gl.ARRAY_BUFFER,0,this.interactions);
   }
-  resize(width, height, bounds = {left:0,top:0,width,height}) {
+  resize(width, height, bounds = {left:0,top:0,width,height}, surface = {left:0,top:0}) {
     const gl = this.gl,
       dpr = Math.min(devicePixelRatio || 1, 2);
     gl.useProgram(this.program);
     this.pixelRatio=dpr;
+    this.surfaceLeft=surface.left;this.surfaceTop=surface.top;
     if(this.canvas.width!==Math.round(width*dpr))this.canvas.width=Math.round(width*dpr);
     if(this.canvas.height!==Math.round(height*dpr))this.canvas.height=Math.round(height*dpr);
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
@@ -720,7 +721,7 @@ export class PortraitGL {
   setBounds(bounds) {
     const dpr=this.pixelRatio||1;
     this.gl.useProgram(this.program);
-    this.gl.uniform4f(this.uniforms.portraitBounds,bounds.left*dpr,bounds.top*dpr,bounds.width*dpr,bounds.height*dpr);
+    this.gl.uniform4f(this.uniforms.portraitBounds,(bounds.left-(this.surfaceLeft??0))*dpr,(bounds.top-(this.surfaceTop??0))*dpr,bounds.width*dpr,bounds.height*dpr);
   }
   render(time, phase, reduced, pointer, light = 1, assembly = 1, breakupTime = time) {
     const gl = this.gl,
@@ -746,7 +747,8 @@ export class PortraitGL {
     this.tapTimingData??=new Float32Array(maxTapBursts*3);
     for(let i=0;i<count;i++){
       const tap=taps[i],p=i*4,t=i*3;
-      this.tapData[p]=tap.x*dpr;this.tapData[p+1]=tap.y*dpr;
+      this.tapData[p]=(tap.x-(this.surfaceLeft??0))*dpr;
+      this.tapData[p+1]=(tap.y-(this.surfaceTop??0))*dpr;
       this.tapData[p+2]=tap.width*dpr;this.tapData[p+3]=tap.strength;
       this.tapTimingData[t]=tap.age;this.tapTimingData[t+1]=tap.breakupTime??breakupTime;
       this.tapTimingData[t+2]=tap.seed??0;

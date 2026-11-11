@@ -42,7 +42,8 @@ export class TextEffect {
     if(getComputedStyle(this.element.querySelector('h1')).letterSpacing!==this.letterSpacing)this.refresh();
     else this.applyConfig();
   }
-  refresh(){
+  refresh(surface=this.surface??{left:0,top:0,width:innerWidth,height:innerHeight}){
+    this.surface=surface;
     this.letterSpacing=getComputedStyle(this.element.querySelector('h1')).letterSpacing;
     const anchor=this.element.getBoundingClientRect(),letters=[];
     const walker=document.createTreeWalker(this.element,NodeFilter.SHOW_TEXT);
@@ -90,7 +91,7 @@ export class TextEffect {
       (Math.max(...emailLetters.map(l=>l.box.bottom))-top+4)/this.bounds.height]:[0,0,0,0];
     this.renderer.setAnchoredBounds(this.emailRegion);
     this.renderer.showAnchored(true);
-    this.renderer.resize(innerWidth,innerHeight,this.bounds);
+    this.renderer.resize(surface.width,surface.height,this.bounds,surface);
   }
   render(time,phase,reduced,light,breakupTime,interactive=true,assembly=1,brush){
     if(!this.renderer)return;
