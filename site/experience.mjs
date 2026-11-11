@@ -10,7 +10,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   const coarse = matchMedia('(pointer: coarse)');
   const listeners = [];
   let enabled = false, held = false, pinned = false, active = false;
-  let x = -100, y = -100, lastHint = '';
+  let x = -100, y = -100, lastHint = '',lastCursor='',lastRail='';
   let interactive=false,assembling=true;
   let captured=null,multitouch=false;
   let pressedAt=0,startX=0,startY=0,travel=0;
@@ -19,6 +19,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   const on = (el, type, fn) => { el.addEventListener(type, fn); listeners.push([el, type, fn]); };
   const reset = () => {
     held = false; active = false;
+    lastCursor='';
     const id=captured;captured=null;
     if(id!==null&&root.hasPointerCapture(id))root.releasePointerCapture(id);
     cursor.classList.remove('active', 'held'); onLeave();
@@ -99,9 +100,10 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
         replay.setAttribute('aria-label',assembling?'Skip entrance':'Replay entrance');
         replay.title=assembling?'Skip entrance':'Replay entrance';
       }
-      rail.hidden = false;
-      reveal.disabled = !ready || assembly < 1;
-      replay.disabled = !ready;
+      if(rail.hidden)rail.hidden=false;
+      const disabled=!ready||assembly<1;
+      if(reveal.disabled!==disabled)reveal.disabled=disabled;
+      if(replay.disabled===ready)replay.disabled=!ready;
       if (held && ready && assembly === 1) {
         onMove({ clientX: x, clientY: y, isPrimary: true, gather: true });
       }
@@ -110,14 +112,19 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
       const target = pinned ? 1 : 0;
       state.reveal += (target - state.reveal) * (1 - Math.exp(-delta / .28));
       const interacting = active && ready && assembly === 1 && !pinned;
-      cursor.classList.toggle('active', interacting);
-      cursor.classList.toggle('held', held && interacting);
-      // The cursor marks the gathering gesture, not an artificial clipping boundary.
-      cursor.style.setProperty('--gather', state.gather);
-      cursor.style.setProperty('--ring-size', held?'24px':'18px');
+      const cursorState=`${interacting}:${held}`;
+      if(cursorState!==lastCursor){
+        cursor.classList.toggle('active',interacting);
+        cursor.classList.toggle('held',held&&interacting);
+        // The cursor marks contact, not an artificial clipping boundary.
+        cursor.style.setProperty('--gather',state.gather);
+        cursor.style.setProperty('--ring-size',held?'24px':'18px');
+        lastCursor=cursorState;
+      }
       const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to resume' : held ? 'Release to reform' : state.taps.length ? (state.taps.some(tap=>tap.age<tapDriftSeconds)?'Drifting':'Reforming') : coarse.matches ? 'Tap to scatter · drag to deform' : 'Click to scatter · move to deform';
       if (message !== lastHint) { hint.textContent = message; lastHint = message; }
-      rail.dataset.state = assembly < 1 ? 'assembling' : pinned ? 'revealed' : 'live';
+      const railState=assembly<1?'assembling':pinned?'revealed':'live';
+      if(railState!==lastRail){rail.dataset.state=railState;lastRail=railState;}
     },
     dispose() { for (const [el, type, fn] of listeners) el.removeEventListener(type, fn); }
   };

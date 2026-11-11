@@ -10,7 +10,7 @@ export class TextEffect {
     const on=(name,fn)=>{element.addEventListener(name,fn);this.listeners.push([name,fn]);};
     const move=e=>{
       if(motion.matches||e.isPrimary===false||!this.bounds)return;
-      this.position();
+      // Bounds are refreshed by resize/scroll, not by every held-pointer frame.
       const p=this.pointer,b=this.bounds;
       p.tx=(e.clientX-b.left)/b.width;p.ty=(e.clientY-b.top)/b.height;
       if(p.strength<.01){p.x=p.tx;p.y=p.ty;}
@@ -89,13 +89,13 @@ export class TextEffect {
       (Math.max(...emailLetters.map(l=>l.box.right))-left+4)/this.bounds.width,
       (Math.max(...emailLetters.map(l=>l.box.bottom))-top+4)/this.bounds.height]:[0,0,0,0];
     this.renderer.setAnchoredBounds(this.emailRegion);
+    this.renderer.showAnchored(true);
     this.renderer.resize(innerWidth,innerHeight,this.bounds);
   }
   render(time,phase,reduced,light,breakupTime,interactive=true,assembly=1,brush){
     if(!this.renderer)return;
     const settled=reduced||assembly>=1;
-    this.element.classList.toggle('email-settled',settled);
-    this.renderer.showAnchored(true);
+    if(settled!==this.settled){this.element.classList.toggle('email-settled',settled);this.settled=settled;}
     const delta=Math.max(0,Math.min(.1,time-(this.lastTime??time)));this.lastTime=time;
     const p=this.pointer;
     if(brush){p.radius=brush.radius/this.bounds.width;p.reveal=brush.reveal;p.trail=this.config.shader.trailPersistence;}
@@ -106,7 +106,7 @@ export class TextEffect {
       p.strength+=(p.targetStrength-p.strength)*(1-Math.exp(-delta/.11));
     }
     this.renderer.render(time,phase,reduced,p,light,assembly,breakupTime);
-    this.element.classList.add('text-ready');
+    if(!this.ready){this.element.classList.add('text-ready');this.ready=true;}
   }
   dispose(){
     for(const [name,fn] of this.listeners)this.element.removeEventListener(name,fn);

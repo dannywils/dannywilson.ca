@@ -181,8 +181,9 @@ void main() {
   localPosition=mat2(cos(angle),sin(angle),-sin(angle),cos(angle))*localPosition;
   vec2 screen=volumeCenter+(homeCenter-volumeCenter)*perspective+localPosition+offset*size*placement.x*perspective+incoming;
   for(int tapIndex=0;tapIndex<${maxTapBursts};tapIndex++){
-    if(tapIndex>=tapCount)break;
+    if(tapIndex>=tapCount||interactionMask<.5||anchored>.5||restored>=1.)break;
     vec4 tap=taps[tapIndex];
+    if(tap.w<=0.)continue;
     vec3 tapTiming=tapTimings[tapIndex];
     // Freeze selection at the tap: hit the displayed pieces, including their
     // existing drift and depth, rather than the original source-image location.
@@ -195,6 +196,9 @@ void main() {
     float hitPerspective=2./max(.8,2.-z*hitTravel*.85*flightDepth);
     vec2 hit=volumeCenter+(homeCenter-volumeCenter)*hitPerspective+hitHeading*hitDistance*reach*size*placement.x*hitPerspective;
     vec2 fromTap=hit-tap.xy;
+    // The noisy contour never exceeds 1.35 radii. Reject distant pieces before
+    // evaluating its noise, random velocities and trigonometry for every tap.
+    if(dot(fromTap,fromTap)>=tap.z*tap.z*1.8225)continue;
     float hitRadius=length(fromTap);
     // A ragged, connected pressure field replaces the clean circular cutout.
     // Its seed stays fixed for this impact; nearby fragments tear in patches.

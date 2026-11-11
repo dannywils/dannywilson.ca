@@ -73,6 +73,16 @@ seeded contour and varied fragment velocities, leaving suspended pieces through
 the center instead of a clean circular hole. Up to 16 bursts overlap with separate
 clocks; new touches never replace a burst already in flight. Holds and drags keep
 their gentler local deformation.
+Burst shaders reject pieces outside the maximum noisy contour before computing
+noise and velocities, and skip protected letters and anchored email cells.
+Animation reuses layout bounds refreshed on resize/scroll, and updates DOM state
+only when it changes. Glyph density, source fragments and motion timing stay intact.
+
+`node scripts/profile-renderer.mjs [baseline-commit]` compares rendered pixels and
+median completed render batches against a Git revision (default `7f29b71`).
+`node scripts/verify-frame-work.mjs [baseline-commit]` measures layout reads and
+attribute mutations across 40 idle and held-contact frames. These are desktop
+browser measurements at a phone viewport, not physical-phone benchmarks.
 Lifting lets them reform. Motion reduction, cancellation or loss of focus end
 the gesture. The persistent **Contact** link
 keeps email reachable throughout the animation.

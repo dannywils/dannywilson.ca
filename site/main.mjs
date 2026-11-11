@@ -19,6 +19,9 @@ let controller = new Controller(config),
   renderer,
   textEffect,
   phosphor,
+  portraitBounds,
+  lastLight,
+  lastAssembling,
   frame = 0,
   last = 0,
   elapsed = 0,
@@ -52,19 +55,22 @@ function sync() {
 }
 function draw() {
   const light = motion.matches ? 0 : controller.light;
-  root.style.setProperty("--ai-light", light);
+  if(light!==lastLight){root.style.setProperty("--ai-light",light);lastLight=light;}
   const assembly = motion.matches ? 1 : Math.min(1, entranceElapsed / entranceDuration);
   const timeline=sceneTimeline(breakupElapsed,config.shader);
   if (renderer) {
-    const b=figure.getBoundingClientRect();
+    const b=portraitBounds;
     const width=image.naturalWidth*Math.min(b.width/image.naturalWidth,b.height/image.naturalHeight)*config.shader.zoom;
     pointer.radius=experience.state.radius/width;
     pointer.reveal=experience.state.reveal;
     pointer.trail=config.shader.trailPersistence;
     for(const tap of experience.state.taps)tap.breakupTime??=timeline.erosion;
     pointer.taps=experience.state.taps;
-    figure.dataset.entrance = assembly < 1 ? "assembling" : "settled";
-    figure.setAttribute("aria-busy", String(assembly < 1));
+    const assembling=assembly<1;
+    if(assembling!==lastAssembling){
+      figure.dataset.entrance=assembling?'assembling':'settled';
+      figure.setAttribute('aria-busy',String(assembling));lastAssembling=assembling;
+    }
     let usePhosphor=!!phosphor&&!motion.matches&&config.shader.afterglow>0;
     if(usePhosphor){
       try{phosphor.begin();}catch{
@@ -86,6 +92,7 @@ function draw() {
 function resize() {
   if (!renderer) return;
   const b = figure.getBoundingClientRect();
+  portraitBounds=b;
   renderer.resize(innerWidth, innerHeight, b);
   textEffect?.refresh();
   phosphor?.clear();
@@ -93,7 +100,8 @@ function resize() {
 }
 function reposition() {
   if (!renderer) return;
-  renderer.setBounds(figure.getBoundingClientRect());
+  portraitBounds=figure.getBoundingClientRect();
+  renderer.setBounds(portraitBounds);
   textEffect?.position();
   phosphor?.clear();
   draw();
@@ -135,7 +143,8 @@ function start() {
 }
 function move(e) {
   if (motion.matches || e.isPrimary === false || !image.naturalWidth) return;
-  const b = figure.getBoundingClientRect();
+  const b = portraitBounds;
+  if(!b)return;
   const scale = Math.min(b.width / image.naturalWidth, b.height / image.naturalHeight) * config.shader.zoom;
   pointer.tx = (e.clientX - b.left - b.width / 2) / (image.naturalWidth * scale) + .5 - config.shader.centerX;
   pointer.ty = (e.clientY - b.top - b.height / 2) / (image.naturalHeight * scale) + .5 - config.shader.centerY;
@@ -178,6 +187,7 @@ function fail(error) {
 }
 function initialize() {
   try {
+    lastAssembling=undefined;
     if (motion.matches) {entranceElapsed=entranceDuration;introCueFired=true;}
     renderer = new PortraitGL(canvas, image, config);
     textEffect = new TextEffect(canvas, identity, config, motion);
