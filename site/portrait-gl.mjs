@@ -19,10 +19,15 @@ uniform float assembly;
 uniform float entranceSeed;
 uniform vec3 flowControls;
 uniform vec2 introTiming;
+uniform float erosionStructure;
 varying vec2 uv;
 varying float fragmentLife;
 varying vec2 cellInteraction;
 float hash(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+float noise(vec2 p) {
+  vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);
+}
 void main() {
   vec2 grid=vec2(columns,floor(columns*imageSize.y/imageSize.x/1.3));
   vec2 cell=floor(origin*grid);
@@ -36,7 +41,10 @@ void main() {
   float rate=mix(1.,.6+seed*1.5,debrisControls.y);
   // A one-way front crosses each source cell once. There is no respawn cycle.
   float velocity=(max(dissolve.y,.1)+.12)/max(sweepDuration,.1);
-  float threshold=mix(dissolve.x,dissolve.y,hash(cell+91.7));
+  // Connected contours tear off in patches, with a little grain at their edges.
+  float contour=noise(origin*vec2(9.,15.)+31.7)*.72+noise(origin*vec2(27.,41.)+7.3)*.28;
+  float boundary=mix(hash(cell+91.7),contour,erosionStructure);
+  float threshold=mix(dissolve.x,dissolve.y,boundary);
   float departure=max(0.,(threshold-origin.x)/velocity);
   float flightDuration=clamp(.55/max(dissolve.w,.03)/max(rate,.2),.8,6.);
   // Main starts this clock at 72% of the intro. A cell departs immediately after
@@ -303,6 +311,7 @@ export class PortraitGL {
           "entranceSeed",
           "flowControls",
           "introTiming",
+          "erosionStructure",
           "interference",
           "takeover",
           "eye",
@@ -437,6 +446,7 @@ export class PortraitGL {
     gl.uniform1f(u.sweepDuration,s.sweepDuration??18);
     gl.uniform3f(u.flowControls,s.windCurl??.9,s.fragmentSpin??.65,s.streamReach??1.2);
     gl.uniform2f(u.introTiming,c.intro.duration,c.intro.flowStart);
+    gl.uniform1f(u.erosionStructure,s.erosionStructure??.68);
     this.updateMesh();
   }
   get sourceWidth(){return this.image.naturalWidth||this.image.width;}
@@ -488,6 +498,7 @@ export class PortraitGL {
     this.interactionTime=time;
     const strength=reduced?0:(pointer.strength??(pointer.x>=0&&pointer.y>=0?1:0));
     const reveal=reduced?0:(pointer.reveal??0);
+    const pulse=reduced?null:pointer.pulse;
     const aspect=this.sourceHeight/this.sourceWidth;
     const previous=this.previousPointer;
     this.previousPointer=!reduced&&strength>.05?{x:pointer.x,y:pointer.y}:null;
@@ -495,7 +506,7 @@ export class PortraitGL {
     const lengthSquared=sx*sx+sy*sy;
     // Sweep the brush across the path between frames so quick gestures leave no holes.
     const sweeping=!!previous&&strength>.05&&lengthSquared>1e-8&&lengthSquared<.7;
-    if(strength<.001&&reveal<.001&&!this.interactionActive)return;
+    if(strength<.001&&reveal<.001&&!pulse&&!this.interactionActive)return;
     const data=this.interactions,columns=this.meshColumns,rows=this.meshRows;
     const attack=1-Math.exp(-delta/.12),release=1-Math.exp(-delta/(pointer.trail??.45));
     let active=false;
@@ -505,7 +516,13 @@ export class PortraitGL {
       const along=sweeping?Math.max(0,Math.min(1,(dx*sx+dy*sy)/lengthSquared)):0;
       dx-=sx*along;dy-=sy*along;
       const radial=Math.max(0,1-Math.sqrt(dx*dx+dy*dy)/(pointer.radius??.16));
-      const target=Math.max(reveal,radial*radial*(3-2*radial)*strength);
+      let wave=0;
+      if(pulse){
+        const distance=Math.hypot((x+.5)/columns-pulse.x,((y+.5)/rows-pulse.y)*aspect);
+        const edge=Math.max(0,Math.min(1,(Math.abs(distance-pulse.radius)-pulse.width*.3)/(pulse.width*.7)));
+        wave=1-edge*edge*(3-2*edge);
+      }
+      const target=Math.max(reveal,wave,radial*radial*(3-2*radial)*strength);
       // A passing stroke catches cells promptly; a held point still gathers gently.
       const catchUp=sweeping?Math.max(attack,Math.min(.95,Math.sqrt(lengthSquared)*12)):attack;
       let amount=data[i]+(target-data[i])*(target>data[i]?catchUp:release);

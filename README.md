@@ -44,6 +44,12 @@ The interaction strip provides **Replay** for the complete entrance and **Reveal
 to gather the entire scene until **Release** is selected. Moving across the page
 leaves a short restoration trail. Pressing and holding expands the brush from the
 pointer to the whole scene over about 2.4 seconds; lifting releases the pixels.
+Clicking or briefly tapping without dragging sends a travelling recall wave
+through the actual source cells, then lets them dissolve again. It takes 1.8
+seconds to cross the viewport; each visited cell returns along its existing
+flight path. Long holds and drawing do not also trigger the wave, and motion
+reduction, cancellation or loss of focus stop it. The persistent **Contact** link
+keeps email reachable after the main composition has disappeared.
 Both the portrait and type share a screen-space brush, so gathering works across
 their boundaries. Fast strokes sweep the intervening path rather than skipping
 cells between frames. Returning glyphs briefly catch a cool phosphor tint. Small
@@ -87,6 +93,9 @@ values wider than the whole image. The central features stay intact at the
 default boundary. Thin displaced slices intensify the synchronized
 takeover. A dark crimson accent with a restrained halo is confined to one eye. The source
 photo is never composited into the output. No rendering library is required.
+The **Connected erosion** control blends fine independent grain with two scales
+of connected contours, so breakup can peel away in irregular patches. It keeps
+the same right-to-left sweep and does not introduce extra particle pixels.
 Reduced motion keeps a static human state. Hidden tabs stop the animation loop.
 GPU context loss reveals the static fallback; restoration rebuilds the renderer.
 On initial load the portrait area stays clear until its source and shader are
@@ -159,6 +168,9 @@ motion using actual rendered pixel counts.
 `node scripts/verify-flow.mjs` checks overlapping arrival/departure for text and
 portrait, continuity across the intro boundary, fast brush strokes, and vertical
 drawing in an emulated touch browser.
+`node scripts/verify-recall.mjs` checks travelling source-cell restoration and
+release, click/tap recognition, separation from holds and drawing, persistent
+contact access, compact control layouts, and reduced motion.
 
 Push changes to `master` to publish through `.github/workflows/pages.yml`.
 The workflow can also be run manually from the Actions tab. GitHub Pages must

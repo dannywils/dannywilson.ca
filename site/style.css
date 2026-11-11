@@ -78,16 +78,16 @@ h1 {
 }
 .experience-hint { margin: 0; color: #929390; letter-spacing: .025em; }
 .scene-actions { display: flex; align-items: center; gap: 20px; }
-.scene-actions button {
+.scene-actions :is(button,a) {
   display: inline-flex; align-items: center; gap: 9px;
   min-height: 44px; padding: 8px 0;
   background: none; border: 0; border-radius: 0;
-  color: #a8aaa5; font: inherit; cursor: pointer; transition: color .2s;
+  color: #a8aaa5; font: inherit; cursor: pointer; transition: color .2s; text-decoration: none;
 }
-.scene-actions button svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
-.scene-actions button:hover, .scene-actions button[aria-pressed="true"] { color: var(--paper); }
+.scene-actions svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.scene-actions :is(button,a):hover, .scene-actions button[aria-pressed="true"] { color: var(--paper); }
 .scene-actions button[aria-pressed="true"]::after { content: ''; width: 3px; height: 3px; background: #bc473c; }
-.scene-actions button:focus-visible { outline: 1px solid #c1d3d2; outline-offset: 5px; }
+.scene-actions :is(button,a):focus-visible { outline: 1px solid #c1d3d2; outline-offset: 5px; }
 .scene-actions button:disabled { opacity: .3; cursor: default; }
 .gather-cursor {
   position: fixed; top: 0; left: 0; z-index: 3; pointer-events: none;
@@ -111,10 +111,15 @@ h1 {
 @media (max-width: 700px) {
   .experience { left: 24px; right: 24px; bottom: max(12px, env(safe-area-inset-bottom)); flex-direction: column; gap: 3px; }
   .experience-hint { font-size: 10px; }
-  .scene-actions { gap: 30px; }
-  .scene-actions button { font-size: 11px; }
+  .scene-actions { gap: 18px; }
+  .scene-actions :is(button,a) { font-size: 11px; }
   .tuning-open .experience { display: none; }
   .gather-cursor.active { opacity: .65; }
+}
+@media (max-width: 360px) {
+  .scene-actions { gap: 12px; }
+  .contact-link { min-width: 44px; justify-content: center; }
+  .contact-link span { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .gather-cursor { display: none; } }
 @media (pointer: coarse) { .composition .portrait { touch-action: pinch-zoom; } }

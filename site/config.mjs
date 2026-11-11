@@ -18,6 +18,7 @@ export const publishedLook = Object.freeze({
   windCurl: .9,
   fragmentSpin: .65,
   streamReach: 1.2,
+  erosionStructure: .68,
   brushSize: 96,
   trailPersistence: .9,
   particleSpeed: 0.2,
@@ -43,7 +44,7 @@ export function applyLook(config, values) {
   for (const key of ['contrast','brightness','exposure','gamma','glyphWeight',
     'noseContrast','zoom','centerX','centerY','breakup','randomness','particleSpeed',
     'particleTravel','debrisDensity','scrambleHz','densityJitter','glitchBandSpeed','sweepDuration',
-    'windCurl','fragmentSpin','streamReach','brushSize','trailPersistence'])
+    'windCurl','fragmentSpin','streamReach','erosionStructure','brushSize','trailPersistence'])
     config.shader[key] = values[key];
   config.ascii.desktopColumns = values.density;
   config.ascii.mobileColumns = Math.round(values.density * .75);

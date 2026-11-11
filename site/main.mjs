@@ -11,6 +11,7 @@ const email = document.querySelector(".email");
 const identity = document.querySelector(".identity");
 email.href = `mailto:${config.email}`;
 email.textContent = config.email;
+document.querySelector('.contact-link').href=email.href;
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
 let controller = new Controller(config),
   renderer,
@@ -51,6 +52,12 @@ function draw() {
     pointer.radius=experience.state.radius/width;
     pointer.reveal=experience.state.reveal;
     pointer.trail=config.shader.trailPersistence;
+    const pulse=experience.state.pulse;
+    pointer.pulse=pulse?{
+      x:(pulse.x-b.left-b.width/2)/width+.5-config.shader.centerX,
+      y:(pulse.y-b.top-b.height/2)/(width*image.naturalHeight/image.naturalWidth)+.5-config.shader.centerY,
+      radius:pulse.radius/width,width:pulse.width/width
+    }:null;
     figure.dataset.entrance = assembly < 1 ? "assembling" : "settled";
     figure.setAttribute("aria-busy", String(assembly < 1));
     renderer.render(elapsed, controller.phase, motion.matches, pointer, light, assembly, breakupElapsed);
