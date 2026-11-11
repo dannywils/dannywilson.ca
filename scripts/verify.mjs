@@ -89,7 +89,21 @@ await page.screenshot({ path: "output/desktop.png" });
 await page.reload();
 await page.waitForSelector('[data-renderer="webgl"].ready');
 await page.emulateMedia({ reducedMotion: "no-preference" });
+// Keep the source visible while checking the randomly timed red-eye cycles.
+// Otherwise the intentional one-way sweep can finish before the next takeover.
+await page.waitForFunction(()=>!document.querySelector('[data-scene="reveal"]').disabled);
+await page.locator('[data-scene="reveal"]').evaluate(e=>e.click());
+await page.waitForTimeout(1200);
 const bounds = await page.locator(".email").boundingBox();
+async function triggerFlicker(){
+  await page.evaluate(async()=>{
+    const {config}=await import('/config.mjs');
+    // Give readbacks a deterministic window, independent of random idle intervals.
+    config.timing.interference=1000;config.timing.takeover=2000;
+    document.querySelector('[data-action="preview"]').click();
+  });
+}
+await triggerFlicker();
 await page.waitForSelector('[data-phase="interference"]', { timeout: 16000 });
 await page.screenshot({ path: "output/interference.png" });
 await page.waitForSelector('[data-phase="takeover"]', { timeout: 3000 });
@@ -167,10 +181,9 @@ async function redPixels() {
       ),
   );
 }
-// Start a fresh short takeover before pixel readback; screenshots above can
-// consume the selected 500 ms hold on slower GPUs.
+// Start a fresh takeover before pixel readback.
 await page.mouse.move(0,0);
-await page.waitForSelector('[data-phase="human"]', { timeout: 4000 });
+await triggerFlicker();
 await page.waitForSelector('[data-phase="takeover"]', { timeout: 10000 });
 let pixels = await redPixels();
 assert.ok(pixels.red > 0);

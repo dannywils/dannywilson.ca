@@ -85,9 +85,14 @@ move with it, leaving its position empty. No separate debris glyphs are generate
 The characters keep rewriting during flight. Vertex motion varies speed,
 acceleration and curl per cell. Shared gusts curl through neighboring rows and
 fragments rotate as they depart, with their source pixels attached. Particle
-density selects a sparse cohort of longer-lived fragments that can drift toward
+depth adds edge-on projection and directional dimming to airborne cells. Both
+return exactly to their flat source appearance when gathered; the settled face
+and type are unaffected. The **Fragment depth** control can reduce or disable it.
+Particle density selects a sparse cohort of longer-lived fragments that can drift toward
 the viewport's right edge; the rest fades as local dust. Wind curl, fragment
 rotation, stream reach, brush size and trail persistence have dedicated controls.
+On phones, the portrait uses the available screen width. Short screens reserve
+space for the interaction strip, and landscape has a compact two-column layout.
 Boundary softness spans 0.01–2 portrait widths, including
 values wider than the whole image. The central features stay intact at the
 default boundary. Thin displaced slices intensify the synchronized
@@ -171,6 +176,8 @@ drawing in an emulated touch browser.
 `node scripts/verify-recall.mjs` checks travelling source-cell restoration and
 release, click/tap recognition, separation from holds and drawing, persistent
 contact access, compact control layouts, and reduced motion.
+`node scripts/verify-depth.mjs` checks airborne foreshortening, exact settled and
+restored pixels, reduced motion, and phone/landscape layouts above the controls.
 
 Push changes to `master` to publish through `.github/workflows/pages.yml`.
 The workflow can also be run manually from the Actions tab. GitHub Pages must

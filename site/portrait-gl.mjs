@@ -20,9 +20,11 @@ uniform float entranceSeed;
 uniform vec3 flowControls;
 uniform vec2 introTiming;
 uniform float erosionStructure;
+uniform float fragmentDepth;
 varying vec2 uv;
 varying float fragmentLife;
 varying vec2 cellInteraction;
+varying float fragmentShade;
 float hash(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float noise(vec2 p) {
   vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
@@ -99,6 +101,13 @@ void main() {
   uv=vec2(position.x,1.-position.y);
   float angle=(seed-.5)*pow(flight,1.4)*2.4*flowControls.y*live;
   vec2 localPosition=(position-origin)*size*placement.x;
+  // Airborne cells turn edge-on like small pieces of phosphor. The projection
+  // becomes exactly flat at home, including when restoring along the same path.
+  float airborne=smoothstep(.02,.25,flight)*live*clamp(fragmentDepth,0.,1.);
+  float facing=abs(cos(flight*(3.+burst*5.)*fragmentDepth));
+  localPosition.x*=mix(1.,.28+.72*facing,airborne);
+  localPosition.y*=mix(1.,.72+.28*abs(cos(flight*(2.+seed*3.)*fragmentDepth)),airborne);
+  fragmentShade=1.-airborne*(1.-facing)*.3;
   localPosition=mat2(cos(angle),sin(angle),-sin(angle),cos(angle))*localPosition;
   vec2 screen=homeCenter+localPosition+offset*size*placement.x+incoming;
   gl_Position=vec4(screen.x/resolution.x*2.-1.,1.-screen.y/resolution.y*2.,0.,1.);
@@ -109,6 +118,7 @@ precision highp float;
 varying vec2 uv;
 varying float fragmentLife;
 varying vec2 cellInteraction;
+varying float fragmentShade;
 uniform sampler2D portrait;
 uniform sampler2D atlas;
 uniform vec2 resolution;
@@ -212,7 +222,7 @@ void main() {
   vec3 color = ink*opacity + red*halo;
   // Cyan channel separation in the displaced slices, never over the whole face.
   color += cyan*glyph*silhouette*selected*interference*.12;
-  gl_FragColor=vec4(color*toneControls.y,clamp(opacity+halo,0.,1.))*fragmentLife;
+  gl_FragColor=vec4(color*toneControls.y*fragmentShade,clamp(opacity+halo,0.,1.))*fragmentLife;
 }
 `;
 
@@ -221,6 +231,7 @@ precision highp float;
 varying vec2 uv;
 varying float fragmentLife;
 varying vec2 cellInteraction;
+varying float fragmentShade;
 uniform sampler2D portrait;
 uniform sampler2D textGlow;
 uniform vec3 paper;
@@ -234,7 +245,7 @@ void main() {
   ink=mix(ink,vec3(1.,.08235,.19216)*takeover,accent*step(.001,takeover));
   ink=mix(ink,vec3(.76,.97,1.),cellInteraction.y*.2*(1.-accent*step(.001,takeover)));
   float glow=texture2D(textGlow,sourceUV).a*takeover*nameGlow;
-  gl_FragColor=vec4(ink*source.a+vec3(1.,.08235,.19216)*glow,clamp(source.a+glow,0.,1.))*fragmentLife;
+  gl_FragColor=vec4((ink*source.a+vec3(1.,.08235,.19216)*glow)*fragmentShade,clamp(source.a+glow,0.,1.))*fragmentLife;
 }
 `;
 
@@ -312,6 +323,7 @@ export class PortraitGL {
           "flowControls",
           "introTiming",
           "erosionStructure",
+          "fragmentDepth",
           "interference",
           "takeover",
           "eye",
@@ -447,6 +459,7 @@ export class PortraitGL {
     gl.uniform3f(u.flowControls,s.windCurl??.9,s.fragmentSpin??.65,s.streamReach??1.2);
     gl.uniform2f(u.introTiming,c.intro.duration,c.intro.flowStart);
     gl.uniform1f(u.erosionStructure,s.erosionStructure??.68);
+    gl.uniform1f(u.fragmentDepth,s.fragmentDepth??.8);
     this.updateMesh();
   }
   get sourceWidth(){return this.image.naturalWidth||this.image.width;}

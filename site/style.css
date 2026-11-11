@@ -232,10 +232,11 @@ h1 {
     font-size: 14px;
   }
   .portrait {
-    width: min(100%, 440px);
-    margin: 0 auto;
+    width: min(100vw, 480px);
+    justify-self: center;
+    margin: 0;
     aspect-ratio: 1/1;
-    max-height: 46svh;
+    max-height: min(46svh, max(150px, calc(100svh - 320px)));
   }
   .composition {
     min-height: 100svh;
@@ -243,6 +244,12 @@ h1 {
   .fallback {
     object-fit: contain;
   }
+}
+@media (min-width: 701px) and (max-height: 540px) {
+  .composition { padding: 16px 5vw 76px; }
+  h1 { font-size: clamp(58px, 9vw, 112px); margin-bottom: 18px; }
+  .email { font-size: 14px; }
+  .portrait { height: 70svh; width: 100%; margin: 0; aspect-ratio: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   * {
