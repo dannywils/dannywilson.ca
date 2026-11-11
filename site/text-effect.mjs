@@ -17,10 +17,7 @@ export class TextEffect {
       p.targetStrength=e.gather||(p.tx>=0&&p.tx<=1&&p.ty>=0&&p.ty<=1)?1:0;
     };
     this.movePointer=move;
-    on('pointerenter',move);on('pointermove',move);
-    on('pointerdown',e=>{move(e);if(e.isPrimary!==false&&e.pointerType!=='mouse'&&!e.target.closest('.email'))element.setPointerCapture(e.pointerId);});
-    on('pointerup',e=>{if(e.pointerType!=='mouse')this.leave();});
-    for(const event of ['pointerleave','pointercancel','lostpointercapture'])on(event,()=>this.leave());
+    // Scene pointer ownership lives in experience.mjs; only keyboard focus is local.
     on('focusin',e=>{
       if(motion.matches||!this.bounds)return;
       const b=e.target.getBoundingClientRect();

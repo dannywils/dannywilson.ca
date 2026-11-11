@@ -90,7 +90,29 @@ export function createTuner(config,onChange,onPreview,onReplay=()=>{}){
       const id=`tune-${key}`;
       row.innerHTML=`<label for="${id}">${label}</label><input type="number" aria-label="${label} value" min="${min}" max="${max}" step="${step}"><input id="${id}" type="range" min="${min}" max="${max}" step="${step}">`;
       const inputs=[...row.querySelectorAll('input')];controls.set(key,inputs);
-      for(const input of inputs)input.addEventListener('input',()=>{if(input.value===''||!input.validity.valid)return;values=sanitize({...values,[key]:Number(input.value)});sync();apply();});
+      const range=inputs[1];let touchEdit=null;
+      const commit=input=>{if(input.value===''||!input.validity.valid)return;values=sanitize({...values,[key]:Number(input.value)});sync();apply();};
+      // Native ranges change on touch-down, before the browser knows whether the
+      // user means to scroll. Wait for horizontal intent or a completed tap.
+      range.addEventListener('pointerdown',e=>{if(e.pointerType==='touch')touchEdit={id:e.pointerId,x:e.clientX,y:e.clientY,direction:null};});
+      range.addEventListener('pointermove',e=>{
+        if(!touchEdit||e.pointerId!==touchEdit.id)return;
+        const dx=Math.abs(e.clientX-touchEdit.x),dy=Math.abs(e.clientY-touchEdit.y);
+        if(!touchEdit.direction){
+          if(dx>8&&dx>dy*1.2){touchEdit.direction='horizontal';commit(range);}
+          else if(dy>8&&dy>dx){touchEdit.direction='vertical';sync();}
+        }
+      });
+      range.addEventListener('pointerup',e=>{
+        if(!touchEdit||e.pointerId!==touchEdit.id)return;
+        const direction=touchEdit.direction;touchEdit=null;
+        if(direction!=='vertical')commit(range);else sync();
+      });
+      for(const event of ['pointercancel','lostpointercapture'])range.addEventListener(event,()=>{if(touchEdit){touchEdit=null;sync();}});
+      for(const input of inputs)input.addEventListener('input',()=>{
+        if(input===range&&touchEdit&&touchEdit.direction!=='horizontal')return;
+        commit(input);
+      });
       inputs[0].addEventListener('blur',()=>{
         if(inputs[0].value===''||!inputs[0].validity.valid){
           inputs[0].value=values[key];

@@ -11,12 +11,17 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   let enabled = false, held = false, pinned = false, heldTime = 0, active = false;
   let x = -100, y = -100, lastHint = '';
   let startX=0,startY=0,travel=0,pressedAt=0,interactive=false,assembling=true;
+  let captured=null,holdX=0,holdY=0,multitouch=false;
+  const touches=new Set();
   const state = { radius: 90, reveal: 0, gather: 0, pulse:null };
   const on = (el, type, fn) => { el.addEventListener(type, fn); listeners.push([el, type, fn]); };
   const reset = () => {
     held = false; heldTime = 0; active = false;
+    const id=captured;captured=null;
+    if(id!==null&&root.hasPointerCapture(id))root.releasePointerCapture(id);
     cursor.classList.remove('active', 'held'); onLeave();
   };
+  const cancelGesture=()=>{state.pulse=null;state.gather=0;reset();};
   const syncReveal = () => {
     reveal.setAttribute('aria-pressed',String(pinned));
     reveal.querySelector('span').textContent=pinned?'Release':'Reveal';
@@ -26,34 +31,45 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
     pinned=false;state.reveal=0;state.gather=0;state.pulse=null;reset();syncReveal();
   };
   const move = e => {
-    if (!enabled || motion.matches || e.isPrimary === false) return;
+    if (!interactive || motion.matches || e.isPrimary === false || multitouch) return;
+    if(e.target?.closest('a,button,input,select,textarea')){if(!held)reset();return;}
+    if(e.pointerType==='touch'&&!held)return;
     x = e.clientX; y = e.clientY; active = true;
-    if(held)travel=Math.max(travel,Math.hypot(x-startX,y-startY));
+    if(held){
+      travel=Math.max(travel,Math.hypot(x-startX,y-startY));
+      if(Math.hypot(x-holdX,y-holdY)>10){heldTime=0;state.gather=0;holdX=x;holdY=y;}
+    }
     cursor.style.setProperty('--x', `${x}px`); cursor.style.setProperty('--y', `${y}px`);
     onMove({clientX:x,clientY:y,isPrimary:true,gather:held});
   };
   on(root, 'pointermove', move);
   on(root, 'pointerdown', e => {
-    if (!interactive || e.isPrimary === false || e.button > 0 || e.target.closest('a,button')) return;
+    if (!interactive || multitouch || e.isPrimary === false || e.button > 0 || e.target.closest('a,button,input,select,textarea')) return;
     held = true; heldTime = 0;
-    startX=e.clientX;startY=e.clientY;travel=0;pressedAt=performance.now();state.pulse=null;
+    captured=e.pointerId;holdX=startX=e.clientX;holdY=startY=e.clientY;travel=0;pressedAt=performance.now();state.pulse=null;
     root.setPointerCapture(e.pointerId); move(e);
   });
   on(root, 'pointerup', e => {
-    if(e.isPrimary===false)return;
+    if(e.isPrimary===false||e.pointerId!==captured)return;
     if(held&&performance.now()-pressedAt<280&&travel<12&&interactive&&!pinned){
       const reach=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y));
       state.pulse={x,y,age:0,radius:0,width:Math.max(90,Math.min(180,reach*.18)),reach};
     }
     held = false; heldTime = 0;
+    captured=null;
     if (root.hasPointerCapture(e.pointerId)) root.releasePointerCapture(e.pointerId);
     if (e.pointerType !== 'mouse') reset();
   });
   on(root, 'pointerleave', () => { if (!held) reset(); });
-  on(root, 'pointercancel', () => { state.pulse=null;reset(); });
-  on(root, 'lostpointercapture', () => { held = false; heldTime = 0; });
-  on(window, 'blur', () => { state.pulse=null;reset(); });
-  on(document, 'visibilitychange', () => { if (document.hidden) {state.pulse=null;reset();} });
+  on(root, 'pointercancel', cancelGesture);
+  on(root, 'lostpointercapture', e => { if(e.pointerId===captured)cancelGesture(); });
+  // Yield to native pinch zoom as soon as a second finger lands, including
+  // outside the portrait. Do not resume gathering until every finger is lifted.
+  on(window,'pointerdown',e=>{if(e.pointerType==='touch'){touches.add(e.pointerId);if(touches.size>1){multitouch=true;cancelGesture();}}});
+  for(const type of ['pointerup','pointercancel'])on(window,type,e=>{touches.delete(e.pointerId);if(!touches.size)multitouch=false;});
+  on(root,'contextmenu',e=>{if(held&&coarse.matches&&!e.target.closest('a'))e.preventDefault();});
+  on(window, 'blur', () => {touches.clear();multitouch=false;cancelGesture();});
+  on(document, 'visibilitychange', () => { if (document.hidden) {touches.clear();multitouch=false;cancelGesture();} });
   on(reveal, 'click', () => {
     pinned = !pinned;
     state.pulse=null;
@@ -106,7 +122,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
       // The cursor marks the gathering gesture, not an artificial clipping boundary.
       cursor.style.setProperty('--gather', state.gather);
       cursor.style.setProperty('--ring-size', `${18 + state.gather * 62}px`);
-      const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to dissolve' : held ? (state.gather===1?'Release to scatter':'Gathering') : state.pulse ? 'Recalling' : coarse.matches ? 'Draw, tap or hold to reveal' : 'Move, click or hold to reveal';
+      const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to dissolve' : held ? (state.gather===1?'Release to scatter':travel>12&&heldTime<.18?'Tracing':'Gathering') : state.pulse ? 'Recalling' : coarse.matches ? 'Touch to reveal · hold to gather' : 'Move, click or hold to reveal';
       if (message !== lastHint) { hint.textContent = message; lastHint = message; }
       rail.dataset.state = assembly < 1 ? 'assembling' : pinned ? 'revealed' : 'live';
     },

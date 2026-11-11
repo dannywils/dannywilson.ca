@@ -150,13 +150,6 @@ function leave() {
   pointer.targetStrength = 0;
 }
 function leaveAll(){leave();textEffect?.leave();}
-function down(e) {
-  move(e);
-  if (e.isPrimary !== false && e.pointerType !== "mouse") figure.setPointerCapture(e.pointerId);
-}
-function up(e) {
-  if (e.pointerType !== "mouse") leave();
-}
 function visibility() {
   if (document.hidden) { leaveAll(); pointer.strength = 0; }
   start();
@@ -246,13 +239,6 @@ createTuner(config, () => {
   draw();
 });
 image.src = config.portrait;
-figure.addEventListener("pointermove", move);
-figure.addEventListener("pointerenter", move);
-figure.addEventListener("pointerdown", down);
-figure.addEventListener("pointerup", up);
-figure.addEventListener("pointercancel", leave);
-figure.addEventListener("lostpointercapture", leave);
-figure.addEventListener("pointerleave", leave);
 canvas.addEventListener("webglcontextlost", lost);
 canvas.addEventListener("webglcontextrestored", restored);
 document.addEventListener("visibilitychange", visibility);
@@ -270,13 +256,6 @@ addEventListener(
     textEffect?.dispose();
     phosphor?.dispose();
     experience.dispose();
-    figure.removeEventListener("pointermove", move);
-    figure.removeEventListener("pointerenter", move);
-    figure.removeEventListener("pointerdown", down);
-    figure.removeEventListener("pointerup", up);
-    figure.removeEventListener("pointercancel", leave);
-    figure.removeEventListener("lostpointercapture", leave);
-    figure.removeEventListener("pointerleave", leave);
     canvas.removeEventListener("webglcontextlost", lost);
     canvas.removeEventListener("webglcontextrestored", restored);
     document.removeEventListener("visibilitychange", visibility);

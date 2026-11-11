@@ -67,7 +67,15 @@ flight path. Long holds and drawing do not also trigger the wave, and motion
 reduction, cancellation or loss of focus stop it. The persistent **Contact** link
 keeps email reachable throughout the animation.
 Both the portrait and type share a screen-space brush, so gathering works across
-their boundaries. Fast strokes sweep the intervening path rather than skipping
+their boundaries. One gesture handler owns pointer capture for the scene. A second
+finger cancels gathering for native pinch zoom until all fingers lift. Moving
+more than ten pixels restarts the stationary-hold timer, so drawing does not
+accidentally expand to a full-scene reveal. Artwork suppresses touch text selection
+and the hold context menu; the email keeps native link interactions. Phone controls
+use four equal touch targets at least 48 pixels tall, keep the Contact label at
+320 pixels wide, and respect screen safe areas. Tuner sliders wait for a tap or
+horizontal drag before applying touch edits, so vertical scrolling does not change
+the look. Fast strokes sweep the intervening path rather than skipping
 cells between frames. Returning glyphs briefly catch a cool phosphor tint. Small
 corner marks follow the brush; holding draws a progress ring that completes when
 the scene is gathered. Touch cancellation,
@@ -178,7 +186,7 @@ eye, nose and shoulder masks do not affect the letters. Both assemble from
 the left alongside the portrait, then the name disintegrates with the face. The email
 cells are protected from subsequent disintegration and retain their live ASCII
 texture after assembly, using finer cells to keep the small address readable.
-The transparent DOM link preserves clicking, selection, its underline and focus
+The transparent DOM link preserves clicking, selection and its focus
 outline. Before the renderer is ready, keyboard focus reveals the plain link;
 renderer failure also restores it. Reduced motion keeps its ASCII texture static. Hover
 and touch restore text locally. A/I share the same neutral ink as the other
