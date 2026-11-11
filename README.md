@@ -149,9 +149,14 @@ the entrance, and hidden tabs pause it. A fixed, pointer-transparent canvas cove
 the viewport; the portrait's layout rectangle controls its destination and scale,
 not clipping. Incoming and departing cells can cross that rectangle, with only
 the screen edge clipping them. Scroll and resize keep the destination aligned.
-Each load varies the cells' delays, stop/start bursts, curling paths, jitter,
-brief dimming, and horizontal glitch slices. These disturbances taper away as
-each cell settles, preserving the exact final portrait.
+Each load varies the cells' delays and paths. Nearby cells gather in soft clusters,
+with scattered early arrivals and late stragglers. A continuous approach blends
+in occasional stalls, slight rotation, and brief glitch slices. Glitches have
+smooth attack/release envelopes and fade before the final approach; quintic easing
+lets each piece coast into its exact source position without a last-frame snap.
+Incoming fragments start dim and gain their full ink as they gather. Afterglow
+starts at 30% of its tuned value and eases back to full strength during landing,
+keeping fast incoming pieces distinct without changing the floating scene.
 Disintegration begins during the final 28% of assembly. Each cell can depart only
 after its own arrival and when the dissolve front reaches it. The last intro step
 finishes at the cell's landing time; there is no global idle interval or extra

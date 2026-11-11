@@ -51,7 +51,11 @@ void main() {
   float released=step(hash(cell+113.2),amount)*step(.00001,amount);
   float seed=hash(cell+17.3);
   vec2 introCell=cell+entranceSeed;
-  float settleAt=mix(introTiming.y,1.,hash(introCell+219.3));
+  // Nearby pieces gather in soft clusters, with independent late stragglers.
+  // Both renderers use the same normalized rhythm without a rigid wipe front.
+  float cluster=noise(origin*vec2(5.,7.)+17.3);
+  float arrivalOrder=pow(hash(introCell+219.3),1.15)*(.65+cluster*.25+origin.x*.1);
+  float settleAt=mix(introTiming.y,1.,arrivalOrder);
   float rate=mix(1.,.6+seed*1.5,debrisControls.y);
   // A bounded scene clock advances and retreats this front. Returning uses the
   // same source cells and paths; there is no separate respawn particle system.
@@ -90,39 +94,48 @@ void main() {
   vec2 size=imageSize*min(portraitBounds.z/imageSize.x,portraitBounds.w/imageSize.y);
   vec2 homeCenter=(origin-.5+placement.yz)*size*placement.x+portraitBounds.xy+portraitBounds.zw*.5;
   // Every cell begins just beyond the viewport's left edge, independent of the portrait box.
-  float delay=.04+hash(introCell+201.7)*.3;
+  float delay=.015+cluster*.09+hash(introCell+201.7)*.19;
   float progress=clamp((assembly-delay)/(settleAt-delay),0.,1.);
-  // Independent stop/start clocks: each cell stalls, surges, and catches up.
-  float steps=5.+floor(hash(introCell+241.1)*7.);
+  // A flowing approach with occasional stalls. The final approach is continuous,
+  // so a late glitch cannot snap a piece into its exact home position.
+  float steps=4.+floor(hash(introCell+241.1)*5.);
   float segment=floor(progress*steps);
   float pause=.14+hash(introCell+segment*7.3)*.24;
   float surgeEnd=mix(pause+.2+hash(introCell+segment*19.7)*.3,1.,step(steps-1.,segment));
   float surge=smoothstep(pause,surgeEnd,fract(progress*steps));
-  float arrival=smoothstep(0.,1.,min(1.,(segment+surge)/steps));
+  float stepped=min(1.,(segment+surge)/steps);
+  float stagger=mix(.3,.8,hash(introCell+251.9))*(1.-smoothstep(.65,.94,progress));
+  float approachClock=mix(progress,stepped,stagger);
+  float arrival=approachClock*approachClock*approachClock*(approachClock*(approachClock*6.-15.)+10.);
   float remaining=1.-arrival;
   float plane=mix(-.5,.2,hash(introCell+307.1))+step(.86,hash(introCell+313.5))*1.4;
   float approach=(1.-smoothstep(.12,.9,arrival))*flightDepth*motion;
   float glyphWidth=size.x*placement.x/columns;
-  float unsettled=smoothstep(.025,.12,progress)*(1.-smoothstep(.72,1.,progress));
-  float glitchFrame=floor(assembly*(75.+hash(introCell+263.2)*95.));
-  float glitch=step(.63,hash(introCell+glitchFrame*13.7))*unsettled;
+  float unsettled=smoothstep(.04,.18,progress)*(1.-smoothstep(.58,.9,progress));
+  float glitchClock=assembly*(42.+hash(introCell+263.2)*48.);
+  float glitchFrame=floor(glitchClock);
+  float pulse=pow(sin(fract(glitchClock)*3.14159),4.);
+  float glitch=step(.82,hash(introCell+glitchFrame*13.7))*unsettled*pulse;
   vec2 jitter=vec2(hash(introCell+glitchFrame*3.7),hash(introCell+glitchFrame*9.1))-.5;
-  float rowFrame=floor(assembly*37.);
-  float rowTear=(hash(vec2(cell.y,rowFrame+entranceSeed))-.5)*resolution.x*.045
-    *step(.86,hash(vec2(cell.y+77.,rowFrame)))*unsettled;
+  float rowClock=assembly*29.;
+  float rowFrame=floor(rowClock);
+  float rowTear=(hash(vec2(cell.y,rowFrame+entranceSeed))-.5)*resolution.x*.025
+    *step(.93,hash(vec2(cell.y+77.,rowFrame)))*unsettled*pow(sin(fract(rowClock)*3.14159),4.);
   vec2 incoming=vec2((-homeCenter.x-glyphWidth*(1.+seed*4.))*remaining,
-    ((hash(introCell+231.9)-.5)*.45+sin(progress*(9.+seed*13.)+seed*6.283)*.14)*remaining*size.y*placement.x);
-  incoming+=jitter*vec2(resolution.x*.035,size.y*.065)*glitch+vec2(rowTear,0.);
+    ((hash(introCell+231.9)-.5)*.6+sin(progress*(4.+seed*5.)+seed*6.283)*.22)*remaining*size.y*placement.x);
+  incoming+=jitter*vec2(resolution.x*.025,size.y*.045)*glitch+vec2(rowTear,0.);
   incoming.y+=plane*sin(progress*3.14159)*remaining*size.y*.12*flightDepth*motion;
   float live=smoothstep(.98,1.,progress);
   offset*=live;
   float perspective=2./max(.8,2.-z*travel*.85*flightDepth*live);
   vec2 volumeCenter=(vec2(.5,.4)-.5+placement.yz)*size*placement.x+portraitBounds.xy+portraitBounds.zw*.5;
   float flicker=1.-glitch*(.25+hash(introCell+glitchFrame*31.1)*.5);
-  fragmentLife=mix(1.,fragmentLife,live)*smoothstep(delay,delay+.08,assembly)*flicker;
+  float arrivingInk=mix(.22,1.,smoothstep(.4,.94,arrival));
+  fragmentLife=mix(1.,fragmentLife,live)*smoothstep(delay,delay+.08,assembly)*flicker*arrivingInk;
   // UVs stay anchored to the original face cell while its geometry moves.
   uv=vec2(position.x,1.-position.y);
-  float angle=(seed-.5)*travel*4.*flowControls.y*live;
+  float angle=(seed-.5)*travel*4.*flowControls.y*live
+    +(hash(introCell+331.7)-.5)*remaining*sin(progress*3.14159)*.65*flightDepth*motion;
   vec2 localPosition=(position-origin)*size*placement.x;
   // Airborne cells turn edge-on like small pieces of phosphor. The projection
   // becomes exactly flat at home, including when restoring along the same path.

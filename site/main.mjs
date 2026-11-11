@@ -70,7 +70,12 @@ function draw() {
     }
     renderer.render(elapsed, controller.phase, motion.matches, pointer, light, assembly, timeline.erosion);
     textEffect?.render(elapsed,controller.phase,motion.matches,light,timeline.erosion,assembly===1,assembly,experience.state);
-    if(usePhosphor)phosphor.present(elapsed,config.shader.afterglow);
+    if(usePhosphor){
+      // Fast incoming pieces stay distinct; full afterglow returns as they land.
+      const landing=Math.max(0,Math.min(1,(assembly-.65)/.35));
+      const introTrail=.3+.7*landing*landing*(3-2*landing);
+      phosphor.present(elapsed,config.shader.afterglow*introTrail);
+    }
     renderer.gl.useProgram(renderer.program);
   }
 }

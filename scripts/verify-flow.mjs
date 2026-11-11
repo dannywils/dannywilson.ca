@@ -1,5 +1,6 @@
 import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
+import {config as defaultConfig} from '../site/config.mjs';
 const browser=await chromium.launch({channel:'msedge'});
 try {
   const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];
@@ -22,11 +23,12 @@ try {
     const diff=(a,b)=>a.reduce((n,v,i)=>n+(Math.abs(v-b[i])>12),0);
     const probe=r=>{
       r.gl.useProgram(r.program);r.gl.uniform1f(r.uniforms.entranceSeed,7);
-      const sample=(t,breakup=sceneTimeline(Math.max(0,t-4.8*.72),c.shader).erosion)=>{
-        r.render(0,'human',false,{x:-2,y:-2,strength:0},0,Math.min(t/4.8,1),breakup);return read(r);
+      const duration=c.intro.duration;
+      const sample=(t,breakup=sceneTimeline(Math.max(0,t-duration*c.intro.flowStart),c.shader).erosion)=>{
+        r.render(0,'human',false,{x:-2,y:-2,strength:0},0,Math.min(t/duration,1),breakup);return read(r);
       };
-      const overlapping=diff(sample(4.56),sample(4.56,0));
-      const a=sample(4.78),b=sample(4.79),d=sample(4.8),e=sample(4.81);
+      const overlapping=diff(sample(duration*.95),sample(duration*.95,0));
+      const a=sample(duration-.02),b=sample(duration-.01),d=sample(duration),e=sample(duration+.01);
       const before=diff(a,b),seam=diff(b,d),after=diff(d,e);
       return {overlapping,before,seam,after};
     };
@@ -50,11 +52,11 @@ try {
   assert.ok(results.middle>.7&&results.outside===0,'Fast strokes restore their path without affecting distant cells');
   assert.ok(results.lingering>.5,'The stroke leaves a lingering trail');
   await page.getByRole('button',{name:'Replay entrance'}).click();
-  await page.waitForTimeout(4500);await page.screenshot({path:'output/flow-handoff.png'});
+  await page.waitForTimeout(defaultConfig.intro.duration*940);await page.screenshot({path:'output/flow-handoff.png'});
   await page.waitForTimeout(1200);await page.screenshot({path:'output/flow-stream.png'});
   await page.setViewportSize({width:390,height:844});
   await page.getByRole('button',{name:'Replay entrance'}).click();
-  await page.waitForTimeout(5300);await page.screenshot({path:'output/flow-mobile.png'});
+  await page.waitForTimeout(defaultConfig.intro.duration*1000+500);await page.screenshot({path:'output/flow-mobile.png'});
   const phone=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
   phone.on('pageerror',e=>errors.push(e.message));
   await phone.goto('http://localhost:8080');await phone.waitForSelector('[data-entrance="settled"]');
