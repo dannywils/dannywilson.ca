@@ -68,7 +68,7 @@ try{
   const cdp=await page.context().newCDPSession(page);
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:195,y:480,id:1}]});
   await page.waitForTimeout(3600);const scattered=await pixels();
-  assert.ok(scattered<released*.95,'Holding on the portrait scatters the living scene');
+  assert.ok(scattered>released*.85,'A local hold preserves the surrounding scene');
   await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
   await page.waitForFunction(()=>!document.querySelector('.gather-cursor').classList.contains('held'));
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);

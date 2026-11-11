@@ -81,7 +81,7 @@ void main() {
   // Its decaying trail returns them continuously to the current automatic cycle.
   float disturbance=smoothstep(.02,.9,max(local,0.))*(1.-anchored)*mix(1.,.7,identity);
   float automatic=age*released;
-  float flight=(automatic+(1.-automatic)*disturbance*(.72+hash(cell+59.1)*.12))*(1.-restored);
+  float flight=(automatic+(1.-automatic)*disturbance*(.28+hash(cell+59.1)*.08))*(1.-restored);
   float burst=hash(cell+59.1);
   // Independent velocities on a sphere: no shared wind, downward gravity, or
   // screen-right destination. Each shard keeps its original source UVs.

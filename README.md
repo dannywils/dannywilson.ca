@@ -58,26 +58,24 @@ reveal when the tuner is closed; Restart cycle also clears that reveal state.
 
 The interaction strip provides **Replay** for the complete entrance and **Reveal**
 to gather the entire scene until **Release** is selected. Moving across the page
-leaves a short disintegration trail. Pressing and holding expands the destructive
-brush from the pointer to the whole scene over about 2.4 seconds; lifting lets it reform.
-Clicking or briefly tapping without dragging sends a travelling scattering wave
-through the actual source cells, then lets them return. It takes 1.8 seconds to
-cross the viewport. Long holds and drawing do not also trigger the wave, and motion
-reduction, cancellation or loss of focus stop it. The persistent **Contact** link
+leaves a short local deformation trail. Taps, drags and long holds use the same
+fixed contact radius: 48 pixels on phones by default, capped at 56 pixels.
+Holding never expands the brush and tapping never launches a wave. Displacement
+is restrained so nearby source cells deform without exploding across the scene.
+Lifting lets them reform. Motion reduction, cancellation or loss of focus end
+the gesture. The persistent **Contact** link
 keeps email reachable throughout the animation.
 Both the portrait and type share a screen-space brush, so scattering works across
 their boundaries. One gesture handler owns pointer capture for the scene. A second
-finger cancels scattering for native pinch zoom until all fingers lift. Moving
-more than ten pixels restarts the stationary-hold timer, so drawing does not
-accidentally expand to a full-scene disturbance. Artwork suppresses touch text selection
+finger cancels scattering for native pinch zoom until all fingers lift.
+Artwork suppresses touch text selection
 and the hold context menu; the email keeps native link interactions. Phone controls
 use four equal touch targets at least 48 pixels tall, keep the Contact label at
 320 pixels wide, and respect screen safe areas. Tuner sliders wait for a tap or
 horizontal drag before applying touch edits, so vertical scrolling does not change
 the look. Fast strokes sweep the intervening path rather than skipping
 cells between frames. Returning glyphs briefly catch a cool phosphor tint. Small
-corner marks follow the brush; holding draws a progress ring that completes when
-the scattering radius reaches the whole scene. Touch cancellation,
+corner marks follow the brush; holding shows a small, fixed contact ring. Touch cancellation,
 focus loss and hidden tabs end the hold. The buttons offer a keyboard alternative;
 reduced motion keeps the scene still and disables animation actions.
 

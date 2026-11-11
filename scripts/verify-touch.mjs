@@ -6,13 +6,31 @@ try{
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://localhost:8080');await page.getByRole('button',{name:'Skip entrance'}).tap();
   await page.waitForSelector('[data-entrance="settled"]');
+  await page.evaluate(async()=>{
+    const {PortraitGL}=await import('/portrait-gl.mjs'),render=PortraitGL.prototype.render;
+    PortraitGL.prototype.render=function(...args){const result=render.apply(this,args);this.testPointer={...args[3]};if(this.options.text)window.touchType=this;else window.touchPhoto=this;return result;};
+  });
   assert.equal(await page.locator('.email').evaluate(e=>getComputedStyle(e).textDecorationLine),'none');
   const cdp=await page.context().newCDPSession(page);
   const send=(type,touchPoints=[])=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints});
   const point={x:195,y:460,id:1};
   const gather=()=>page.locator('.gather-cursor').evaluate(e=>Number(e.style.getPropertyValue('--gather')));
   await send('touchStart',[point]);await page.waitForTimeout(800);
-  assert.ok(await gather()>.15,'A stationary hold expands the scattering brush');
+  assert.equal(await gather(),0,'A stationary hold never expands the brush');
+  const radius=await page.evaluate(()=>window.touchPhoto.testPointer.radius);
+  await page.waitForTimeout(3000);
+  const local=await page.evaluate(()=>{
+    const r=window.touchPhoto,p=r.testPointer;let near=0,far=0;
+    for(let y=0;y<r.meshRows;y++)for(let x=0;x<r.meshColumns;x++){
+      const value=r.interactions[(y*r.meshColumns+x)*r.interactionStride];
+      const distance=Math.hypot((x+.5)/r.meshColumns-p.x,((y+.5)/r.meshRows-p.y)*r.sourceHeight/r.sourceWidth);
+      if(distance>p.radius*1.05)far=Math.max(far,value);else near=Math.max(near,value);
+    }
+    return {near,far,radius:p.radius,name:Math.max(...window.touchType.interactions.filter((_,i)=>i%window.touchType.interactionStride===0))};
+  });
+  assert.equal(local.radius,radius,'Four-second holds retain exactly the initial contact radius');
+  assert.ok(local.near>.9);assert.equal(local.far,0,'Only source cells at the touched spot deform');
+  assert.equal(local.name,0,'Holding the face does not affect the distant name');
   await page.screenshot({path:'output/touch-scatter-active.png'});
   assert.equal(await page.locator('.portrait').evaluate(e=>e.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true}))),false,'Long-press gathering suppresses the artwork context menu');
   assert.ok(await page.locator('.gather-cursor').evaluate(e=>e.classList.contains('held')));
@@ -30,8 +48,8 @@ try{
   await send('touchCancel');await page.waitForTimeout(80);
   assert.equal(await gather(),0);
   await page.touchscreen.tap(195,460);
-  await page.waitForFunction(()=>document.querySelector('.experience-hint').textContent==='Scattering');
-  await page.waitForTimeout(1900);
+  await page.waitForTimeout(150);
+  assert.equal(await page.evaluate(()=>!!window.touchPhoto.testPointer.pulse),false,'Tapping does not launch a spreading wave');
   await page.locator('.email').evaluate(e=>e.addEventListener('click',event=>{event.preventDefault();window.contactTapped=true;}));
   await page.locator('.email').tap();assert.ok(await page.evaluate(()=>window.contactTapped));
   assert.ok(await page.locator('.gather-cursor').evaluate(e=>!e.classList.contains('held')),'Email taps do not capture a drawing gesture');
@@ -77,5 +95,5 @@ try{
   await page.locator('[data-scene="reveal"]').tap();assert.equal(await page.locator('[data-scene="reveal"]').getAttribute('aria-pressed'),'false');
   await page.screenshot({path:'output/touch-phone.png'});
   assert.deepEqual(errors,[]);
-  console.log('Touch QA passed: hold/draw separation, multi-touch cancellation, tap recall, email, controls, safe layout and tuner swipe scrolling.');
+  console.log('Touch QA passed: fixed local radius through long holds, no distant influence or tap wave, pinch cancellation, email, controls and tuner scrolling.');
 }finally{await browser.close();}

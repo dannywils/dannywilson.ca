@@ -8,15 +8,15 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   const figure = root.querySelector('.portrait');
   const coarse = matchMedia('(pointer: coarse)');
   const listeners = [];
-  let enabled = false, held = false, pinned = false, heldTime = 0, active = false;
+  let enabled = false, held = false, pinned = false, active = false;
   let x = -100, y = -100, lastHint = '';
-  let startX=0,startY=0,travel=0,pressedAt=0,interactive=false,assembling=true;
-  let captured=null,holdX=0,holdY=0,multitouch=false;
+  let interactive=false,assembling=true;
+  let captured=null,multitouch=false;
   const touches=new Set();
   const state = { radius: 90, reveal: 0, gather: 0, pulse:null };
   const on = (el, type, fn) => { el.addEventListener(type, fn); listeners.push([el, type, fn]); };
   const reset = () => {
-    held = false; heldTime = 0; active = false;
+    held = false; active = false;
     const id=captured;captured=null;
     if(id!==null&&root.hasPointerCapture(id))root.releasePointerCapture(id);
     cursor.classList.remove('active', 'held'); onLeave();
@@ -35,27 +35,19 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
     if(e.target?.closest('a,button,input,select,textarea')){if(!held)reset();return;}
     if(e.pointerType==='touch'&&!held)return;
     x = e.clientX; y = e.clientY; active = true;
-    if(held){
-      travel=Math.max(travel,Math.hypot(x-startX,y-startY));
-      if(Math.hypot(x-holdX,y-holdY)>10){heldTime=0;state.gather=0;holdX=x;holdY=y;}
-    }
     cursor.style.setProperty('--x', `${x}px`); cursor.style.setProperty('--y', `${y}px`);
     onMove({clientX:x,clientY:y,isPrimary:true,gather:held});
   };
   on(root, 'pointermove', move);
   on(root, 'pointerdown', e => {
     if (!interactive || multitouch || e.isPrimary === false || e.button > 0 || e.target.closest('a,button,input,select,textarea')) return;
-    held = true; heldTime = 0;
-    captured=e.pointerId;holdX=startX=e.clientX;holdY=startY=e.clientY;travel=0;pressedAt=performance.now();state.pulse=null;
+    held = true;
+    captured=e.pointerId;
     root.setPointerCapture(e.pointerId); move(e);
   });
   on(root, 'pointerup', e => {
     if(e.isPrimary===false||e.pointerId!==captured)return;
-    if(held&&performance.now()-pressedAt<280&&travel<12&&interactive&&!pinned){
-      const reach=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y));
-      state.pulse={x,y,age:0,radius:0,width:Math.max(90,Math.min(180,reach*.18)),reach};
-    }
-    held = false; heldTime = 0;
+    held = false;
     captured=null;
     if (root.hasPointerCapture(e.pointerId)) root.releasePointerCapture(e.pointerId);
     if (e.pointerType !== 'mouse') reset();
@@ -99,21 +91,14 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
         replay.setAttribute('aria-label',assembling?'Skip entrance':'Replay entrance');
         replay.title=assembling?'Skip entrance':'Replay entrance';
       }
-      if(state.pulse){
-        state.pulse.age+=delta;
-        state.pulse.radius=(state.pulse.reach+state.pulse.width)*state.pulse.age/1.8;
-        if(state.pulse.age>1.8||!interactive)state.pulse=null;
-      }
       rail.hidden = false;
       reveal.disabled = !ready || assembly < 1;
       replay.disabled = !ready;
       if (held && ready && assembly === 1) {
-        heldTime += delta;
-        // A short intentional hold expands the area of disintegration.
-        state.gather = Math.min(1, Math.max(0, (heldTime - .18) / 2.2));
         onMove({ clientX: x, clientY: y, isPrimary: true, gather: true });
-      } else state.gather *= Math.exp(-delta / .3);
-      state.radius = config.shader.brushSize*(coarse.matches ? .82 : 1) + Math.pow(state.gather, 1.7) * Math.hypot(innerWidth, innerHeight) * 4;
+      }
+      // Contact stays local for taps, drags and arbitrarily long holds.
+      state.radius = Math.max(16,Math.min(coarse.matches?56:80,config.shader.brushSize*(coarse.matches?.5:.7)));
       const target = pinned ? 1 : 0;
       state.reveal += (target - state.reveal) * (1 - Math.exp(-delta / .28));
       const interacting = active && ready && assembly === 1 && !pinned;
@@ -121,8 +106,8 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
       cursor.classList.toggle('held', held && interacting);
       // The cursor marks the gathering gesture, not an artificial clipping boundary.
       cursor.style.setProperty('--gather', state.gather);
-      cursor.style.setProperty('--ring-size', `${18 + state.gather * 62}px`);
-      const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to resume' : held ? (state.gather===1?'Release to reform':travel>12&&heldTime<.18?'Scattering':'Hold to scatter further') : state.pulse ? 'Scattering' : coarse.matches ? 'Touch to scatter · release to reform' : 'Move to scatter · let go to reform';
+      cursor.style.setProperty('--ring-size', held?'24px':'18px');
+      const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to resume' : held ? 'Release to reform' : coarse.matches ? 'Touch to deform · release to reform' : 'Move to deform · let go to reform';
       if (message !== lastHint) { hint.textContent = message; lastHint = message; }
       rail.dataset.state = assembly < 1 ? 'assembling' : pinned ? 'revealed' : 'live';
     },
