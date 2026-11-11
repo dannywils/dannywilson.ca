@@ -155,9 +155,11 @@ the screen edge clipping them. Scroll and resize keep the destination aligned.
 Each load varies the cells' delays and paths. Nearby cells gather in soft clusters,
 with scattered early arrivals and late stragglers. A continuous approach blends
 in occasional stalls, slight rotation, and brief glitch slices. Glitches have
-smooth attack/release envelopes and fade before the final approach; quintic easing
-lets each piece coast into its exact source position without a last-frame snap.
-Incoming fragments start dim and gain their full ink as they gather. Afterglow
+smooth attack/release envelopes and fade before the final approach. Short launch
+delays and initial momentum bring pieces into view in the opening half-second;
+stalls begin only after they are moving. A cubic approach still reaches each
+exact source position with zero speed, avoiding a last-frame snap.
+Incoming fragments start at 30% ink and gain full brightness as they gather. Afterglow
 starts at 30% of its tuned value and eases back to full strength during landing,
 keeping fast incoming pieces distinct without changing the floating scene.
 Disintegration begins during the final 28% of assembly. Each cell can depart only

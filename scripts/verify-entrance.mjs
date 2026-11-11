@@ -52,7 +52,7 @@ try {
       };
       const start=sample(0),middle=sample(.5),end=sample(1),normal=sample(undefined);
       const trajectory=[];
-      for(let p=.35;p<=.85;p+=.01){const point=sample(p);if(point.count>10)trajectory.push(point);}
+      for(let p=.05;p<=.85;p+=.01){const point=sample(p);if(point.count>10)trajectory.push(point);}
       const shifts=trajectory.slice(1).map((point,i)=>Math.abs(point.x-trajectory[i].x));
       const pauses=shifts.filter(v=>v<1).length,bursts=shifts.filter(v=>v>15).length;
       const verticalRange=Math.max(...trajectory.map(p=>p.y))-Math.min(...trajectory.map(p=>p.y));
@@ -61,12 +61,12 @@ try {
       const randomized=!middle.pixels.every((v,i)=>v===differentRun.pixels[i]);
       const stableDestination=end.pixels.every((v,i)=>v===sameLanding.pixels[i]);
       r.gl.uniform1f(r.uniforms.entranceSeed,7);
-      let firstVisible;
-      for(let p=.005;p<1;p+=.005){const next=sample(p);if(next.count>0){firstVisible=next.x;break;}}
+      let firstVisible,firstVisibleAt;
+      for(let p=.005;p<1;p+=.005){const next=sample(p);if(next.count>0){firstVisible=next.x;firstVisibleAt=p;break;}}
       let escaped=false;
       if(breakup)for(let t=0;t<6;t+=.04){const next=sample(1,false,t);if(next.x>603&&next.count>2){escaped=true;break;}}
       const reducedStart=sample(0,true),reducedEnd=sample(1,true);
-      const result={startCount:start.count,middleX:middle.x,endX:end.x,middleCount:middle.count,endCount:end.count,firstVisible,escaped,pauses,bursts,verticalRange,randomized,stableDestination,
+      const result={startCount:start.count,middleX:middle.x,endX:end.x,middleCount:middle.count,endCount:end.count,firstVisible,firstVisibleAt,escaped,pauses,bursts,verticalRange,randomized,stableDestination,
         exactLanding:end.pixels.every((v,i)=>v===normal.pixels[i]),
         reducedStill:reducedStart.pixels.every((v,i)=>v===reducedEnd.pixels[i]),error:r.gl.getError()};
       r.dispose();return result;
@@ -79,6 +79,7 @@ try {
     assert.ok(side.exactLanding,'Cells land on the exact normal rendering');
     assert.ok(side.reducedStill,'Reduced motion skips travel');assert.equal(side.error,0);
     assert.ok(side.firstVisible<30,'Glyphs first appear at the screen edge, far outside the portrait box');
+    assert.ok(side.firstVisibleAt<.12,'Source fragments enter view within the opening half-second');
     assert.ok(side.pauses>0&&side.bursts>0,'Flight alternates between stalls and bursts');
     assert.ok(side.verticalRange>15,'Flight has substantial vertical variation');
     assert.ok(side.randomized&&side.stableDestination,'Reload seeds vary the journey without changing the destination');

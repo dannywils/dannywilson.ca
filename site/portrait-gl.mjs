@@ -94,7 +94,7 @@ void main() {
   vec2 size=imageSize*min(portraitBounds.z/imageSize.x,portraitBounds.w/imageSize.y);
   vec2 homeCenter=(origin-.5+placement.yz)*size*placement.x+portraitBounds.xy+portraitBounds.zw*.5;
   // Every cell begins just beyond the viewport's left edge, independent of the portrait box.
-  float delay=.015+cluster*.09+hash(introCell+201.7)*.19;
+  float delay=.005+cluster*.018+hash(introCell+201.7)*.055;
   float progress=clamp((assembly-delay)/(settleAt-delay),0.,1.);
   // A flowing approach with occasional stalls. The final approach is continuous,
   // so a late glitch cannot snap a piece into its exact home position.
@@ -104,9 +104,10 @@ void main() {
   float surgeEnd=mix(pause+.2+hash(introCell+segment*19.7)*.3,1.,step(steps-1.,segment));
   float surge=smoothstep(pause,surgeEnd,fract(progress*steps));
   float stepped=min(1.,(segment+surge)/steps);
-  float stagger=mix(.3,.8,hash(introCell+251.9))*(1.-smoothstep(.65,.94,progress));
+  float stagger=mix(.3,.8,hash(introCell+251.9))*smoothstep(.12,.3,progress)*(1.-smoothstep(.65,.94,progress));
   float approachClock=mix(progress,stepped,stagger);
-  float arrival=approachClock*approachClock*approachClock*(approachClock*(approachClock*6.-15.)+10.);
+  // Launch with momentum instead of a long ease-in; still arrive with zero speed.
+  float arrival=approachClock*(.8+approachClock*(1.4-approachClock*1.2));
   float remaining=1.-arrival;
   float plane=mix(-.5,.2,hash(introCell+307.1))+step(.86,hash(introCell+313.5))*1.4;
   float approach=(1.-smoothstep(.12,.9,arrival))*flightDepth*motion;
@@ -130,8 +131,8 @@ void main() {
   float perspective=2./max(.8,2.-z*travel*.85*flightDepth*live);
   vec2 volumeCenter=(vec2(.5,.4)-.5+placement.yz)*size*placement.x+portraitBounds.xy+portraitBounds.zw*.5;
   float flicker=1.-glitch*(.25+hash(introCell+glitchFrame*31.1)*.5);
-  float arrivingInk=mix(.22,1.,smoothstep(.4,.94,arrival));
-  fragmentLife=mix(1.,fragmentLife,live)*smoothstep(delay,delay+.08,assembly)*flicker*arrivingInk;
+  float arrivingInk=mix(.3,1.,smoothstep(.3,.94,arrival));
+  fragmentLife=mix(1.,fragmentLife,live)*smoothstep(delay,delay+.035,assembly)*flicker*arrivingInk;
   // UVs stay anchored to the original face cell while its geometry moves.
   uv=vec2(position.x,1.-position.y);
   float angle=(seed-.5)*travel*4.*flowControls.y*live
