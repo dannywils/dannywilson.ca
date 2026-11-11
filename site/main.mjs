@@ -45,11 +45,6 @@ function sync() {
 function draw() {
   const light = motion.matches ? 0 : controller.light;
   root.style.setProperty("--ai-light", light);
-  root.style.setProperty("--ai-glow", light * (config.nameGlow ?? 1));
-  root.style.setProperty(
-    "--ai-ink",
-    `rgb(${Math.round(255 * light)} ${Math.round(21 * light)} ${Math.round(49 * light)})`,
-  );
   const assembly = motion.matches ? 1 : Math.min(1, entranceElapsed / entranceDuration);
   const timeline=sceneTimeline(breakupElapsed,config.shader);
   if (renderer) {

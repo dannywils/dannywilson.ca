@@ -25,7 +25,7 @@ export class Phosphor {
           // Half a byte prevents dim RGBA8 trails rounding back to the same value
           // forever at high refresh rates. Bright trails follow exponential decay.
           vec4 echo=max(texture2D(previous,uv)*retention-vec4(.501/255.),vec4(0.));
-          // Keep the eye and A/I ignition envelope crisp, including its dark dips.
+          // Keep the eye ignition envelope crisp, including its dark dips.
           if(red(current)||red(echo))echo=vec4(0.);
           if(echo.a<.004)echo=vec4(0.);
           gl_FragColor=max(current,echo);

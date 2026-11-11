@@ -20,7 +20,7 @@ adjustments remain saved; Reset loads the latest published look.
 Open **Tune** (or append `?tune` to the preview URL) for live GPU
 controls: character density/weight, contrast, brightness, shadow curve, nose
 detail, portrait placement, breakup boundary, particles, turbulence, rewrite
-speed, letter spacing, and synchronized eye/name ignition. On phones the panel
+speed, letter spacing, A/I persistence, and red-eye ignition. On phones the panel
 sits beneath the portrait. Settings save locally on the current device.
 **Copy look link** transfers a look to another device; **Copy settings** exports
 JSON for review or **Import settings**. These changes do not change the
@@ -30,9 +30,11 @@ the device's reduced-motion preference.
 One controller drives human → interference → takeover → recovery. The first
 ignition starts at 90% of the entrance, while the final cells are still landing.
 Replay restages this cue; later intervals vary around three seconds.
-The name's A/I and one eye light up
-and recover together. A shared, uneven ignition envelope (1.7× speed) drives the
-name's red glow and the eye's brightness, with a brief later voltage dip.
+The eye uses an uneven ignition envelope (1.7× speed), with a brief later voltage
+dip. The name stays uniformly off-white. Its A and I start releasing later and
+shed only 35% as many eligible shards as neighboring letters, giving a subtle
+AI reference through persistence rather than color or flashing. Their release
+delay and erosion multiplier are adjustable in Tune.
 The name uses wider letter spacing. The page has no taglines. Hovering or holding
 a finger restores nearby source pixels by reversing their flight back into place.
 The effect follows source coordinates through zoom and placement. Restored pixels
@@ -79,7 +81,7 @@ The larger headline and portrait form a tighter composition. `site/phosphor.mjs`
 adds a short afterimage from the actual rendered pixels, controlled by **Motion
 afterglow**. Max compositing keeps unchanged detail from accumulating brightness;
 frame-time decay and an 8-bit tail guard clear the trails completely. Red pixels
-bypass history so A/I and the eye retain their sharp ignition dips. Replay,
+bypass history so the eye retains its sharp ignition dips. Replay,
 layout changes and motion-preference changes clear the history. Reduced motion
 and a zero afterglow setting bypass the effect, and unavailable framebuffer
 support falls back to the ordinary interactive renderer.
@@ -160,8 +162,10 @@ between the animation loop and shader. Hover restoration reverses the same paths
 `site/text-effect.mjs` rasterizes the existing name and email letter shapes and
 feeds them through the same GPU cell motion. The name and email assemble from
 the left alongside the portrait, then disintegrate with the face. Hover
-and touch restore text locally. A/I retain synchronized red lighting and
-bloom. The original DOM text remains for semantics, selection, keyboard focus,
+and touch restore text locally. A/I share the same neutral ink as the other
+letters; normalized bounds select their delayed, reduced disintegration in the
+vertex shader. Bounds update with layout, so the effect survives phone sizing,
+letter-spacing changes and tuning. The original DOM text remains for semantics, selection, keyboard focus,
 and the working mail link, and is revealed if rendering fails. Rasterization is
 repeated when layout or tuning changes, not on every animation frame.
 Screen readers receive
@@ -183,7 +187,7 @@ Run `npm ci`, `npm run check`, and `npm test`. With the preview server running,
 `node scripts/verify.mjs` runs browser QA using installed Microsoft Edge,
 saves desktop, interference, takeover and mobile screenshots in ignored `output/`.
 The static SVG preserves the previous bright ASCII treatment as a fallback.
-The checks cover state transitions, synchronized name/eye lighting and recovery,
+The checks cover state transitions, red-eye lighting and recovery, neutral text,
 320–1440 px layouts, reduced motion, keyboard focus, email, WebGL rendering,
 GPU context loss/restoration, unavailable WebGL, and no-JS fallback.
 `node scripts/verify-tuner.mjs` checks live uniforms, persistence, shared looks,
@@ -198,7 +202,7 @@ flash, left-edge entry for both halves of the face, travel beyond the portrait
 rectangle, exact landing positions, scroll alignment, reduced motion,
 script-load failure, and the handoff to the normal renderer.
 `node scripts/verify-text.mjs` checks a continuous handoff, actual letter pixels
-departing, A/I-only red lighting, hover/touch release, the email link, and reduced motion.
+departing, neutral text during eye ignition, hover/touch release, the email link, and reduced motion.
 `node scripts/verify-sweep.mjs` stress-tests the underlying flight primitive at
 full erosion: silhouette-before-core departure, absence of duplicate cells, restoration of
 dissolved text, release, and the cycle restart control.
@@ -225,6 +229,9 @@ peak erosion, gathering, reduced motion, and phone layouts.
 `node scripts/verify-gravity.mjs` checks source shards travelling in all four
 screen directions, absence of invented pixels, exact assembled detail after
 subdivision, and desktop/phone viewport frame timing.
+`node scripts/verify-identity.mjs` compares identical A/I source pixels with and
+without retention: delayed release, fewer departures, no phase-dependent red,
+exact restoration, and desktop/phone bounds.
 
 Push changes to `master` to publish through `.github/workflows/pages.yml`.
 The workflow can also be run manually from the Actions tab. GitHub Pages must

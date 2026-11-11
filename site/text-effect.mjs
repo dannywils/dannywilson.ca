@@ -5,7 +5,6 @@ export class TextEffect {
   constructor(canvas, element, config, motion) {
     Object.assign(this,{canvas,element,config,motion});
     this.source=document.createElement('canvas');
-    this.glow=document.createElement('canvas');
     this.pointer={x:-2,y:-2,tx:-2,ty:-2,strength:0,targetStrength:0};
     this.listeners=[];
     const on=(name,fn)=>{element.addEventListener(name,fn);this.listeners.push([name,fn]);};
@@ -59,25 +58,23 @@ export class TextEffect {
     const right=Math.max(...letters.map(l=>l.box.right))+pad,bottom=Math.max(...letters.map(l=>l.box.bottom))+pad;
     this.bounds={left,top,width:Math.ceil(right-left),height:Math.ceil(bottom-top)};
     this.offsetX=left-anchor.left;this.offsetY=top-anchor.top;
-    for(const image of [this.source,this.glow]){image.width=Math.ceil(this.bounds.width*dpr);image.height=Math.ceil(this.bounds.height*dpr);}
-    const ctx=this.source.getContext('2d'),halo=this.glow.getContext('2d');ctx.scale(dpr,dpr);halo.scale(dpr,dpr);
+    this.source.width=Math.ceil(this.bounds.width*dpr);this.source.height=Math.ceil(this.bounds.height*dpr);
+    const ctx=this.source.getContext('2d');ctx.scale(dpr,dpr);
     for(const letter of letters){
-      ctx.font=halo.font=letter.font;ctx.textBaseline=halo.textBaseline='alphabetic';
+      ctx.font=letter.font;ctx.textBaseline='alphabetic';
       const metrics=ctx.measureText(letter.char),ascent=metrics.fontBoundingBoxAscent,descent=metrics.fontBoundingBoxDescent;
       const x=letter.box.left-left,y=letter.box.top-top+(letter.box.height-ascent-descent)/2+ascent;
-      ctx.fillStyle=letter.accent?'#ff0000':letter.email?'#949b9a':'#f4f1e7';
+      ctx.fillStyle=letter.email?'#949b9a':'#f4f1e7';
       ctx.fillText(letter.char,x,y);
-      if(letter.accent){
-        halo.fillStyle='rgb(255,0,0)';
-        for(const [blur,alpha] of [[5,.6],[20,.38],[42,.16]]){
-          halo.shadowBlur=blur*dpr;halo.shadowColor=`rgba(255,0,0,${alpha})`;halo.fillText(letter.char,x,y);
-        }
-      }
     }
     this.textConfig={...this.config,ascii:{...this.config.ascii},shader:{...this.config.shader,
       breakup:this.config.shader.breakup*(this.config.shader.textBreakup??.25),zoom:1,centerX:0,centerY:0}};
-    if(this.renderer){this.renderer.config=this.textConfig;this.renderer.updateSource(this.source,this.glow);this.renderer.applyConfig();}
-    else this.renderer=new PortraitGL(this.canvas,this.source,this.textConfig,{text:true,glow:this.glow,clear:false});
+    if(this.renderer){this.renderer.config=this.textConfig;this.renderer.updateSource(this.source);this.renderer.applyConfig();}
+    else this.renderer=new PortraitGL(this.canvas,this.source,this.textConfig,{text:true,clear:false});
+    this.identityRegions=letters.filter(l=>l.accent).map(({box})=>[
+      (box.left-left)/this.bounds.width,(box.top-top)/this.bounds.height,
+      (box.right-left)/this.bounds.width,(box.bottom-top)/this.bounds.height]);
+    this.renderer.setIdentityBounds(this.identityRegions);
     this.renderer.resize(innerWidth,innerHeight,this.bounds);
   }
   render(time,phase,reduced,light,breakupTime,interactive=true,assembly=1,brush){

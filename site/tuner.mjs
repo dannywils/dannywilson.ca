@@ -19,6 +19,8 @@ const groups = [
     ['cycleDuration','Cycle length · seconds',8,60,1],
     ['erosionReach','Peak erosion',.2,1.6,.05],
     ['textBreakup','Text erosion',0,1,.05],
+    ['identityDelay','A / I release delay',0,2,.05],
+    ['identityBreakup','A / I erosion multiplier',0,1,.05],
     ['fragmentation','Shard detail',1,3,1],
     ['driftSpread','Weightless spread',0,2,.05],
     ['breakup','Amount',0,1,.02],
@@ -46,13 +48,12 @@ const groups = [
     ['densityJitter','Density variation',0,3,.25],
     ['glitchBandSpeed','Scramble band speed',0,1,.05],
   ]],
-  ['Red eye & takeover', [
+  ['Red eye', [
     ['eyeX','Eye · horizontal',.3,.8,.001],
     ['eyeY','Eye · vertical',.2,.5,.002],
     ['eyeWidth','Eye width',.005,.05,.001],
     ['eyeHeight','Eye height',.003,.03,.001],
     ['eyeGlow','Eye glow',0,.25,.005],
-    ['nameGlow','Name glow',0,3,.1],
     ['flickerSpeed','Ignition speed',.5,2,.1],
     ['hold','Takeover hold · seconds',.5,4,.1],
     ['interval','Time between · seconds',3,20,.5],
@@ -90,7 +91,7 @@ export function createTuner(config,onChange,onPreview,onReplay=()=>{}){
       for(const input of inputs)input.addEventListener('input',()=>{if(input.value===''||!input.validity.valid)return;values=sanitize({...values,[key]:Number(input.value)});sync();apply();});
       details.append(row);
     }
-    if(title==='Red eye & takeover'){
+    if(title==='Red eye'){
       const row=document.createElement('label');row.className='tuner-color';row.textContent='Eye color';
       const input=document.createElement('input');input.type='color';input.setAttribute('aria-label','Eye color');input.addEventListener('input',()=>{values.eyeColor=input.value;apply();});row.append(input);details.append(row);controls.set('eyeColor',[input]);
     }

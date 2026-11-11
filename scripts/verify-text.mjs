@@ -23,7 +23,8 @@ try{
     const launchChanged=settled.reduce((n,v,i)=>n+(Math.abs(v-first[i])>4),0);
     const laterChanged=settled.reduce((n,v,i)=>n+(Math.abs(v-later[i])>12),0);photo.dispose();
     const effect=window.textEffectForTest,textCanvas=document.createElement('canvas');
-    const text=new PortraitGL(textCanvas,effect.source,structuredClone(effect.textConfig),{text:true,glow:effect.glow});
+    const text=new PortraitGL(textCanvas,effect.source,structuredClone(effect.textConfig),{text:true});
+    text.setIdentityBounds(effect.identityRegions);
     text.resize(1440,1000,effect.bounds);
     text.render(0,'human',false,{x:-2,y:-2,strength:0},0,0,0);
     const introEmpty=read(text).every(v=>v===0);
@@ -46,7 +47,7 @@ try{
   assert.ok(pixelChecks.launchChanged>0&&pixelChecks.launchChanged<pixelChecks.laterChanged*.15,'The first 50 ms begin moving gradually, with no dead interval');
   assert.ok(pixelChecks.laterChanged>1000,'Disintegration still starts progressively');
   assert.ok(pixelChecks.namePixels>10000&&pixelChecks.departed>500,'Actual letter pixels leave their original positions');
-  assert.ok(pixelChecks.accentRed>100&&pixelChecks.otherRed===0,'Only A/I and their bloom turn red');
+  assert.equal(pixelChecks.accentRed+pixelChecks.otherRed,0,'The entire name stays neutral during the eye flicker');
   assert.equal(pixelChecks.error,0);
   const letter=await page.locator('.ai-letter').first().boundingBox();
   await page.mouse.move(letter.x+letter.width/2,letter.y+letter.height/2);await page.waitForTimeout(500);

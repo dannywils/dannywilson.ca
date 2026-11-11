@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Controller } from "../site/controller.mjs";
 import { config } from "../site/config.mjs";
-test("name and eye stay synchronized through repeated cycles", () => {
+test("eye state follows the controller through repeated cycles", () => {
   const c = new Controller(config, () => 0);
   assert.equal(c.phase, "human");
   assert.equal(c.eye, false);

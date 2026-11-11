@@ -18,6 +18,8 @@ export const publishedLook = Object.freeze({
   cycleDuration: 26,
   erosionReach: 1,
   textBreakup: .25,
+  identityDelay: .7,
+  identityBreakup: .35,
   fragmentation: 2,
   driftSpread: 1,
   windCurl: .9,
@@ -41,7 +43,6 @@ export const publishedLook = Object.freeze({
   eyeWidth: 0.019,
   eyeHeight: 0.011,
   eyeGlow: 0.035,
-  nameGlow: 2.5,
   flickerSpeed: 1.7,
   hold: 0.5,
   interval: 3,
@@ -53,7 +54,7 @@ export function applyLook(config, values) {
     'noseContrast','zoom','centerX','centerY','breakup','randomness','particleSpeed',
     'particleTravel','debrisDensity','scrambleHz','densityJitter','glitchBandSpeed','sweepDuration',
     'windCurl','fragmentSpin','fragmentDepth','flightDepth','afterglow','streamReach','erosionStructure','brushSize','trailPersistence',
-    'cycleDuration','erosionReach','textBreakup','fragmentation','driftSpread'])
+    'cycleDuration','erosionReach','textBreakup','fragmentation','driftSpread','identityDelay','identityBreakup'])
     config.shader[key] = values[key];
   config.ascii.desktopColumns = values.density;
   config.ascii.mobileColumns = Math.round(values.density * .75);
@@ -70,7 +71,6 @@ export function applyLook(config, values) {
     humanMin: values.interval * 1000 - 2500,
     humanMax: values.interval * 1000 + 2500,
   });
-  config.nameGlow = values.nameGlow;
 }
 
 export const config = {

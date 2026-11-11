@@ -114,17 +114,13 @@ assert.deepEqual(await page.locator(".ai-letter").allTextContents(), [
 assert.ok(
   await page.locator(".ai-letter").evaluateAll((es) =>
     es.every((e) => {
-      const root=e.closest('.composition');
-      const channels = root.style.getPropertyValue('--ai-ink').match(/[\d.]+/g).map(Number);
       return (
-        channels[0] > 150 &&
-        channels[0] > channels[1] * 5 &&
-        Number(root.style.getPropertyValue('--ai-glow')) > 0 &&
+        getComputedStyle(e).textShadow==='none' &&
         e.closest('.identity').classList.contains('text-ready')
       );
     }),
   ),
-  "GPU text layer receives the red takeover envelope",
+  "GPU text stays neutral without a red DOM glow",
 );
 assert.ok(
   await page.locator("canvas").evaluate(
@@ -146,7 +142,7 @@ assert.ok(
         }),
       ),
   ),
-  "Name and eye use the same flicker envelope",
+  "The eye follows its controller envelope",
 );
 async function redPixels() {
   return page.locator("canvas").evaluate(
@@ -196,7 +192,7 @@ assert.equal(
   "mailto:danny@dannywilson.ca",
 );
 await page.waitForSelector('[data-phase="human"]', { timeout: 4000 });
-assert.equal((await redPixels()).red, 0, "Eye recovers with the name");
+assert.equal((await redPixels()).red, 0, "Eye returns to its neutral state");
 await page.keyboard.press("Tab");
 assert.ok(
   await page.locator(".email").evaluate((e) => e === document.activeElement),
@@ -254,5 +250,5 @@ assert.ok(
 assert.deepEqual(errors, []);
 await browser.close();
 console.log(
-  "WebGL QA passed: shader render, synchronized eye/name, desktop/mobile, reduced motion, context loss/restoration, unavailable WebGL and no-JS fallback.",
+  "WebGL QA passed: shader render, red eye and neutral name, desktop/mobile, reduced motion, context loss/restoration, unavailable WebGL and no-JS fallback.",
 );

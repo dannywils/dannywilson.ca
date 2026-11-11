@@ -14,6 +14,9 @@ uniform float columns;
 uniform vec2 meshGrid;
 uniform float driftSpread;
 uniform float portraitMode;
+uniform vec4 identityA;
+uniform vec4 identityI;
+uniform vec2 identityControls;
 uniform float time;
 uniform float breakupTime;
 uniform float sweepDuration;
@@ -34,13 +37,18 @@ float noise(vec2 p) {
   vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
   return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);
 }
+float inside(vec2 p,vec4 rect) {
+  return step(rect.x,p.x)*step(p.x,rect.z)*step(rect.y,p.y)*step(p.y,rect.w);
+}
 void main() {
   vec2 grid=meshGrid;
   vec2 cell=floor(origin*grid);
   cellInteraction=interaction*motion;
   float local=cellInteraction.x;
   float restored=smoothstep(.08,.8,local);
-  float released=step(hash(cell+113.2),debrisControls.x)*step(.00001,debrisControls.x);
+  float identity=max(inside(origin,identityA),inside(origin,identityI));
+  float amount=debrisControls.x*mix(1.,identityControls.y,identity);
+  float released=step(hash(cell+113.2),amount)*step(.00001,amount);
   float seed=hash(cell+17.3);
   vec2 introCell=cell+entranceSeed;
   float settleAt=mix(introTiming.y,1.,hash(introCell+219.3));
@@ -57,7 +65,7 @@ void main() {
   vec2 radial=origin-vec2(.5,.4);
   float releasePosition=mix(origin.x,.5+length(radial*vec2(.8,1.))*.65,.65);
   float core=1.-smoothstep(.65,1.25,length(radial/vec2(.13,.18)));
-  float departure=max(0.,(threshold-releasePosition)/velocity)+core*1.4*portraitMode;
+  float departure=max(0.,(threshold-releasePosition)/velocity)+core*1.4*portraitMode+identity*identityControls.x;
   float flightDuration=clamp(.55/max(dissolve.w,.03)/max(rate,.2),.8,6.);
   // Main starts this clock at 72% of the intro. A cell departs immediately after
   // its own arrival when the dissolve front has reached it, without a shared hold.
@@ -254,19 +262,11 @@ varying float fragmentLife;
 varying vec2 cellInteraction;
 varying float fragmentShade;
 uniform sampler2D portrait;
-uniform sampler2D textGlow;
-uniform vec3 paper;
-uniform float takeover;
-uniform float nameGlow;
 void main() {
   vec2 sourceUV=vec2(uv.x,1.-uv.y);
   vec4 source=texture2D(portrait,sourceUV);
-  float accent=clamp(source.r-source.g,0.,1.);
-  vec3 ink=mix(source.rgb,paper,accent);
-  ink=mix(ink,vec3(1.,.08235,.19216)*takeover,accent*step(.001,takeover));
-  ink=mix(ink,vec3(.76,.97,1.),cellInteraction.y*.2*(1.-accent*step(.001,takeover)));
-  float glow=texture2D(textGlow,sourceUV).a*takeover*nameGlow;
-  gl_FragColor=vec4((ink*source.a+vec3(1.,.08235,.19216)*glow)*fragmentShade,clamp(source.a+glow,0.,1.))*fragmentLife;
+  vec3 ink=mix(source.rgb,vec3(.76,.97,1.),cellInteraction.y*.2);
+  gl_FragColor=vec4(ink*source.a*fragmentShade,source.a)*fragmentLife;
 }
 `;
 
@@ -336,11 +336,12 @@ export class PortraitGL {
           "meshGrid",
           "driftSpread",
           "portraitMode",
+          "identityA",
+          "identityI",
+          "identityControls",
           "time",
           "breakupTime",
           "sweepDuration",
-          "textGlow",
-          "nameGlow",
           "motion",
           "assembly",
           "entranceSeed",
@@ -401,7 +402,7 @@ export class PortraitGL {
       rows.forEach((row, y) =>
         [...row].forEach((c, x) => ctx.fillText(c, x * 32 + 16, y * 64 + 32)),
       );
-      [image, atlas, ...(options.glow ? [options.glow] : [])].forEach((source, i) => {
+      [image, atlas].forEach((source, i) => {
         const texture = gl.createTexture();
         this.textures.push(texture);
         gl.activeTexture(gl.TEXTURE0 + i);
@@ -423,7 +424,6 @@ export class PortraitGL {
       gl.uniform1f(u.entranceSeed, Math.random()*997);
       gl.uniform1i(u.portrait, 0);
       gl.uniform1i(u.atlas, 1);
-      gl.uniform1i(u.textGlow, 2);
       gl.uniform2f(u.imageSize, this.sourceWidth, this.sourceHeight);
       gl.uniform4f(
         u.eye,
@@ -479,7 +479,6 @@ export class PortraitGL {
     gl.uniform4f(u.eye,c.eye.x,c.eye.y,c.eye.rx,c.eye.ry);
     gl.uniform3fv(u.eyeColor,c.eye.color.map(v=>v/255));
     gl.uniform1f(u.eyeGlow,c.eye.glow);
-    gl.uniform1f(u.nameGlow,c.nameGlow??1);
     gl.uniform1f(u.sweepDuration,s.sweepDuration??18);
     gl.uniform3f(u.flowControls,s.windCurl??.9,s.fragmentSpin??.65,s.streamReach??1.2);
     gl.uniform2f(u.introTiming,c.intro.duration,c.intro.flowStart);
@@ -488,15 +487,21 @@ export class PortraitGL {
     gl.uniform1f(u.flightDepth,s.flightDepth??.8);
     gl.uniform1f(u.driftSpread,s.driftSpread??1);
     gl.uniform1f(u.portraitMode,this.options.text?0:1);
+    gl.uniform2f(u.identityControls,s.identityDelay??.7,s.identityBreakup??.35);
     this.updateMesh();
   }
   get sourceWidth(){return this.image.naturalWidth||this.image.width;}
   get sourceHeight(){return this.image.naturalHeight||this.image.height;}
-  updateSource(image,glow) {
+  setIdentityBounds(regions=[]) {
+    this.gl.useProgram(this.program);
+    this.gl.uniform4fv(this.uniforms.identityA,regions[0]??[0,0,0,0]);
+    this.gl.uniform4fv(this.uniforms.identityI,regions[1]??[0,0,0,0]);
+  }
+  updateSource(image) {
     this.image=image;
     const gl=this.gl;
     gl.useProgram(this.program);
-    for(const [index,source] of [[0,image],[2,glow]])if(source){
+    for(const [index,source] of [[0,image]]){
       gl.activeTexture(gl.TEXTURE0+index);gl.bindTexture(gl.TEXTURE_2D,this.textures[index]);
       gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,source);
     }
