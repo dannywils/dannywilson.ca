@@ -38,6 +38,7 @@ varying float fragmentLife;
 varying vec2 cellInteraction;
 varying float fragmentShade;
 varying float interactionMask;
+varying float arrivalGlitch;
 float hash(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float noise(vec2 p) {
   vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
@@ -122,24 +123,34 @@ void main() {
   float early=step(.84,hash(introCell+203.1));
   float delay=mix(.012+cluster*.19+hash(introCell+201.7)*.065,.004+seed*.02,early);
   float progress=clamp((assembly-delay)/(settleAt-delay),0.,1.);
-  // Continuous, independently paced approaches replace the regular stop/start steps.
-  // The clock remains monotonic; broad surges feel like drifting into capture.
+  // Some small cohorts briefly stall, then catch up. Other pieces keep drifting,
+  // so corruption is local rather than a full-screen freeze or flash.
+  float unsettled=smoothstep(.04,.18,progress)*(1.-smoothstep(.68,.94,progress));
+  vec2 packet=floor(introCell/vec2(6.,4.));
+  float steps=20.+hash(packet+351.7)*14.;
+  float packetClock=progress*steps;
+  float stalled=(floor(packetClock)+smoothstep(.42,1.,fract(packetClock)))/steps;
+  float flightProgress=mix(progress,stalled,step(.46,hash(packet+359.3))*unsettled);
   float tempo=hash(introCell+241.1);
-  float approachClock=progress+sin(progress*3.14159)*(tempo-.5)*.42;
+  float approachClock=flightProgress+sin(flightProgress*3.14159)*(tempo-.5)*.42;
   float arrival=approachClock*(.8+approachClock*(1.4-approachClock*1.2));
   float remaining=1.-arrival;
   float plane=mix(-.5,.2,hash(introCell+307.1))+step(.86,hash(introCell+313.5))*1.4;
   float approach=(1.-smoothstep(.12,.9,arrival))*flightDepth*motion;
-  float unsettled=smoothstep(.04,.18,progress)*(1.-smoothstep(.58,.9,progress));
-  float glitchClock=assembly*(42.+hash(introCell+263.2)*48.);
+  float glitchClock=assembly*(56.+hash(introCell+263.2)*64.);
   float glitchFrame=floor(glitchClock);
-  float pulse=pow(sin(fract(glitchClock)*3.14159),4.);
-  float glitch=step(.82,hash(introCell+glitchFrame*13.7))*unsettled*pulse;
+  float pulse=pow(sin(fract(glitchClock)*3.14159),2.);
+  float glitch=step(.66,hash(introCell+glitchFrame*13.7))*unsettled*pulse;
   vec2 jitter=vec2(hash(introCell+glitchFrame*3.7),hash(introCell+glitchFrame*9.1))-.5;
-  float rowClock=assembly*29.;
+  float rowClock=assembly*43.;
   float rowFrame=floor(rowClock);
-  float rowTear=(hash(vec2(cell.y,rowFrame+entranceSeed))-.5)*resolution.x*.025
-    *step(.93,hash(vec2(cell.y+77.,rowFrame)))*unsettled*pow(sin(fract(rowClock)*3.14159),4.);
+  float rowBurst=step(.8,hash(vec2(cell.y+77.,rowFrame)))*unsettled*pow(sin(fract(rowClock)*3.14159),2.);
+  float rowTear=(hash(vec2(cell.y,rowFrame+entranceSeed))-.5)*resolution.x*.065*rowBurst;
+  float packetFrame=floor(assembly*37.);
+  float packetBurst=step(.72,hash(packet+packetFrame*7.1))*unsettled
+    *pow(sin(fract(assembly*37.)*3.14159),2.);
+  vec2 packetJump=vec2(hash(packet+packetFrame*11.3),hash(packet+packetFrame*17.9))-.5;
+  arrivalGlitch=max(glitch,max(rowBurst,packetBurst))*motion;
   // Independent starting positions avoid an edge-shaped curtain or radial rim.
   // Curved approaches retain the shared, irregular arrival rhythm of the face,
   // name and email. The cloud extends beyond every edge without clipping.
@@ -153,13 +164,14 @@ void main() {
   vec2 capture=(direction*(.025+seed*.13)+tangent*arc*.08)*min(size.x,size.y)*placement.x;
   vec2 incoming=launch*remaining*remaining*remaining
     +3.*bend*remaining*remaining*arrival+3.*capture*remaining*arrival*arrival;
-  incoming+=jitter*vec2(resolution.x*.025,size.y*.045)*glitch+vec2(rowTear,0.);
+  incoming+=jitter*vec2(resolution.x*.055,size.y*.065)*glitch+vec2(rowTear,0.);
+  incoming+=packetJump*span*.09*packetBurst;
   incoming.y+=plane*sin(progress*3.14159)*remaining*size.y*.12*flightDepth*motion;
   float live=smoothstep(.98,1.,progress);
   offset*=live;
   float perspective=2./max(.8,2.-z*travel*.85*flightDepth*live);
   vec2 volumeCenter=(vec2(.5,.4)-.5+placement.yz)*size*placement.x+portraitBounds.xy+portraitBounds.zw*.5;
-  float flicker=1.-glitch*(.25+hash(introCell+glitchFrame*31.1)*.5);
+  float flicker=1.-arrivalGlitch*(.35+hash(introCell+glitchFrame*31.1)*.5);
   float arrivingInk=mix(.3,1.,smoothstep(.3,.94,arrival));
   fragmentLife=mix(1.,fragmentLife,live)*smoothstep(delay,delay+.035,assembly)*flicker*arrivingInk;
   // UVs stay anchored to the original face cell while its geometry moves.
@@ -229,6 +241,7 @@ void main() {
 const fragmentSource = `
 precision highp float;
 varying float interactionMask;
+varying float arrivalGlitch;
 varying vec2 uv;
 varying float fragmentLife;
 varying vec2 cellInteraction;
@@ -317,6 +330,11 @@ void main() {
   // Every cell has its own clock: continuous rewriting without a whole-face flash.
   float tick = floor(time*scrambleHz*(.65+seed*.7)+seed*23.);
   float rewrite = hash(cell+vec2(tick*3.17,tick*7.13));
+  // Short bursts rewrite glyph shapes quickly without changing their tone bucket.
+  if(arrivalGlitch>.12){
+    float corruptTick=floor(time*73.);
+    rewrite=hash(cell+vec2(corruptTick*11.7,corruptTick*5.3));
+  }
   float band = (1.-smoothstep(.015,.045,abs(center.y-fract(time*glitchBandSpeed))))*motion;
   float jitter = floor(hash(cell+vec2(tick+41.,tick*2.3))*3.)-1.;
   // Lock tonal density across the face; shapes still change every tick.
@@ -327,6 +345,7 @@ void main() {
   float glyph = glyphAt(pos,grid,index,alternate,size);
   float edge = clamp(abs(l-surrounding)*7.,0.,1.);
   vec3 ink = mix(paper,cyan, .13+edge*.45+step(.88,seed)*.23+band*.12);
+  ink=mix(ink,vec3(.65,.95,1.),arrivalGlitch*.35);
   // Returning source glyphs briefly catch a cool phosphor edge as they settle.
   float landing=cellInteraction.y*smoothstep(.2,.8,cellInteraction.x);
   ink=mix(ink,vec3(.76,.97,1.),landing*.4);

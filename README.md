@@ -186,8 +186,10 @@ with scattered early arrivals and late stragglers. Cubic flight paths bend from
 a broad cloud surrounding their destinations, with arrivals from every direction and
 independently paced acceleration. An early cohort enters in the opening half-second;
 later groups join at staggered times. Continuous surges replace regular stop/start
-steps. Slight rotation and brief glitch slices have smooth envelopes and fade
-before capture. Each path reaches its exact source position with zero speed,
+steps. Small groups briefly stall and catch up, with stronger fragment jumps,
+short row tears and rapid character scrambling inside local bursts. Cool phosphor
+tints and brief dropouts stay local to those pieces. All corruption fades before
+capture. Each path reaches its exact source position with zero speed,
 avoiding a last-frame snap.
 Incoming fragments start at 30% ink and gain full brightness as they gather. Afterglow
 starts at 8% of its tuned value and eases back to full strength during landing,
