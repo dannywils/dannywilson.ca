@@ -26,7 +26,10 @@ try{
     const r=new PortraitGL(document.createElement('canvas'),image,c);r.resize(600,600);
     const samples=[];
     for(const t of [0,6,12,18,30,60]){r.render(0,'human',false,{x:-2,y:-2,strength:0},0,1,t);samples.push(count(read(r)));}
-    const effect=new TextEffect(document.createElement('canvas'),document.querySelector('.identity'),config,matchMedia('(prefers-reduced-motion: reduce)'));
+    // Stress the flight primitive at full erosion. The production timeline is
+    // bounded and uses a lower text amount, covered by verify-timeline.
+    const textConfig=structuredClone(config);textConfig.shader.textBreakup=1;
+    const effect=new TextEffect(document.createElement('canvas'),document.querySelector('.identity'),textConfig,matchMedia('(prefers-reduced-motion: reduce)'));
     effect.renderer.options.clear=true;
     effect.render(0,'human',false,0,60);const emptyText=count(read(effect.renderer));
     effect.pointer.x=effect.pointer.tx=.3;effect.pointer.y=effect.pointer.ty=.3;effect.pointer.targetStrength=1;
@@ -55,7 +58,7 @@ try{
   await page.mouse.move(0,0);
   await page.locator('.tuner-toggle').click();
   await page.evaluate(()=>window.forceGone=false);
-  await page.getByRole('button',{name:'Replay dissolve',exact:true}).click();
+  await page.getByRole('button',{name:'Restart cycle',exact:true}).click();
   const clock=await page.locator('canvas').evaluate(c=>{const g=c.getContext('webgl'),p=g.getParameter(g.CURRENT_PROGRAM);return g.getUniform(p,g.getUniformLocation(p,'breakupTime'));});
   assert.ok(clock<.2,'Replay restarts the sweep clock');
   assert.deepEqual(errors,[]);console.log('Sweep QA passed:',result);

@@ -11,7 +11,11 @@ try {
     const render=PortraitGL.prototype.render;
     window.forceDissolved=true;
     PortraitGL.prototype.render=function(...args){
-      if(window.forceDissolved)args[6]=60;
+      // Stress full-scene recovery beyond the bounded production timeline.
+      if(window.forceDissolved){
+        args[6]=60;
+        if(this.options.text&&this.config.shader.breakup!==1){this.config.shader.breakup=1;this.applyConfig();}
+      }
       render.apply(this,args);
       if(this.options.text){
         const gl=this.gl,p=new Uint8Array(this.canvas.width*this.canvas.height*4);

@@ -16,6 +16,9 @@ const groups = [
     ['letterSpacing','Letter spacing',-.06,.06,.002],
   ]],
   ['Disintegration', [
+    ['cycleDuration','Cycle length · seconds',8,60,1],
+    ['erosionReach','Peak erosion',.2,1.6,.05],
+    ['textBreakup','Text erosion',0,1,.05],
     ['breakup','Amount',0,1,.02],
     ['breakupCenter','Starting center',.3,.95,.005],
     ['feather','Boundary softness',.01,2,.01],
@@ -72,7 +75,7 @@ export function createTuner(config,onChange,onPreview,onReplay=()=>{}){
   const toggle=document.createElement('button');toggle.className='tuner-toggle';toggle.setAttribute('aria-label','Tune appearance');toggle.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7m5 0h4M4 17h3m5 0h8"/><circle cx="13.5" cy="7" r="2.5"/><circle cx="9.5" cy="17" r="2.5"/></svg><span>Tune</span>';toggle.setAttribute('aria-controls',panel.id);toggle.setAttribute('aria-expanded','false');
   panel.innerHTML=`<header><div><h2>Dial in the look</h2><p>Changes save on this device.</p></div><button type="button" class="tuner-close" aria-label="Close controls">×</button></header>
     <div class="tuner-toolbar"><label>Starting point <select aria-label="Starting point"><option value="current">Current look</option><option value="clean">Clean portrait</option><option value="ghost">More fragmented</option><option value="coarse">Coarse characters</option></select></label><button type="button" data-action="preview">Test flicker</button></div>
-    <div class="tuner-fields"></div><footer><button type="button" data-action="replay">Replay dissolve</button><button type="button" data-action="reset">Reset</button><button type="button" data-action="copy">Copy settings</button><button type="button" data-action="link">Copy look link</button><button type="button" data-action="import">Import settings</button><p role="status" class="tuner-status"></p><textarea hidden aria-label="Settings JSON" spellcheck="false"></textarea><button hidden type="button" data-action="apply">Apply JSON</button></footer>`;
+    <div class="tuner-fields"></div><footer><button type="button" data-action="replay">Restart cycle</button><button type="button" data-action="reset">Reset</button><button type="button" data-action="copy">Copy settings</button><button type="button" data-action="link">Copy look link</button><button type="button" data-action="import">Import settings</button><p role="status" class="tuner-status"></p><textarea hidden aria-label="Settings JSON" spellcheck="false"></textarea><button hidden type="button" data-action="apply">Apply JSON</button></footer>`;
   const controls=new Map();
   for(const [title,entries] of groups){
     const details=document.createElement('details');details.open=title==='Portrait';

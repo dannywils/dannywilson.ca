@@ -25,7 +25,7 @@ try{
   const first=await checkCue();
   assert.ok(first.cue.assembly>=.9&&first.cue.assembly<.93,'Ignition lands during the final assembly beat');
   assert.ok(!first.early&&first.synced,'Photo and text share the exact cue, with no early ignition');
-  assert.ok(first.end.breakup>=1.3,'Dissolution runs through the cue without an idle beat');
+  assert.ok(first.end.breakup>=.45,'Edge erosion runs through the cue without an idle beat');
   await page.screenshot({path:'output/cinema-desktop.png'});
   await page.evaluate(()=>{window.cinemaFrames=[];document.querySelector('[data-scene="replay"]').click();});
   const replay=await checkCue();

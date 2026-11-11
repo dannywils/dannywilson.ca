@@ -5,6 +5,7 @@ import { createTuner } from "./tuner.mjs";
 import { TextEffect } from "./text-effect.mjs";
 import { createExperience } from "./experience.mjs";
 import { Phosphor } from "./phosphor.mjs";
+import { sceneTimeline } from "./timeline.mjs";
 const root = document.querySelector(".composition");
 const figure = document.querySelector(".portrait");
 const canvas = document.querySelector("canvas");
@@ -50,6 +51,7 @@ function draw() {
     `rgb(${Math.round(255 * light)} ${Math.round(21 * light)} ${Math.round(49 * light)})`,
   );
   const assembly = motion.matches ? 1 : Math.min(1, entranceElapsed / entranceDuration);
+  const timeline=sceneTimeline(breakupElapsed,config.shader);
   if (renderer) {
     const b=figure.getBoundingClientRect();
     const width=image.naturalWidth*Math.min(b.width/image.naturalWidth,b.height/image.naturalHeight)*config.shader.zoom;
@@ -71,8 +73,8 @@ function draw() {
         renderer.gl.bindFramebuffer(renderer.gl.FRAMEBUFFER,null);
       }
     }
-    renderer.render(elapsed, controller.phase, motion.matches, pointer, light, assembly, breakupElapsed);
-    textEffect?.render(elapsed,controller.phase,motion.matches,light,breakupElapsed,assembly===1,assembly,experience.state);
+    renderer.render(elapsed, controller.phase, motion.matches, pointer, light, assembly, timeline.erosion);
+    textEffect?.render(elapsed,controller.phase,motion.matches,light,timeline.erosion,assembly===1,assembly,experience.state);
     if(usePhosphor)phosphor.present(elapsed,config.shader.afterglow);
     renderer.gl.useProgram(renderer.program);
   }

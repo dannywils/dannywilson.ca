@@ -41,6 +41,16 @@ Keyboard focus restores the email too. The portrait accepts drawing in any
 direction on touchscreens; pinch zoom remains available. The rest of the page
 still allows vertical scrolling. Reduced motion keeps the complete portrait and text static.
 
+`site/timeline.mjs` stages the whole scene as a living, 26-second cycle after the
+entrance: light edge activity leaves the identity readable, an asymmetric swell
+erodes the right side, then a longer return brings the same source fragments home.
+The front remains bounded; the portrait never ends in black. Successive swells
+vary gently in strength, and continuous values at cycle boundaries avoid a reset
+or hitch. The name sheds only a quarter of the eligible cells, retaining its
+letter shapes throughout. **Cycle length**, **Peak erosion**, and **Text erosion**
+are independently adjustable in Tune. **Restart cycle** restarts this motion;
+**Replay** restages the full entrance and red ignition.
+
 The interaction strip provides **Replay** for the complete entrance and **Reveal**
 to gather the entire scene until **Release** is selected. Moving across the page
 leaves a short restoration trail. Pressing and holding expands the brush from the
@@ -50,7 +60,7 @@ through the actual source cells, then lets them dissolve again. It takes 1.8
 seconds to cross the viewport; each visited cell returns along its existing
 flight path. Long holds and drawing do not also trigger the wave, and motion
 reduction, cancellation or loss of focus stop it. The persistent **Contact** link
-keeps email reachable after the main composition has disappeared.
+keeps email reachable throughout the animation.
 Both the portrait and type share a screen-space brush, so gathering works across
 their boundaries. Fast strokes sweep the intervening path rather than skipping
 cells between frames. Returning glyphs briefly catch a cool phosphor tint. Small
@@ -85,11 +95,12 @@ jumps are confined to its outer silhouette. Stronger tonal contrast preserves
 the eyes, glasses and smile. Nose contrast is capped and masked above the upper
 lip so it cannot spread into the moustache; fewer shape variants keep the nose
 outline stable. Explicit glyph sampling avoids atlas mip blur. Roughly the
-right side begins breaking into individually transported glyph cells, then the
-boundary sweeps left until the entire portrait and text have dissolved. Cells
-depart once and stay gone until restored by interaction. The default sweep is
-18 seconds; the panel exposes its duration and starting center, plus a Replay
-dissolve button. Departing fragments finish fading after the front passes.
+right side breaks into individually transported glyph cells, then the boundary
+retreats to restore them. The scene timeline bounds the renderer's erosion clock,
+preserving the face instead of advancing through complete disappearance. The
+underlying sweep speed remains adjustable alongside the starting center. Hover,
+touch and Reveal can gather cells at any point in the automatic cycle; release
+blends back into the current stage rather than restarting it.
 Each cell is drawn once: its original source coordinates, shading and character
 move with it, leaving its position empty. No separate debris glyphs are generated.
 The characters keep rewriting during flight. Vertex motion varies speed,
@@ -180,9 +191,10 @@ rectangle, exact landing positions, scroll alignment, reduced motion,
 script-load failure, and the handoff to the normal renderer.
 `node scripts/verify-text.mjs` checks a continuous handoff, actual letter pixels
 departing, A/I-only red lighting, hover/touch release, the email link, and reduced motion.
-`node scripts/verify-sweep.mjs` checks right-to-left departure order, permanent
-disappearance, restoration of dissolved text, release, and replay.
-`node scripts/verify-experience.mjs` checks whole-scene keyboard reveal/release,
+`node scripts/verify-sweep.mjs` stress-tests the underlying flight primitive at
+full erosion: right-to-left departure, absence of duplicate cells, restoration of
+dissolved text, release, and the cycle restart control.
+`node scripts/verify-experience.mjs` stress-tests whole-scene keyboard reveal/release,
 progressive gathering, replayed assembly, phone hold/cancellation, and reduced
 motion using actual rendered pixel counts.
 `node scripts/verify-flow.mjs` checks overlapping arrival/departure for text and
@@ -199,6 +211,9 @@ clearing, and continued rendering if the optional effect becomes unavailable.
 `node scripts/verify-cinema.mjs` checks the timed entrance ignition and Replay,
 matching text/portrait light envelopes, uninterrupted breakup, and near/far
 projection with exact home, restored, and reduced-motion pixels.
+`node scripts/verify-timeline.mjs` samples ten minutes of cycle continuity and
+rendered portrait/text presence across several cycles, including return from
+peak erosion, gathering, reduced motion, and phone layouts.
 
 Push changes to `master` to publish through `.github/workflows/pages.yml`.
 The workflow can also be run manually from the Actions tab. GitHub Pages must

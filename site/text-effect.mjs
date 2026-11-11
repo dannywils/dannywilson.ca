@@ -74,7 +74,8 @@ export class TextEffect {
         }
       }
     }
-    this.textConfig={...this.config,ascii:{...this.config.ascii},shader:{...this.config.shader,zoom:1,centerX:0,centerY:0}};
+    this.textConfig={...this.config,ascii:{...this.config.ascii},shader:{...this.config.shader,
+      breakup:this.config.shader.breakup*(this.config.shader.textBreakup??.25),zoom:1,centerX:0,centerY:0}};
     if(this.renderer){this.renderer.config=this.textConfig;this.renderer.updateSource(this.source,this.glow);this.renderer.applyConfig();}
     else this.renderer=new PortraitGL(this.canvas,this.source,this.textConfig,{text:true,glow:this.glow,clear:false});
     this.renderer.resize(innerWidth,innerHeight,this.bounds);

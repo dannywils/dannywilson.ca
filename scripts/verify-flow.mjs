@@ -9,9 +9,10 @@ try {
     const g=c.getContext('webgl'),p=g.getParameter(g.CURRENT_PROGRAM);
     return g.getUniform(p,g.getUniformLocation(p,'breakupTime'));
   });
-  assert.ok(liveClock>=1.3,'Live disintegration is already underway when the final cells arrive');
+  assert.ok(liveClock>=.45,'Live edge erosion is already underway when the final cells arrive');
   const results=await page.evaluate(async()=>{
     const {PortraitGL}=await import('/portrait-gl.mjs'),{TextEffect}=await import('/text-effect.mjs'),{config}=await import('/config.mjs');
+    const {sceneTimeline}=await import('/timeline.mjs');
     const img=new Image();img.src=config.portrait;await img.decode();
     const c=structuredClone(config);Object.assign(c.shader,{scrambleHz:0,glitchBandSpeed:0,densityJitter:0});
     const photo=new PortraitGL(document.createElement('canvas'),img,c);photo.resize(640,640);
@@ -21,7 +22,7 @@ try {
     const diff=(a,b)=>a.reduce((n,v,i)=>n+(Math.abs(v-b[i])>12),0);
     const probe=r=>{
       r.gl.useProgram(r.program);r.gl.uniform1f(r.uniforms.entranceSeed,7);
-      const sample=(t,breakup=Math.max(0,t-4.8*.72))=>{
+      const sample=(t,breakup=sceneTimeline(Math.max(0,t-4.8*.72),c.shader).erosion)=>{
         r.render(0,'human',false,{x:-2,y:-2,strength:0},0,Math.min(t/4.8,1),breakup);return read(r);
       };
       const overlapping=diff(sample(4.56),sample(4.56,0));

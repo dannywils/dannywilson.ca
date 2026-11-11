@@ -42,7 +42,8 @@ void main() {
   vec2 introCell=cell+entranceSeed;
   float settleAt=mix(introTiming.y,1.,hash(introCell+219.3));
   float rate=mix(1.,.6+seed*1.5,debrisControls.y);
-  // A one-way front crosses each source cell once. There is no respawn cycle.
+  // A bounded scene clock advances and retreats this front. Returning uses the
+  // same source cells and paths; there is no separate respawn particle system.
   float velocity=(max(dissolve.y,.1)+.12)/max(sweepDuration,.1);
   // Connected contours tear off in patches, with a little grain at their edges.
   float contour=noise(origin*vec2(9.,15.)+31.7)*.72+noise(origin*vec2(27.,41.)+7.3)*.28;
