@@ -62,11 +62,8 @@ function draw() {
     pointer.reveal=experience.state.reveal;
     pointer.trail=config.shader.trailPersistence;
     const pulse=experience.state.pulse;
-    pointer.pulse=pulse?{
-      x:(pulse.x-b.left-b.width/2)/width+.5-config.shader.centerX,
-      y:(pulse.y-b.top-b.height/2)/(width*image.naturalHeight/image.naturalWidth)+.5-config.shader.centerY,
-      radius:pulse.radius/width,width:pulse.width/width,strength:pulse.strength
-    }:null;
+    if(pulse)pulse.breakupTime??=timeline.erosion;
+    pointer.tap=pulse;
     figure.dataset.entrance = assembly < 1 ? "assembling" : "settled";
     figure.setAttribute("aria-busy", String(assembly < 1));
     let usePhosphor=!!phosphor&&!motion.matches&&config.shader.afterglow>0;

@@ -31,6 +31,7 @@ try{
   assert.equal(local.radius,radius,'Four-second holds retain exactly the initial contact radius');
   assert.ok(local.near>.9);assert.equal(local.far,0,'Only source cells at the touched spot deform');
   assert.equal(local.name,0,'Holding the face does not affect the distant name');
+  assert.equal(await page.evaluate(()=>!!window.touchPhoto.testPointer.tap),false,'Holding does not trigger a tap burst');
   await page.screenshot({path:'output/touch-scatter-active.png'});
   assert.equal(await page.locator('.portrait').evaluate(e=>e.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true}))),false,'Long-press gathering suppresses the artwork context menu');
   assert.ok(await page.locator('.gather-cursor').evaluate(e=>e.classList.contains('held')));
@@ -52,19 +53,22 @@ try{
   await page.touchscreen.tap(195,460);
   await page.waitForTimeout(120);
   const burst=await page.evaluate(()=>{
-    const r=window.touchPhoto,p=r.testPointer.pulse;let peak=0,far=0;
+    const r=window.touchPhoto,p=r.testPointer.tap;
     if(!p)return null;
-    for(let y=0;y<r.meshRows;y++)for(let x=0;x<r.meshColumns;x++){
-      const v=r.interactions[(y*r.meshColumns+x)*r.interactionStride];peak=Math.max(peak,v);
-      if(Math.hypot((x+.5)/r.meshColumns-p.x,((y+.5)/r.meshRows-p.y)*r.sourceHeight/r.sourceWidth)>p.width*1.05)far=Math.max(far,v);
-    }
-    return {peak,far,radius:p.radius,width:p.width,brush:r.testPointer.radius};
+    return {x:p.x,y:p.y,width:p.width,strength:p.strength};
   });
-  assert.ok(burst&&burst.peak>1.2,'A tap kicks harder than a sustained touch');
-  assert.equal(burst.radius,0);assert.equal(burst.width,burst.brush);assert.equal(burst.far,0,'The burst stays inside the contact patch');
+  assert.ok(burst&&burst.strength>0,'Tap starts moving immediately');
+  assert.equal(burst.x,195);assert.equal(burst.y,460,'Tap coordinates are passed unchanged in screen space');
+  assert.ok(burst.width>70&&burst.width<=108,'Tap selects a broader local patch');
+  await page.waitForTimeout(900);
+  assert.ok(await page.evaluate(()=>window.touchPhoto.testPointer.tap?.strength)>.95,'Pieces are still out in space after one second');
   await page.screenshot({path:'output/touch-local-burst.png'});
-  await page.waitForTimeout(650);
-  assert.equal(await page.evaluate(()=>!!window.touchPhoto.testPointer.pulse),false,'The brief impulse finishes without travelling across the scene');
+  await page.waitForTimeout(1400);
+  const returning=await page.evaluate(()=>window.touchPhoto.testPointer.tap?.strength);
+  assert.ok(returning>.15&&returning<.7,'The slower pull home is still underway after two seconds');
+  await page.screenshot({path:'output/touch-burst-return.png'});
+  await page.waitForTimeout(1600);
+  assert.equal(await page.evaluate(()=>!!window.touchPhoto.testPointer.tap),false,'Burst completes naturally');
   await page.locator('.email').evaluate(e=>e.addEventListener('click',event=>{event.preventDefault();window.contactTapped=true;}));
   await page.locator('.email').tap();assert.ok(await page.evaluate(()=>window.contactTapped));
   assert.ok(await page.locator('.gather-cursor').evaluate(e=>!e.classList.contains('held')),'Email taps do not capture a drawing gesture');
@@ -110,5 +114,5 @@ try{
   await page.locator('[data-scene="reveal"]').tap();assert.equal(await page.locator('[data-scene="reveal"]').getAttribute('aria-pressed'),'false');
   await page.screenshot({path:'output/touch-phone.png'});
   assert.deepEqual(errors,[]);
-  console.log('Touch QA passed: fixed local holds, stronger bounded tap burst, no distant influence, pinch cancellation, email, controls and tuner scrolling.');
+  console.log('Touch QA passed: fixed local holds, accurate broader tap, one-second drift, slow return, pinch cancellation, email, controls and tuner scrolling.');
 }finally{await browser.close();}

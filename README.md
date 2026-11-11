@@ -60,9 +60,13 @@ The interaction strip provides **Replay** for the complete entrance and **Reveal
 to gather the entire scene until **Release** is selected. Moving across the page
 leaves a short local deformation trail. Taps, drags and long holds use the same
 fixed contact radius: 48 pixels on phones by default, capped at 56 pixels.
-Holding never expands the brush. A quick tap adds a stronger impulse inside that
-same patch, with a fast attack and decay over 0.65 seconds; it never launches a
-travelling wave. Holds and drags keep their gentler local deformation.
+Holding never expands the brush. A quick tap selects a broader local patch
+(about 91 pixels on phones), based on the pieces' visible positions at impact,
+including existing flight and depth. Those same source pieces drift outward from
+the tap for 1.1 seconds, then pull home over 2.7 seconds. Screen coordinates and
+device-pixel ratio stay consistent for both text and portrait. The selected cohort
+stays fixed; there is no travelling selection wave. Holds and drags keep their
+gentler local deformation.
 Lifting lets them reform. Motion reduction, cancellation or loss of focus end
 the gesture. The persistent **Contact** link
 keeps email reachable throughout the animation.

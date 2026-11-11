@@ -1,3 +1,4 @@
+import {tapProgress,tapDuration,tapDriftSeconds} from './tap-motion.mjs';
 // A screen-space brush scatters the portrait and type; the cycle reforms them.
 export function createExperience({ root, motion, config, onMove, onLeave, onReplay, onSkip }) {
   const rail = document.querySelector('.experience');
@@ -51,7 +52,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   on(root, 'pointerup', e => {
     if(e.isPrimary===false||e.pointerId!==captured)return;
     if(held&&performance.now()-pressedAt<280&&travel<10&&interactive&&!pinned){
-      state.pulse={x:e.clientX,y:e.clientY,radius:0,width:state.radius,age:0,strength:0};
+      state.pulse={x:e.clientX,y:e.clientY,width:Math.min(coarse.matches?108:150,state.radius*1.9),age:0,strength:0};
     }
     held = false;
     captured=null;
@@ -91,9 +92,8 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
       interactive=ready&&assembly===1;
       if(state.pulse){
         state.pulse.age+=delta;
-        // A fixed contact patch gets a fast impulse, never an expanding wave.
-        state.pulse.strength=3*(1-Math.exp(-state.pulse.age/.025))*Math.exp(-state.pulse.age/.24);
-        if(state.pulse.age>.65||!interactive)state.pulse=null;
+        state.pulse.strength=tapProgress(state.pulse.age);
+        if(state.pulse.age>=tapDuration||!interactive)state.pulse=null;
       }
       const nextAssembling=assembly<1;
       if(assembling!==nextAssembling||!replay.dataset.entranceAction){
@@ -119,7 +119,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
       // The cursor marks the gathering gesture, not an artificial clipping boundary.
       cursor.style.setProperty('--gather', state.gather);
       cursor.style.setProperty('--ring-size', held?'24px':'18px');
-      const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to resume' : held ? 'Release to reform' : coarse.matches ? 'Touch to deform · release to reform' : 'Move to deform · let go to reform';
+      const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to resume' : held ? 'Release to reform' : state.pulse ? (state.pulse.age<tapDriftSeconds?'Drifting':'Reforming') : coarse.matches ? 'Tap to scatter · drag to deform' : 'Click to scatter · move to deform';
       if (message !== lastHint) { hint.textContent = message; lastHint = message; }
       rail.dataset.state = assembly < 1 ? 'assembling' : pinned ? 'revealed' : 'live';
     },

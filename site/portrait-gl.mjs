@@ -29,6 +29,8 @@ uniform vec2 introTiming;
 uniform float erosionStructure;
 uniform float fragmentDepth;
 uniform float flightDepth;
+uniform vec4 tap;
+uniform vec2 tapTiming;
 varying vec2 uv;
 varying float fragmentLife;
 varying vec2 cellInteraction;
@@ -163,6 +165,30 @@ void main() {
   fragmentShade*=1.-max(0.,-z)*travel*.35*flightDepth*live;
   localPosition=mat2(cos(angle),sin(angle),-sin(angle),cos(angle))*localPosition;
   vec2 screen=volumeCenter+(homeCenter-volumeCenter)*perspective+localPosition+offset*size*placement.x*perspective+incoming;
+  if(tap.z>0.&&motion>.5&&assembly>=1.){
+    // Freeze selection at the tap: hit the displayed pieces, including their
+    // existing drift and depth, rather than the original source-image location.
+    float hitAge=clamp((tapTiming.y-(settleAt-introTiming.y)*introTiming.x-departure)/flightDuration,0.,1.)*step(.00001,dissolve.w);
+    float hitFlight=hitAge*released;
+    float hitTravel=hitFlight*hitFlight*(2.-hitFlight);
+    float hitOrbit=(hash(cell+431.9)-.5)*hitFlight*1.2*flowControls.x;
+    vec2 hitHeading=vec2(cos(azimuth+hitOrbit),sin(azimuth+hitOrbit))*equator;
+    float hitDistance=hitTravel*dissolve.z*mix(1.,.55+burst*1.2,debrisControls.y)*driftSpread;
+    float hitPerspective=2./max(.8,2.-z*hitTravel*.85*flightDepth);
+    vec2 hit=volumeCenter+(homeCenter-volumeCenter)*hitPerspective+hitHeading*hitDistance*reach*size*placement.x*hitPerspective;
+    vec2 fromTap=hit-tap.xy;
+    float hitRadius=length(fromTap);
+    float influence=(1.-smoothstep(.15,1.,hitRadius/tap.z))*(1.-anchored)*(1.-restored);
+    vec2 outward=hitRadius>1.?fromTap/hitRadius:vec2(cos(azimuth),sin(azimuth));
+    vec2 tangent=vec2(-outward.y,outward.x);
+    float spread=tap.w*influence;
+    // Each selected shard coasts out from the impact, then follows a slower
+    // attraction back. The whole displacement is exactly zero at either endpoint.
+    vec2 drift=outward*(.18+hash(cell+701.3)*1.5)+tangent*(seed-.5)*.55*sin(tapTiming.x*1.3);
+    screen+=drift*tap.z*spread;
+    screen+=localPosition*z*.35*spread;
+    fragmentShade*=1.-max(0.,-z)*.18*spread;
+  }
   gl_Position=vec4(screen.x/resolution.x*2.-1.,1.-screen.y/resolution.y*2.,0.,1.);
 }
 `;
@@ -373,6 +399,8 @@ export class PortraitGL {
           "erosionStructure",
           "fragmentDepth",
           "flightDepth",
+          "tap",
+          "tapTiming",
           "interference",
           "takeover",
           "eye",
@@ -678,6 +706,9 @@ export class PortraitGL {
     );
     gl.uniform2f(u.pointer, pointer.x, pointer.y);
     gl.uniform1f(u.pointerStrength,reduced?0:(pointer.strength??1));
+    const tap=!reduced&&assembly>=1?pointer.tap:null,dpr=this.pixelRatio||1;
+    gl.uniform4f(u.tap,(tap?.x??0)*dpr,(tap?.y??0)*dpr,(tap?.width??0)*dpr,tap?.strength??0);
+    gl.uniform2f(u.tapTiming,tap?.age??0,tap?.breakupTime??breakupTime);
     if(this.options.clear!==false){gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);}
     if(this.indexed)gl.drawElements(gl.TRIANGLES,this.indexCount,gl.UNSIGNED_INT,0);
     else gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
