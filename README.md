@@ -171,7 +171,8 @@ an opening silhouette with a slight right-side bias and does not introduce extra
 Reduced motion keeps a static human state. Hidden tabs stop the animation loop.
 GPU context loss reveals the static fallback; restoration rebuilds the renderer.
 On initial load the portrait area stays clear until its source and shader are
-ready. The actual glyph cells assemble from the screen's left edge over 4.8 seconds, land at
+ready. The actual glyph cells assemble from a cloud spread across and beyond
+the whole viewport over 4.8 seconds, land at
 their source positions, then ease into the live disintegration. Image preloading
 reduces the initial wait. The alternate SVG is hidden from first paint and only
 appears for no JavaScript, script-load failure, or renderer failure. Reduced
@@ -182,7 +183,7 @@ not clipping. Incoming and departing cells can cross that rectangle, with only
 the screen edge clipping them. Scroll and resize keep the destination aligned.
 Each load varies the cells' delays and paths. Nearby cells gather in soft clusters,
 with scattered early arrivals and late stragglers. Cubic flight paths bend from
-a broad cloud at the left screen edge, with shared arcs inside each cluster and
+a broad cloud surrounding their destinations, with arrivals from every direction and
 independently paced acceleration. An early cohort enters in the opening half-second;
 later groups join at staggered times. Continuous surges replace regular stop/start
 steps. Slight rotation and brief glitch slices have smooth envelopes and fade
@@ -203,7 +204,7 @@ The name and email pass through the portrait's exact ASCII fragment shader and g
 atlas, including while assembled. Density, weight, tonal controls and character
 rewriting apply to both; the name has no separate texture renderer. Portrait-only
 eye, nose and shoulder masks do not affect the letters. Both assemble from
-the left alongside the portrait, then the name disintegrates with the face. The email
+the surrounding cloud alongside the portrait, then the name disintegrates with the face. The email
 cells are protected from subsequent disintegration and retain their live ASCII
 texture after assembly, using finer cells to keep the small address readable.
 The transparent DOM link preserves clicking, selection and its focus
@@ -256,7 +257,7 @@ as it leaves the face, checking shape retention and that no duplicate remains.
 coordinate mapping, local GPU scattering, exact recovery after release,
 and reduced motion.
 `node scripts/verify-entrance.mjs` checks delayed loading without a fallback
-flash, left-edge entry for both halves of the face, travel beyond the portrait
+flash, arrivals from all four directions, travel beyond the portrait
 rectangle, exact landing positions, scroll alignment, reduced motion,
 script-load failure, and the handoff to the normal renderer.
 `node scripts/verify-text.mjs` checks a continuous handoff, actual letter pixels

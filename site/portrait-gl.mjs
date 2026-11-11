@@ -117,7 +117,8 @@ void main() {
   fragmentLife=1.-smoothstep(persistence*.7,persistence,flight);
   vec2 size=imageSize*min(portraitBounds.z/imageSize.x,portraitBounds.w/imageSize.y);
   vec2 homeCenter=(origin-.5+placement.yz)*size*placement.x+portraitBounds.xy+portraitBounds.zw*.5;
-  // Every cell begins just beyond the viewport's left edge, independent of the portrait box.
+  // Source fragments gather from a loose volume spanning and surrounding the
+  // viewport, rather than a vertical launch strip at one edge.
   float early=step(.84,hash(introCell+203.1));
   float delay=mix(.012+cluster*.19+hash(introCell+201.7)*.065,.004+seed*.02,early);
   float progress=clamp((assembly-delay)/(settleAt-delay),0.,1.);
@@ -129,7 +130,6 @@ void main() {
   float remaining=1.-arrival;
   float plane=mix(-.5,.2,hash(introCell+307.1))+step(.86,hash(introCell+313.5))*1.4;
   float approach=(1.-smoothstep(.12,.9,arrival))*flightDepth*motion;
-  float glyphWidth=size.x*placement.x/columns;
   float unsettled=smoothstep(.04,.18,progress)*(1.-smoothstep(.58,.9,progress));
   float glitchClock=assembly*(42.+hash(introCell+263.2)*48.);
   float glitchFrame=floor(glitchClock);
@@ -140,15 +140,17 @@ void main() {
   float rowFrame=floor(rowClock);
   float rowTear=(hash(vec2(cell.y,rowFrame+entranceSeed))-.5)*resolution.x*.025
     *step(.93,hash(vec2(cell.y+77.,rowFrame)))*unsettled*pow(sin(fract(rowClock)*3.14159),4.);
-  // Cubic paths bend out of a broad launch cloud at the left screen edge.
-  // Nearby source pieces share an arc, with fine variation within each cluster.
+  // Independent starting positions avoid an edge-shaped curtain or radial rim.
+  // Curved approaches retain the shared, irregular arrival rhythm of the face,
+  // name and email. The cloud extends beyond every edge without clipping.
   float arc=(noise(origin*vec2(4.,6.)+entranceSeed*.07+83.)-.5)*1.3;
-  float scatter=hash(introCell+231.9)-.5;
-  float launchY=(arc+scatter*.42)*min(resolution.y,size.y*placement.x);
-  float margin=glyphWidth*(2.+hash(introCell+237.1)*12.);
-  vec2 launch=vec2(-homeCenter.x-margin,launchY);
-  vec2 bend=vec2(-homeCenter.x*(.25+tempo*.5)-margin*.35,launchY*.7+arc*size.y*.3);
-  vec2 capture=vec2(-size.x*placement.x*(.025+seed*.13),-arc*size.y*.13);
+  vec2 launchPoint=(vec2(hash(introCell+231.9),hash(introCell+237.1))*1.6-.3)*resolution;
+  vec2 launch=launchPoint-homeCenter;
+  vec2 direction=launch/max(length(launch),1.);
+  vec2 tangent=vec2(-direction.y,direction.x);
+  float span=min(resolution.x,resolution.y);
+  vec2 bend=launch*(.45+tempo*.2)+tangent*arc*span*.3;
+  vec2 capture=(direction*(.025+seed*.13)+tangent*arc*.08)*min(size.x,size.y)*placement.x;
   vec2 incoming=launch*remaining*remaining*remaining
     +3.*bend*remaining*remaining*arrival+3.*capture*remaining*arrival*arrival;
   incoming+=jitter*vec2(resolution.x*.025,size.y*.045)*glitch+vec2(rowTear,0.);

@@ -33,7 +33,7 @@ try {
   const result=await page.evaluate(async()=>{
     const {PortraitGL}=await import('/portrait-gl.mjs'),{config}=await import('/config.mjs');
     const c=structuredClone(config);c.ascii.desktopColumns=c.ascii.mobileColumns=32;
-    // Isolate screen-edge travel; near/far projection has separate coverage in verify-cinema.
+    // Isolate cloud travel; near/far projection has separate coverage in verify-cinema.
     Object.assign(c.shader,{breakup:0,flightDepth:0,zoom:1,centerX:0,centerY:0,scrambleHz:0,glitchBandSpeed:0});
     async function probe(column,breakup=false){
       const source=document.createElement('canvas');source.width=source.height=256;
@@ -78,7 +78,27 @@ try {
     scene.render(0,'human',false,{x:-2,y:-2,strength:0},0,.08,0);
     const earlyPixels=new Uint8Array(640*480*4),gl=scene.gl;gl.readPixels(0,0,640,480,gl.RGBA,gl.UNSIGNED_BYTE,earlyPixels);
     const earlyVisible=earlyPixels.filter((v,i)=>i%4===3&&v>20).length;scene.dispose();
-    return {left:await probe(12),right:await probe(20),debris:await probe(31,true),earlyVisible};
+    // Track one real glyph across seeded runs. It must approach its destination
+    // from all four directions, not simply cross the left edge at different Y's.
+    const dot=document.createElement('canvas');dot.width=dot.height=256;
+    const ctx=dot.getContext('2d');ctx.fillStyle='white';ctx.fillRect(16*8,12*256/24,8,256/24);
+    const dc=structuredClone(c);dc.shader.fragmentation=1;
+    const r=new PortraitGL(document.createElement('canvas'),dot,dc,{text:true});r.resize(640,480);
+    const centroid=assembly=>{
+      r.render(0,'human',false,{x:-2,y:-2,strength:0},0,assembly,0);
+      const g=r.gl,a=new Uint8Array(640*480*4);g.readPixels(0,0,640,480,g.RGBA,g.UNSIGNED_BYTE,a);
+      let x=0,y=0,n=0;for(let i=3;i<a.length;i+=4)if(a[i]>20){const p=(i-3)/4;x+=p%640;y+=479-Math.floor(p/640);n++;}
+      return {x:x/Math.max(n,1),y:y/Math.max(n,1),n};
+    };
+    const home=centroid(1),directions={left:0,right:0,above:0,below:0};
+    for(let seed=1;seed<=32;seed++){
+      r.gl.uniform1f(r.uniforms.entranceSeed,seed*17);const p=centroid(.22);
+      if(p.n<5)continue;
+      if(p.x<home.x-30)directions.left++;if(p.x>home.x+30)directions.right++;
+      if(p.y<home.y-30)directions.above++;if(p.y>home.y+30)directions.below++;
+    }
+    r.dispose();
+    return {left:await probe(12),right:await probe(20),debris:await probe(31,true),earlyVisible,directions};
   });
   assert.ok(result.earlyVisible>20,'The opening cohort enters within the first half-second');
   for(const side of [result.left,result.right]){
@@ -86,14 +106,12 @@ try {
     assert.ok(side.middleCount>20&&side.endCount>20);
     assert.ok(side.exactLanding,'Cells land on the exact normal rendering');
     assert.ok(side.reducedStill,'Reduced motion skips travel');assert.equal(side.error,0);
-    assert.ok(side.firstVisible<30,'Glyphs first appear at the screen edge, far outside the portrait box');
     assert.ok(side.firstVisibleAt<.35,'Later cohorts join during the first third of the entrance');
     assert.ok(side.pauses>0&&side.bursts>0,'Flight varies between slow capture and quicker travel');
     assert.ok(side.verticalRange>15,'Flight has substantial vertical variation');
     assert.ok(side.randomized&&side.stableDestination,'Reload seeds vary the journey without changing the destination');
   }
-  assert.ok(result.left.middleX<result.left.endX-10,'Left cells arrive from the left');
-  assert.ok(result.right.middleX<result.right.endX-10,'Right-side face cells also arrive from the left');
+  assert.ok(Object.values(result.directions).every(n=>n>=2),'Source glyphs arrive from left, right, above and below');
   assert.ok(result.debris.escaped,'Disintegrating cells remain visible beyond the portrait boundary');
   const reduced=await browser.newPage({reducedMotion:'reduce'});
   await reduced.goto('http://localhost:8080');await reduced.waitForSelector('[data-entrance="settled"]');

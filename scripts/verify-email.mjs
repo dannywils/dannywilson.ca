@@ -19,7 +19,11 @@ try{
   assert.equal(await email.evaluate(e=>getComputedStyle(e).color),'rgba(0, 0, 0, 0)','The DOM glyphs stay hidden behind the ASCII email');
   const pixels=await page.evaluate(async()=>{
     const {TextEffect}=await import('/text-effect.mjs'),{config}=await import('/config.mjs');
-    const e=new TextEffect(document.createElement('canvas'),document.querySelector('.identity'),structuredClone(config),matchMedia('(prefers-reduced-motion: reduce)'));
+    // Keep the isolated renderer's lifecycle from removing the live app's classes.
+    const identity=document.querySelector('.identity'),box=identity.getBoundingClientRect(),fixture=identity.cloneNode(true);
+    fixture.style.cssText=`position:fixed;left:${box.left}px;top:${box.top}px;width:${box.width}px;visibility:hidden;pointer-events:none`;
+    document.body.append(fixture);
+    const e=new TextEffect(document.createElement('canvas'),fixture,structuredClone(config),matchMedia('(prefers-reduced-motion: reduce)'));
     const r=e.renderer;r.options.clear=true;
     // Isolate real email source pixels, keeping the same mesh and source bounds.
     e.source.getContext('2d').clearRect(0,0,e.source.width,e.emailRegion[1]*e.source.height);
@@ -31,11 +35,11 @@ try{
       return {count,x:sumX/Math.max(count,1),a};
     };
     const start=sample(0),flight=sample(.45),home=sample(1),held=sample(1,60),handoff=sample(.999),hidden=sample(1,0,false),rewritten=sample(1,0,true,.37);
-    const result={start:start.count,flight:flight.count,flightX:flight.x,home:home.count,homeX:home.x,protected:home.a.every((v,i)=>v===held.a[i]),exactLanding:home.a.every((v,i)=>v===handoff.a[i]),hidden:hidden.count,rewritten:home.a.reduce((n,v,i)=>n+(Math.abs(v-rewritten.a[i])>25),0),error:r.gl.getError()};
-    e.dispose();return result;
+    const result={start:start.count,flight:flight.count,flightX:flight.x,home:home.count,homeX:home.x,displaced:flight.a.reduce((n,v,i)=>n+(i%4===3&&v>20&&home.a[i]<5),0),protected:home.a.every((v,i)=>v===held.a[i]),exactLanding:home.a.every((v,i)=>v===handoff.a[i]),hidden:hidden.count,rewritten:home.a.reduce((n,v,i)=>n+(Math.abs(v-rewritten.a[i])>25),0),error:r.gl.getError()};
+    e.dispose();fixture.remove();return result;
   });
   assert.equal(pixels.start,0);assert.ok(pixels.flight>20&&pixels.home>100);
-  assert.ok(pixels.flightX<pixels.homeX-10,'Email source fragments travel in from the left');
+  assert.ok(pixels.displaced>100,'Email source fragments gather from outside their final letter shapes');
   assert.ok(pixels.protected&&pixels.exactLanding,'Email stays intact after its exact landing');
   assert.equal(pixels.hidden,0,'Email visibility mask still works');assert.equal(pixels.error,0);
   assert.ok(pixels.rewritten>100,'The assembled email retains animated ASCII characters');
