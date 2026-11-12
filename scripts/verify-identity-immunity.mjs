@@ -17,7 +17,7 @@ try{
       const regions=[...e.identityRegions,[(box.left-b.left)/b.width,(box.top-b.top)/b.height,(box.right-b.left)/b.width,(box.bottom-b.top)/b.height]];
       const neutral={x:-2,y:-2,strength:0};
       const sample=(clock,pointer=neutral)=>{
-        r.render(idleTime,'human',false,pointer,0,1,clock);const g=r.gl,a=new Uint8Array(r.canvas.width*r.canvas.height*4);g.readPixels(0,0,r.canvas.width,r.canvas.height,g.RGBA,g.UNSIGNED_BYTE,a);return a;
+        r.render(idleTime,'human',false,pointer,0,1,clock,.6);const g=r.gl,a=new Uint8Array(r.canvas.width*r.canvas.height*4);g.readPixels(0,0,r.canvas.width,r.canvas.height,g.RGBA,g.UNSIGNED_BYTE,a);return a;
       };
       const changed=(a,b)=>a.reduce((n,v,i)=>n+(v!==b[i]),0);
       const result=[];

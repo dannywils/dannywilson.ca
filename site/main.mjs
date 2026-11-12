@@ -22,7 +22,7 @@ let renderer,
   elapsed = 0,
   entranceElapsed = 0,
   breakupElapsed = 0,
-  currentCollapse = 0,
+  currentAmbientTime = 0,
   disposed = false;
 const entranceDuration = config.intro.duration*1000;
 const pointer = { x: -2, y: -2, tx: -2, ty: -2, strength: 0, targetStrength: 0 };
@@ -45,9 +45,9 @@ const experience = createExperience({root,motion,config,
 function draw() {
   const assembly = motion.matches ? 1 : Math.min(1, entranceElapsed / entranceDuration);
   const timeline=sceneTimeline(breakupElapsed,config.shader);
-  currentCollapse=motion.matches?0:timeline.collapse;
+  currentAmbientTime=motion.matches?0:timeline.driftTime;
   if (renderer) {
-    if(quality.commitIfCalm(assembly===1&&timeline.collapse<.002&&pointer.strength<.01&&(textEffect?.pointer.strength??0)<.01&&experience.state.reveal<.01&&!experience.state.taps.length&&!renderer.idleData?.[0]&&!renderer.sceneGlitchData?.[0])){
+    if(quality.commitIfCalm(assembly===1&&pointer.strength<.01&&(textEffect?.pointer.strength??0)<.01&&experience.state.reveal<.01&&!experience.state.taps.length&&!renderer.idleData?.[0]&&!renderer.sceneGlitchData?.[0])){
       renderer.setDetailLimit(quality.limit);textEffect?.renderer?.setDetailLimit(quality.limit);
       canvas.dataset.detail=quality.limit===1?'economy':'full';
     }
@@ -56,15 +56,15 @@ function draw() {
     pointer.radius=experience.state.radius/width;
     pointer.reveal=experience.state.reveal;
     pointer.trail=config.shader.trailPersistence;
-    for(const tap of experience.state.taps){tap.breakupTime??=0;tap.collapse??=timeline.collapse;}
+    for(const tap of experience.state.taps){tap.breakupTime??=0;tap.ambientTime??=timeline.driftTime;}
     pointer.taps=experience.state.taps;
     const assembling=assembly<1;
     if(assembling!==lastAssembling){
       figure.dataset.entrance=assembling?'assembling':'settled';
       figure.setAttribute('aria-busy',String(assembling));lastAssembling=assembling;
     }
-    renderer.render(elapsed,'human',motion.matches,pointer,0,assembly,0,timeline.collapse);
-    textEffect?.render(elapsed,'human',motion.matches,0,0,assembly===1,assembly,experience.state,timeline.collapse);
+    renderer.render(elapsed,'human',motion.matches,pointer,0,assembly,0,timeline.driftTime);
+    textEffect?.render(elapsed,'human',motion.matches,0,0,assembly===1,assembly,experience.state,timeline.driftTime);
     renderer.gl.useProgram(renderer.program);
   }
 }
@@ -123,7 +123,7 @@ function move(e) {
   pointer.tx = (e.clientX - b.left - b.width / 2) / (image.naturalWidth * scale) + .5 - config.shader.centerX;
   pointer.ty = (e.clientY - b.top - b.height / 2) / (image.naturalHeight * scale) + .5 - config.shader.centerY;
   if (pointer.strength < .01) { pointer.x = pointer.tx; pointer.y = pointer.ty; }
-  pointer.targetStrength = currentCollapse>.001 || (pointer.tx >= 0 && pointer.tx <= 1 && pointer.ty >= 0 && pointer.ty <= 1) ? 1 : 0;
+  pointer.targetStrength = currentAmbientTime>.001 || (pointer.tx >= 0 && pointer.tx <= 1 && pointer.ty >= 0 && pointer.ty <= 1) ? 1 : 0;
 }
 function leave() {
   pointer.targetStrength = 0;

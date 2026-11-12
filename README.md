@@ -33,21 +33,21 @@ place. The static SVG stays hidden until no-JavaScript, script-load failure, or
 renderer failure requires it. Reduced motion shows the assembled scene immediately.
 Resizing does not replay the intro, and hidden tabs pause animation.
 
-`site/timeline.mjs` drives a 26-second automatic cycle. Source cells slowly collapse
-inward toward a shared center, with staggered progress and short lateral drift.
-The face and ordinary letters disappear completely. Only the A in DANNY and I in
-WILSON remain at their original positions during a brief pause; the rest then
-reforms. Each loop boundary has zero velocity. The A/I mask uses actual ink bounds,
-including complete sampled glyph cells, without preserving neighboring letters.
-A and I also ignore hover, tap, drag and flick. **Reveal** temporarily gathers the
-complete scene; **Release** resumes the cycle.
+`site/timeline.mjs` supplies continuous time for sparse outward disintegration.
+About 90% of the source stays home while small groups coast outward and return at
+independent rates around the 26-second base period. Displaced glyphs retain their
+ink and shape; the full face and name stay visible. There is no inward collapse,
+disappearance, or A/I-only pause. Idle motion treats A and I like every other letter.
+Their subtle distinction is immunity to hover, tap, drag and flick. Protection uses
+actual ink bounds and complete sampled glyph cells, without neighboring letters.
+**Reveal** temporarily gathers the complete scene; **Release** resumes idle drift.
 
 Mouse movement alone throws nearby fragments: recent velocity triggers local
 directional bursts with a short cooldown. Slower movement uses the gentle brush.
 Touch flicks trigger on release. Taps select broader irregular patches, drift for
 1.1 seconds, then return over 2.7 seconds. Up to 16 independent bursts overlap;
 new gestures never replace existing bursts. Holds keep a fixed local radius.
-Tap targeting accounts for the collapse position at impact; hover follows moving
+Tap targeting accounts for the drift position at impact; hover follows moving
 cells. Pinch zoom remains available, and a second finger cancels the active brush.
 Keyboard Reveal offers a non-pointer alternative.
 
@@ -63,8 +63,9 @@ motion suppress those events. Both layers share screen coordinates, timing and
 glyph rendering; no extra decorative particles are generated.
 
 Adaptive quality watches sustained slow frames on phones and touch devices. It
-reduces shard subdivision only at a calm, fully reformed moment, then restores it
+reduces shard subdivision when no gesture or glitch is active, then restores it
 after sustained recovery. Glyph density, shading and output resolution stay fixed.
+Idle cohorts are selected per glyph so subdivision changes do not relocate them.
 Layout bounds are cached and refreshed on resize or viewport changes, not read
 every frame. The indexed mesh uses four vertices per shard, with a six-vertex
 compatibility path when required.
@@ -87,9 +88,9 @@ static SVG is requested only when the interactive renderer is unavailable.
 
 With the local server running, relevant Edge browser checks include:
 
-- `node scripts/verify-collapse.mjs`: window fit, no scrolling or text selection,
-  inward contraction, A/I-only pause, exact reconstruction, no red eye, reduced
-  motion, and unpressed mouse flicks.
+- `node scripts/verify-ambient.mjs`: window fit, no scrolling or text selection,
+  sparse idle movement, continued portrait/name visibility across several cycles,
+  stable drift under detail changes, no red eye, reduced motion, and mouse flicks.
 - `node scripts/verify-identity-immunity.mjs`: A/I stay unaffected by hover and
   taps at desktop and phone sizes and multiple device-pixel ratios.
 - `node scripts/verify-refinements.mjs`: directional rendered motion, synchronized

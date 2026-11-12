@@ -30,33 +30,37 @@ try{
       const g=r.gl,p=new Uint8Array(canvas.width*canvas.height*4);g.readPixels(0,0,canvas.width,canvas.height,g.RGBA,g.UNSIGNED_BYTE,p);return p;
     };
     const pixels=p=>p.reduce((n,v,i)=>n+(i%4===3&&v>20),0),diff=(a,b)=>a.reduce((n,v,i)=>n+(v!==b[i]),0);
-    const home=sample(photo,0),middle=sample(photo,.5),gone=sample(photo,1);
-    const radius=p=>{let n=0,total=0;for(let i=3;i<p.length;i+=4)if(p[i]>20){const q=(i-3)/4;total+=Math.hypot(q%canvas.width-canvas.width*.5,canvas.height-1-Math.floor(q/canvas.width)-canvas.height*.46);n++;}return total/n;};
-    const name=sample(text.renderer,0),remnant=sample(text.renderer,1);
-    let outside=0,changedProtected=0;
-    const regions=text.identityRegions.map(([l,t,r,b])=>({l:text.bounds.left+l*text.bounds.width-8,t:text.bounds.top+t*text.bounds.height-8,r:text.bounds.left+r*text.bounds.width+8,b:text.bounds.top+b*text.bounds.height+8}));
-    for(let i=3;i<remnant.length;i+=4){const q=(i-3)/4,x=q%canvas.width,y=canvas.height-1-Math.floor(q/canvas.width);
-      const protectedPixel=regions.some(b=>x>=b.l&&x<=b.r&&y>=b.t&&y<=b.b);
-      if(remnant[i]>20&&!protectedPixel)outside++;
-      const interior=regions.some(b=>x>=b.l+9&&x<=b.r-9&&y>=b.t+9&&y<=b.b-9);
-      if(interior&&remnant[i]!==name[i])changedProtected++;
+    const results=[];
+    for(const r of [photo,text.renderer]){
+      const home=sample(r,0),homeCount=pixels(home);let leastRetained=1,leastUnchanged=1,mostChanged=0;
+      for(const t of [.1,.4,.6,1,2,5,10]){
+        const frame=sample(r,t);leastRetained=Math.min(leastRetained,pixels(frame)/homeCount);
+        let unchanged=0;for(let i=3;i<home.length;i+=4)if(home[i]>20&&Math.abs(home[i]-frame[i])<3)unchanged++;
+        leastUnchanged=Math.min(leastUnchanged,unchanged/homeCount);mostChanged=Math.max(mostChanged,diff(home,frame));
+      }
+      const active=sample(r,.6);r.setDetailLimit(1);const economical=sample(r,.6);
+      const centroid=p=>{let x=0,y=0,n=0;for(let i=3;i<p.length;i+=4)if(p[i]>20){const q=(i-3)/4;x+=q%canvas.width;y+=Math.floor(q/canvas.width);n++;}return [x/n,y/n];};
+      const ca=centroid(active),cb=centroid(economical);
+      results.push({text:!!r.options.text,homeCount,leastRetained,leastUnchanged,mostChanged,detailShift:Math.hypot(ca[0]-cb[0],ca[1]-cb[1]),
+        redEyeDiff:diff(sample(r,0),sample(r,0,'takeover')),reducedDiff:diff(sample(r,0,'human',true),sample(r,5,'human',true)),error:r.gl.getError()});
     }
-    window.collapseShot=c=>{photo.options.clear=true;text.renderer.options.clear=false;photo.render(0,'human',false,{x:-2,y:-2,strength:0},0,1,0,c);text.renderer.render(0,'human',false,{x:-2,y:-2,strength:0},0,1,0,c);};
-    return {home:pixels(home),middle:pixels(middle),gone:pixels(gone),homeRadius:radius(home),middleRadius:radius(middle),name:pixels(name),remnant:pixels(remnant),outside,changedProtected,
-      returnDiff:diff(home,sample(photo,0)),redEyeDiff:diff(home,sample(photo,0,'takeover')),reducedDiff:diff(sample(photo,0,'human',true),sample(photo,1,'human',true)),error:photo.gl.getError()};
+    return results;
   });
-  console.log('Collapse:',metrics);
-  assert.ok(metrics.home>10000&&metrics.middle>1000&&metrics.middleRadius<metrics.homeRadius*.7);
-  assert.equal(metrics.gone,0);assert.ok(metrics.remnant>1000&&metrics.remnant<metrics.name*.3);
-  assert.equal(metrics.outside+metrics.changedProtected+metrics.returnDiff+metrics.redEyeDiff+metrics.reducedDiff+metrics.error,0);
+  console.log('Ambient drift:',metrics);
+  for(const m of metrics){
+    assert.ok(m.homeCount>10000&&m.leastRetained>.9,'The complete scene stays visible throughout idle motion');
+    assert.ok(m.leastUnchanged>.75&&m.mostChanged>1000,'Movement stays sparse but visible');
+    assert.ok(m.detailShift<.5,'Changing subdivision does not relocate the drifting cohort');
+    assert.equal(m.redEyeDiff+m.reducedDiff+m.error,0,'No eye or reduced-motion animation');
+  }
   await page.getByRole('button',{name:'Tune appearance'}).click();
   assert.equal(await page.getByRole('button',{name:'Test flicker'}).count(),0);assert.equal(await page.getByText('Red eye',{exact:true}).count(),0);
   await page.close();
   const mouse=await browser.newPage({viewport:{width:1440,height:900}});
   await mouse.goto('http://localhost:8080');await mouse.getByRole('button',{name:'Skip entrance'}).click();
-  await mouse.evaluate(async()=>{const {PortraitGL}=await import('/portrait-gl.mjs'),render=PortraitGL.prototype.render;window.captureCollapse=0;PortraitGL.prototype.render=function(...args){args[0]=0;args[7]=window.captureCollapse;return render.apply(this,args);};});
-  for(const [name,c] of [['home',0],['inward',.5],['ai',1]]){await mouse.evaluate(c=>window.captureCollapse=c,c);await mouse.waitForTimeout(100);await mouse.screenshot({path:`output/collapse-${name}.png`});}
-  await mouse.evaluate(()=>window.captureCollapse=0);
+  await mouse.evaluate(async()=>{const {PortraitGL}=await import('/portrait-gl.mjs'),render=PortraitGL.prototype.render;window.captureAmbient=0;PortraitGL.prototype.render=function(...args){args[0]=0;args[7]=window.captureAmbient;return render.apply(this,args);};});
+  for(const [name,c] of [['home',0],['drift',.6],['later',5]]){await mouse.evaluate(c=>window.captureAmbient=c,c);await mouse.waitForTimeout(100);await mouse.screenshot({path:`output/ambient-${name}.png`});}
+  await mouse.evaluate(()=>window.captureAmbient=0);
   await mouse.evaluate(async()=>{const {PortraitGL}=await import('/portrait-gl.mjs'),render=PortraitGL.prototype.render;PortraitGL.prototype.render=function(...args){window.mouseBursts=args[3].taps?.map(t=>({...t}));return render.apply(this,args);};});
   await mouse.mouse.move(800,400);
   for(let i=1;i<=6;i++){await mouse.waitForTimeout(18);await mouse.mouse.move(800+i*22,400);}

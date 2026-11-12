@@ -14,7 +14,7 @@ export class TextEffect {
       const p=this.pointer,b=this.bounds;
       p.tx=(e.clientX-b.left)/b.width;p.ty=(e.clientY-b.top)/b.height;
       if(p.strength<.01){p.x=p.tx;p.y=p.ty;}
-      p.targetStrength=e.gather||this.currentCollapse>.001||(p.tx>=0&&p.tx<=1&&p.ty>=0&&p.ty<=1)?1:0;
+      p.targetStrength=e.gather||this.currentAmbientTime>.001||(p.tx>=0&&p.tx<=1&&p.ty>=0&&p.ty<=1)?1:0;
     };
     this.movePointer=move;
     // Scene pointer ownership lives in experience.mjs; only keyboard focus is local.
@@ -89,9 +89,9 @@ export class TextEffect {
     this.renderer.setIdentityBounds(this.identityRegions);
     this.renderer.resize(surface.width,surface.height,this.bounds,surface);
   }
-  render(time,phase,reduced,light,breakupTime,interactive=true,assembly=1,brush,collapse=0){
+  render(time,phase,reduced,light,breakupTime,interactive=true,assembly=1,brush,ambientTime=0){
     if(!this.renderer)return;
-    this.currentCollapse=reduced?0:collapse;
+    this.currentAmbientTime=reduced?0:ambientTime;
     const delta=Math.max(0,Math.min(.1,time-(this.lastTime??time)));this.lastTime=time;
     const p=this.pointer;
     if(brush){p.radius=brush.radius/this.bounds.width;p.reveal=brush.reveal;p.trail=this.config.shader.trailPersistence;}
@@ -101,7 +101,7 @@ export class TextEffect {
       const follow=1-Math.exp(-delta/.065);p.x+=(p.tx-p.x)*follow;p.y+=(p.ty-p.y)*follow;
       p.strength+=(p.targetStrength-p.strength)*(1-Math.exp(-delta/.11));
     }
-    this.renderer.render(time,phase,reduced,p,light,assembly,breakupTime,collapse);
+    this.renderer.render(time,phase,reduced,p,light,assembly,breakupTime,ambientTime);
     if(!this.ready){this.element.classList.add('text-ready');this.ready=true;}
   }
   dispose(){

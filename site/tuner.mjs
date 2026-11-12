@@ -16,7 +16,7 @@ const groups = [
     ['letterSpacing','Letter spacing',-.06,.06,.002],
   ]],
   ['Timeline', [
-    ['cycleDuration','Cycle length · seconds',8,60,1],
+    ['cycleDuration','Idle drift period · seconds',8,60,1],
   ]],
   ['Fragments & motion', [
     ['fragmentation','Shard detail',1,3,1],

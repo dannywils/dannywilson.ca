@@ -22,7 +22,7 @@ uniform vec2 identityControls;
 uniform vec4 anchoredRegion;
 uniform float time;
 uniform float breakupTime;
-uniform float collapse;
+uniform float ambientTime;
 uniform vec2 pointer;
 uniform float pointerStrength;
 uniform float brushRadius;
@@ -55,17 +55,19 @@ float noise(vec2 p) {
 float inside(vec2 p,vec4 rect) {
   return step(rect.x,p.x)*step(p.x,rect.z)*step(rect.y,p.y)*step(p.y,rect.w);
 }
-float collapseAmount(float clock,vec2 cell){
-  return smoothstep(hash(cell+913.7)*.16,.98,clock);
-}
-vec2 collapsePoint(vec2 point,float amount,vec2 cell){
-  vec2 center=resolution*vec2(.5,.46);
-  vec2 delta=point-center;
-  vec2 tangent=vec2(-delta.y,delta.x);
-  float arc=sin(amount*3.14159265);
-  vec2 wander=vec2(hash(cell+961.7),hash(cell+977.1))-.5;
-  return center+delta*(1.-amount)+tangent*arc*(hash(cell+947.3)-.5)*.24
-    +wander*min(resolution.x,resolution.y)*.08*arc*clamp(debrisControls.y,0.,1.5)/1.5;
+vec2 ambientOffset(float clock,vec2 cell){
+  vec2 glyphGrid=vec2(columns,floor(columns*imageSize.y/imageSize.x/1.3));
+  cell=floor((cell+.5)/meshGrid*glyphGrid);
+  // Ninety percent of the source stays exactly home. The remainder coasts out
+  // and back at independent rates, retaining its ink and original shard shape.
+  if(clock<=0.||hash(cell+913.7)<.9)return vec2(0.);
+  float rhythm=.5-.5*cos(clock*6.283185*(.6+hash(cell+947.3)*1.2)+hash(cell+961.7)*6.283185);
+  float drift=smoothstep(.15,.95,rhythm)*smoothstep(0.,.08,clock);
+  vec2 radial=(cell+.5)/glyphGrid-vec2(.5,.45);
+  float angle=atan(radial.y+.00001,radial.x+.00001)+(hash(cell+977.1)-.5)*2.2;
+  float width=imageSize.x*min(portraitBounds.z/imageSize.x,portraitBounds.w/imageSize.y)*placement.x;
+  float distance=width*(.012+hash(cell+991.3)*.025)*drift*driftSpread;
+  return vec2(cos(angle),sin(angle))*distance;
 }
 void main() {
   vec2 grid=meshGrid;
@@ -85,13 +87,13 @@ void main() {
   // Negative interaction remains available to the explicit Reveal button.
   if(interactionMask<.5){cellInteraction.x=min(0.,cellInteraction.x);cellInteraction.y=0.;}
   float local=cellInteraction.x;
-  if(collapse>.001&&local>=0.){
-    // Contact follows the visible inward-moving cohort, not its former outline.
+  if(ambientTime>.001&&local>=0.){
+    // Contact follows the visible drifting cohort, not its former outline.
     vec2 sourceSize=imageSize*min(portraitBounds.z/imageSize.x,portraitBounds.w/imageSize.y)*placement.x;
     vec2 sourceCenter=portraitBounds.xy+portraitBounds.zw*.5;
     vec2 cellHome=(origin-.5+placement.yz)*sourceSize+sourceCenter;
     vec2 pointerScreen=(pointer-.5+placement.yz)*sourceSize+sourceCenter;
-    vec2 visibleCell=collapsePoint(cellHome,collapseAmount(collapse,cell)*interactionMask,cell);
+    vec2 visibleCell=cellHome+ambientOffset(ambientTime,cell);
     float radial=clamp(1.-length(visibleCell-pointerScreen)/max(brushRadius*sourceSize.x,1.),0.,1.);
     local=radial*radial*(3.-2.*radial)*pointerStrength*motion*interactionMask;
     cellInteraction.x=local;
@@ -265,7 +267,7 @@ void main() {
     float hitDistance=hitTravel*dissolve.z*mix(1.,.55+burst*1.2,debrisControls.y)*driftSpread;
     float hitPerspective=2./max(.8,2.-z*hitTravel*.85*flightDepth);
     vec2 hit=volumeCenter+(homeCenter-volumeCenter)*hitPerspective+hitHeading*hitDistance*reach*size*placement.x*hitPerspective;
-    hit=collapsePoint(hit,collapseAmount(tapTiming.w,cell)*interactionMask*(1.-restored),cell);
+    hit+=ambientOffset(tapTiming.w,cell)*(1.-restored);
     vec2 fromTap=hit-tap.xy;
     // The noisy contour never exceeds 1.35 radii. Reject distant pieces before
     // evaluating its noise, random velocities and trigonometry for every tap.
@@ -294,12 +296,8 @@ void main() {
     screen+=localPosition*z*.35*spread;
     fragmentShade*=1.-max(0.,-z)*.18*spread;
   }
-  // The complete source cohort falls inward; the protected A/I cells stay home.
-  // Move cell centers rather than stretching quads into tapered streaks.
-  float inward=collapseAmount(collapse,cell)*motion*interactionMask*(1.-restored)*live;
-  vec2 centerPosition=screen-localPosition;
-  screen=collapsePoint(centerPosition,inward,cell)+localPosition*(1.-inward*.65);
-  fragmentLife*=1.-smoothstep(.72,1.,inward);
+  // Idle motion treats every letter alike. A/I immunity belongs to contact only.
+  screen+=ambientOffset(ambientTime,cell)*motion*(1.-restored)*live;
   gl_Position=vec4(screen.x/resolution.x*2.-1.,1.-screen.y/resolution.y*2.,0.,1.);
 }
 `;
@@ -503,7 +501,7 @@ export class PortraitGL {
           "anchoredVisible",
           "time",
           "breakupTime",
-          "collapse",
+          "ambientTime",
           "brushRadius",
           "sweepDuration",
           "motion",
@@ -793,14 +791,14 @@ export class PortraitGL {
     this.gl.useProgram(this.program);
     this.gl.uniform4f(this.uniforms.portraitBounds,(bounds.left-(this.surfaceLeft??0))*dpr,(bounds.top-(this.surfaceTop??0))*dpr,bounds.width*dpr,bounds.height*dpr);
   }
-  render(time, phase, reduced, pointer, light = 1, assembly = 1, breakupTime = time, collapse = 0) {
+  render(time, phase, reduced, pointer, light = 1, assembly = 1, breakupTime = time, ambientTime = 0) {
     const gl = this.gl,
       u = this.uniforms;
     this.bind();
     this.updateInteraction(time,reduced||assembly<1,pointer);
     gl.uniform1f(u.time, reduced ? 0 : time);
     gl.uniform1f(u.breakupTime,breakupTime);
-    gl.uniform1f(u.collapse,reduced?0:collapse);
+    gl.uniform1f(u.ambientTime,reduced?0:ambientTime);
     gl.uniform1f(u.motion, reduced ? 0 : 1);
     gl.uniform1f(u.assembly, reduced ? 1 : assembly);
     gl.uniform1f(u.interference, !reduced && phase === "interference" ? 1 : 0);
@@ -827,7 +825,7 @@ export class PortraitGL {
       this.tapData[p+2]=tap.width*dpr;this.tapData[p+3]=tap.strength;
       this.tapTimingData[t]=tap.age;this.tapTimingData[t+1]=tap.breakupTime??breakupTime;
       this.tapTimingData[t+2]=tap.seed??0;
-      this.tapTimingData[t+3]=tap.collapse??collapse;
+      this.tapTimingData[t+3]=tap.ambientTime??ambientTime;
       this.tapVelocityData[i*2]=tap.velocityX??0;this.tapVelocityData[i*2+1]=tap.velocityY??0;
     }
     gl.uniform1i(u.tapCount,count);

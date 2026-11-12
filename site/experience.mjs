@@ -31,7 +31,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   const syncReveal = () => {
     reveal.setAttribute('aria-pressed',String(pinned));
     reveal.querySelector('span').textContent=pinned?'Release':'Reveal';
-    reveal.title=pinned?'Resume the collapse and reform cycle':'Reveal the complete portrait and name';
+    reveal.title=pinned?'Resume the gentle outward drift':'Reveal the complete portrait and name';
   };
   const release = () => {
     pinned=false;state.reveal=0;state.gather=0;state.taps.length=0;reset();syncReveal();
