@@ -76,9 +76,13 @@ Open **Tune** or append `?tune`. Active controls cover character density and wei
 brightness, contrast, shadow curve, nose detail, portrait position, letter spacing,
 cycle length, fragment detail and movement, touch radius, and character rewriting.
 **Horizontal fill** and **Vertical fill** expand the glyph ink independently inside
-each existing cell. Both default to 1 and range from 0.5 to 2; higher values narrow
+each existing cell. Both default to 1.2 and range from 0.5 to 2; higher values narrow
 character/row gaps without changing density, contrast, source geometry or motion.
 They apply to the portrait and name. Atlas sampling stays inside each glyph's tile.
+**Gap fill** (0–100) fills the spaces between and inside characters on both the
+portrait and name. At 100, every source cell is solid, retaining tonal shading and
+the source silhouette. At 0 (default), the original ASCII texture is unchanged.
+Fragment movement still works normally; empty background is never filled.
 Changes save only in the current browser. **Reset** restores `publishedLook` from
 `site/config.mjs`. **Copy settings**, **Import settings**, and **Copy look link**
 transfer looks between devices without changing published defaults. Old ignition,

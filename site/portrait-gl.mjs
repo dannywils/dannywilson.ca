@@ -333,6 +333,7 @@ uniform vec4 dissolve;
 uniform float noseContrast;
 uniform vec4 toneControls;
 uniform vec2 glyphFill;
+uniform float gapFill;
 uniform vec3 placement;
 uniform vec3 debrisControls;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
@@ -392,7 +393,7 @@ void main() {
   float fade = 1.-smoothstep(.78,1.,center.y)*portraitMode;
   float silhouette = sampleColor.a * fade;
   // Sparse shoulders, but preserve dark glasses and facial structure.
-  if (l<.065 && seed>.38) silhouette *= .08;
+  if (l<.065 && seed>.38) silhouette *= mix(.08,1.,gapFill);
   // Every cell has its own clock: continuous rewriting without a whole-face flash.
   float tick = floor(time*scrambleHz*(.65+seed*.7)+seed*23.);
   float rewrite = hash(cell+vec2(tick*3.17,tick*7.13));
@@ -413,7 +414,8 @@ void main() {
   float alternate = floor(rewrite*8.)*motion;
   alternate=mix(floor(rewrite*8.),alternate,portraitMode);
   alternate=mix(alternate,floor(rewrite*2.)*motion,step(.25,nose));
-  float glyph = glyphAt(pos,grid,index,alternate,size);
+  // Fill missing ink, including counters and blank glyphs, within source cells.
+  float glyph = mix(glyphAt(pos,grid,index,alternate,size),1.,gapFill);
   float edge = clamp(abs(l-surrounding)*7.,0.,1.);
   vec3 ink = mix(paper,cyan, .13+edge*.45+step(.88,seed)*.23+band*.12);
   ink=mix(ink,vec3(.65,.95,1.),arrivalGlitch*.35);
@@ -425,7 +427,8 @@ void main() {
   vec3 color = ink*opacity;
   // Cyan channel separation in the displaced slices, never over the whole face.
   color += cyan*glyph*silhouette*selected*interference*.12;
-  gl_FragColor=vec4(color*toneControls.y*fragmentShade,clamp(opacity,0.,1.))*fragmentLife;
+  float coverage=mix(clamp(opacity,0.,1.),silhouette,gapFill);
+  gl_FragColor=vec4(color*toneControls.y*fragmentShade,coverage)*fragmentLife;
 }
 `;
 
@@ -535,6 +538,7 @@ export class PortraitGL {
           "noseContrast",
           "toneControls",
           "glyphFill",
+          "gapFill",
           "placement",
           "debrisControls",
         ].map((key) => [key, gl.getUniformLocation(this.program, key)]),
@@ -627,6 +631,7 @@ export class PortraitGL {
     gl.useProgram(this.program);
     gl.uniform4f(u.toneControls,s.contrast,s.brightness,s.gamma,s.glyphWeight);
     gl.uniform2f(u.glyphFill,s.glyphFillX??1,s.glyphFillY??1);
+    gl.uniform1f(u.gapFill,s.gapFill??0);
     gl.uniform3f(u.placement,s.zoom,s.centerX,s.centerY);
     gl.uniform3f(u.debrisControls,s.breakup,s.randomness,s.debrisDensity);
     gl.uniform1f(u.columns,innerWidth<=700?c.ascii.mobileColumns:c.ascii.desktopColumns);
