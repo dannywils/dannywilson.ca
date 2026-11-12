@@ -25,7 +25,8 @@ html,body {
   position: fixed;
   display: grid;
   z-index: 1;
-  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  grid-template-columns: minmax(0,1.1fr) minmax(0,.9fr);
+  column-gap: clamp(24px,4vw,80px);
   align-items: center;
   padding: max(24px,env(safe-area-inset-top)) 5vw calc(96px + env(safe-area-inset-bottom));
   isolation: isolate;
@@ -33,6 +34,7 @@ html,body {
   user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
 }
 .identity {
+  container-type: inline-size;
   z-index: 1;
   padding-bottom: 1.5vw;
   touch-action: pinch-zoom;
@@ -44,7 +46,8 @@ html,body {
 .js-portrait:not(.portrait-unavailable) .identity:not(.text-ready) h1 span { color: transparent !important; text-shadow: none !important; }
 .identity.text-ready .ai-letter:after { display: none; }
 h1 {
-  font-size: min(13vw,26dvh,210px);
+  /* Size the name against its column, including the selected letter spacing. */
+  font-size: min(23cqw,26dvh,210px);
   font-weight: 700;
   letter-spacing: var(--name-spacing, 0.026em);
   line-height: 0.9;
@@ -183,14 +186,14 @@ h1 {
     grid-template-columns: minmax(0,1fr);
     grid-template-rows:minmax(0,.3fr) minmax(0,.7fr);
     align-content: center;
-    gap: 12px;
+    gap: clamp(24px,4dvh,40px);
     overflow: hidden;
   }
   .identity {
     padding: 0;
   }
   h1 {
-    font-size: min(20.5vw,15dvh,140px);
+    font-size: min(23cqw,15dvh,140px);
     margin-bottom: 0;
     line-height: 0.9;
   }
@@ -198,7 +201,7 @@ h1 {
     width: min(100%, 480px);
     justify-self: center;
     margin: 0;
-    height:90%; max-height:none;
+    height:80%; max-height:none;
   }
   .fallback {
     object-fit: contain;
@@ -206,7 +209,7 @@ h1 {
 }
 @media (orientation: landscape) and (max-height: 540px) {
   .composition { grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-rows:minmax(0,1fr); padding: max(16px,env(safe-area-inset-top)) max(5vw,env(safe-area-inset-right)) calc(76px + env(safe-area-inset-bottom)) max(5vw,env(safe-area-inset-left)); }
-  h1 { font-size: min(11vw,24dvh,112px); margin-bottom: 0; }
+  h1 { font-size: min(23cqw,24dvh,112px); margin-bottom: 0; }
   .portrait { height:90%; width: 100%; margin: 0; }
   .experience-hint { display:none; }
 }
