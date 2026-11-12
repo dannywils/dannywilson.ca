@@ -9,6 +9,7 @@
 .tuner-toolbar{padding:16px 20px;display:flex;gap:12px;align-items:end}.tuner-toolbar label{display:grid;gap:8px;flex:1;min-width:0}.tuner-toolbar select{width:100%;max-width:180px;font-size:16px}
 .tuner details{border-top:1px solid #30312e;padding:0 20px 8px}.tuner summary{cursor:pointer;font-weight:600;padding:16px 0;color:var(--paper);min-height:44px}
 .tuner-row{display:grid;grid-template-columns:1fr 76px;gap:0 12px;align-items:center;margin:8px 0 16px}.tuner-row label{color:var(--secondary)}
+.tuner-help{grid-column:1/-1;margin:0;color:var(--muted);font-size:12px;line-height:1.4}
 .tuner input[type=number]{width:76px;min-height:44px;background:#0b0d0b;border:1px solid #3b3e37;color:var(--paper);border-radius:4px;padding:8px;font:16px/1.5 var(--mono);font-variant-numeric:tabular-nums}
 .tuner input[type=range]{grid-column:1/-1;width:100%;margin:4px 0 0;accent-color:#b9c5ba;min-height:44px;cursor:ew-resize;touch-action:pan-y pinch-zoom}
 .tuner-color{display:flex;align-items:center;justify-content:space-between;margin:12px 0}.tuner input[type=color]{width:76px;height:44px;border:1px solid #44463f;background:#0b0d0b}

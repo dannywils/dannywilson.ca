@@ -6,6 +6,8 @@ export const publishedLook = Object.freeze({
   exposure: 1.3,
   gamma: 1.55,
   glyphWeight: 2,
+  glyphFillX: 1,
+  glyphFillY: 1,
   noseContrast: 2.5,
   zoom: 1.22,
   centerX: -0.03,
@@ -57,6 +59,8 @@ export function applyLook(config, values) {
     'cycleDuration','erosionReach','textBreakup','fragmentation','driftSpread','identityDelay','identityBreakup'])
     config.shader[key] = values[key];
   config.ascii.desktopColumns = values.density;
+  config.shader.glyphFillX = values.glyphFillX ?? 1;
+  config.shader.glyphFillY = values.glyphFillY ?? 1;
   config.ascii.mobileColumns = Math.round(values.density * .75);
   config.shader.dissolveStart = values.breakupCenter - values.feather / 2;
   config.shader.dissolveEnd = values.breakupCenter + values.feather / 2;

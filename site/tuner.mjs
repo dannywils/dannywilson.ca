@@ -7,6 +7,8 @@ const groups = [
     ['exposure','Exposure',.5,2,.05],
     ['gamma','Shadow curve',.3,1.8,.05],
     ['glyphWeight','Character weight',.5,3,.1],
+    ['glyphFillX','Horizontal fill',.5,2,.05],
+    ['glyphFillY','Vertical fill',.5,2,.05],
     ['noseContrast','Nose detail',0,3,.1],
   ]],
   ['Position & type', [
@@ -69,6 +71,11 @@ export function createTuner(config,onChange,onPreview,onReplay=()=>{}){
       const row=document.createElement('div');row.className='tuner-row';
       const id=`tune-${key}`;
       row.innerHTML=`<label for="${id}">${label}</label><input type="number" aria-label="${label} value" min="${min}" max="${max}" step="${step}"><input id="${id}" type="range" min="${min}" max="${max}" step="${step}">`;
+      if(key==='glyphFillX'||key==='glyphFillY'){
+        const help=document.createElement('p');help.className='tuner-help';help.id=`${id}-help`;
+        help.textContent=key==='glyphFillX'?'1 = original. Increase to narrow gaps between characters.':'1 = original. Increase to narrow gaps between rows.';
+        row.append(help);for(const input of row.querySelectorAll('input'))input.setAttribute('aria-describedby',help.id);
+      }
       const inputs=[...row.querySelectorAll('input')];controls.set(key,inputs);
       const range=inputs[1];let touchEdit=null;
       const commit=input=>{if(input.value===''||!input.validity.valid)return;values=sanitize({...values,[key]:Number(input.value)});sync();apply();};

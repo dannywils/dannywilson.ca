@@ -75,6 +75,10 @@ compatibility path when required.
 Open **Tune** or append `?tune`. Active controls cover character density and weight,
 brightness, contrast, shadow curve, nose detail, portrait position, letter spacing,
 cycle length, fragment detail and movement, touch radius, and character rewriting.
+**Horizontal fill** and **Vertical fill** expand the glyph ink independently inside
+each existing cell. Both default to 1 and range from 0.5 to 2; higher values narrow
+character/row gaps without changing density, contrast, source geometry or motion.
+They apply to the portrait and name. Atlas sampling stays inside each glyph's tile.
 Changes save only in the current browser. **Reset** restores `publishedLook` from
 `site/config.mjs`. **Copy settings**, **Import settings**, and **Copy look link**
 transfer looks between devices without changing published defaults. Old ignition,
@@ -103,6 +107,9 @@ With the local server running, relevant Edge browser checks include:
   reuse, tuning validation and keyboard behavior.
 - `node scripts/verify-ascii-type.mjs`: shared shader, visible glyph gaps,
   rewriting, density changes and reduced-motion stability.
+- `node scripts/verify-glyph-fill.mjs`: independent width/height changes in actual
+  rendered glyphs, cell boundaries, old saved looks, persistence, sharing, import
+  bounds and Reset.
 
 Screenshots are saved in ignored `output/`. These are browser-emulated phone
 checks, not physical-phone performance measurements. Older scripts describe prior

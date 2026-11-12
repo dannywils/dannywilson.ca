@@ -332,18 +332,24 @@ uniform float glitchBandSpeed;
 uniform vec4 dissolve;
 uniform float noseContrast;
 uniform vec4 toneControls;
+uniform vec2 glyphFill;
 uniform vec3 placement;
 uniform vec3 debrisControls;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
 float lum(vec3 c) { return dot(c,vec3(.2126,.7152,.0722)); }
 float glyphAt(vec2 position,vec2 grid,float index,float variant,vec2 size) {
-  vec2 glyphUV=fract(position*grid);
+  // Enlarge the ink within its existing source cell, independently on each axis.
+  // Keep sampling inside this atlas tile so smaller glyphs cannot pick up neighbors.
+  vec2 glyphUV=(fract(position*grid)-.5)/glyphFill+.5;
+  if(any(lessThan(glyphUV,vec2(0.)))||any(greaterThan(glyphUV,vec2(1.))))return 0.;
   vec2 atlasUV=vec2((index+glyphUV.x)/16.,(variant+glyphUV.y)/8.);
-  vec2 tap=grid/size/vec2(16.,8.)*.25;
+  vec2 tap=grid/size/vec2(16.,8.)*.25/glyphFill;
+  vec2 lo=(vec2(index,variant)+vec2(.5/32.,.5/64.))/vec2(16.,8.);
+  vec2 hi=(vec2(index+1.,variant+1.)-vec2(.5/32.,.5/64.))/vec2(16.,8.);
   float weight=mix(min(toneControls.w,1.2),toneControls.w,portraitMode);
-  return clamp((texture2D(atlas,atlasUV+tap).a+texture2D(atlas,atlasUV-tap).a
-    +texture2D(atlas,atlasUV+vec2(tap.x,-tap.y)).a
-    +texture2D(atlas,atlasUV+vec2(-tap.x,tap.y)).a)*.25*weight,0.,1.);
+  return clamp((texture2D(atlas,clamp(atlasUV+tap,lo,hi)).a+texture2D(atlas,clamp(atlasUV-tap,lo,hi)).a
+    +texture2D(atlas,clamp(atlasUV+vec2(tap.x,-tap.y),lo,hi)).a
+    +texture2D(atlas,clamp(atlasUV+vec2(-tap.x,tap.y),lo,hi)).a)*.25*weight,0.,1.);
 }
 void main() {
   float scale = min(portraitBounds.z/imageSize.x, portraitBounds.w/imageSize.y);
@@ -528,6 +534,7 @@ export class PortraitGL {
           "dissolve",
           "noseContrast",
           "toneControls",
+          "glyphFill",
           "placement",
           "debrisControls",
         ].map((key) => [key, gl.getUniformLocation(this.program, key)]),
@@ -619,6 +626,7 @@ export class PortraitGL {
     const gl=this.gl,u=this.uniforms,c=this.config,s=c.shader;
     gl.useProgram(this.program);
     gl.uniform4f(u.toneControls,s.contrast,s.brightness,s.gamma,s.glyphWeight);
+    gl.uniform2f(u.glyphFill,s.glyphFillX??1,s.glyphFillY??1);
     gl.uniform3f(u.placement,s.zoom,s.centerX,s.centerY);
     gl.uniform3f(u.debrisControls,s.breakup,s.randomness,s.debrisDensity);
     gl.uniform1f(u.columns,innerWidth<=700?c.ascii.mobileColumns:c.ascii.desktopColumns);
