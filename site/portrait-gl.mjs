@@ -23,6 +23,9 @@ uniform vec4 anchoredRegion;
 uniform float time;
 uniform float breakupTime;
 uniform float ambientTime;
+uniform vec4 gravityWells;
+uniform float gravityPass;
+uniform float gravityTime;
 uniform vec2 pointer;
 uniform float pointerStrength;
 uniform float brushRadius;
@@ -298,6 +301,44 @@ void main() {
   }
   // Idle motion treats every letter alike. A/I immunity belongs to contact only.
   screen+=ambientOffset(ambientTime,cell)*motion*(1.-restored)*live;
+  if(gravityPass>.5){
+    // A and I remain the fixed centers of the field. Every other source glyph
+    // gets its own departure clock; the second draw carries that same UV ink.
+    if(interactionMask<.5){
+      screen=homeCenter+localPosition;
+      if(gravityPass>1.5)fragmentLife=0.;
+    }else{
+      vec2 glyphCell=floor(origin*characterGrid);
+      float salt=portraitMode*173.1;
+      float cycle=10.+hash(glyphCell+salt+1201.7)*8.;
+      float clock=gravityTime-hash(glyphCell+salt+1213.9)*cycle;
+      float phase=fract(max(0.,clock)/cycle);
+      float q=clamp(phase/.28,0.,1.);
+      float active=step(0.,clock)*(1.-step(.28,phase));
+      if(gravityPass<1.5){
+        // New ink grows back shortly after departure, rather than following
+        // the captured piece home or leaving the portrait progressively empty.
+        float vacancy=smoothstep(0.,.025,q)*(1.-smoothstep(.045,.18,q));
+        fragmentLife*=1.-vacancy*active;
+      }else{
+        vec2 a=gravityWells.xy,b=gravityWells.zw;
+        float da=length(homeCenter-a),db=length(homeCenter-b);
+        float chooseB=step(hash(glyphCell+salt+1229.3),da/max(da+db,1.));
+        vec2 target=mix(a,b,chooseB);
+        // Opposite orbital directions keep the two wells distinct. Acceleration
+        // and a tightening orbit replace a straight conveyor into the letters.
+        float fall=pow(q,1.7);
+        float turn=(chooseB*2.-1.)*pow(fall,1.2)*(1.1+hash(glyphCell+salt+1237.1)*.9);
+        vec2 radial=homeCenter-target;
+        vec2 orbit=mat2(cos(turn),sin(turn),-sin(turn),cos(turn))*radial;
+        vec2 drift=screen-homeCenter-localPosition;
+        screen=target+orbit*(1.-fall)+drift*(1.-fall)
+          +localPosition*(1.-smoothstep(.76,1.,q)*.92);
+        fragmentLife*=active*smoothstep(0.,.02,q)*(1.-smoothstep(.86,1.,q));
+        fragmentShade*=.85+.15*fall;
+      }
+    }
+  }
   gl_Position=vec4(screen.x/resolution.x*2.-1.,1.-screen.y/resolution.y*2.,0.,1.);
 }
 `;
@@ -511,6 +552,9 @@ export class PortraitGL {
           "time",
           "breakupTime",
           "ambientTime",
+          "gravityWells",
+          "gravityPass",
+          "gravityTime",
           "brushRadius",
           "sweepDuration",
           "motion",
@@ -848,8 +892,20 @@ export class PortraitGL {
       gl.uniform2fv(u['tapVelocities[0]'],this.tapVelocityData);
     }
     if(this.options.clear!==false){gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);}
+    const gravity=!reduced&&assembly>=1&&this.gravityWells?.length===4;
+    gl.uniform1f(u.gravityPass,gravity?1:0);
+    if(gravity){
+      const wells=this.gravityWells,sx=this.surfaceLeft??0,sy=this.surfaceTop??0;
+      gl.uniform4f(u.gravityWells,(wells[0]-sx)*dpr,(wells[1]-sy)*dpr,(wells[2]-sx)*dpr,(wells[3]-sy)*dpr);
+      gl.uniform1f(u.gravityTime,Math.max(0,time-this.config.intro.duration));
+    }
     if(this.indexed)gl.drawElements(gl.TRIANGLES,this.indexCount,gl.UNSIGNED_INT,0);
     else gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
+    if(gravity){
+      gl.uniform1f(u.gravityPass,2);
+      if(this.indexed)gl.drawElements(gl.TRIANGLES,this.indexCount,gl.UNSIGNED_INT,0);
+      else gl.drawArrays(gl.TRIANGLES,0,this.vertexCount);
+    }
   }
   dispose() {
     const gl = this.gl;

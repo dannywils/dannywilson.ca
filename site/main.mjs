@@ -12,6 +12,7 @@ const figure = document.querySelector(".portrait");
 const canvas = document.querySelector("canvas");
 const email = document.querySelector(".email-button");
 const identity = document.querySelector(".identity");
+const gravityEnabled = new URLSearchParams(location.search).has('gravity');
 document.documentElement.style.setProperty('--name-spacing',`${publishedLook.letterSpacing}em`);
 email.href = `mailto:${config.email}`;
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -80,13 +81,22 @@ function resize() {
   const surface=canvas.getBoundingClientRect();
   renderer.resize(surface.width,surface.height,b,surface);
   textEffect?.refresh(surface);
+  updateGravityWells();
   draw();
+}
+function updateGravityWells(){
+  if(!gravityEnabled||!textEffect?.identityRegions)return;
+  const b=textEffect.bounds;
+  const wells=textEffect.identityRegions.flatMap(r=>[b.left+(r[0]+r[2])*.5*b.width,b.top+(r[1]+r[3])*.5*b.height]);
+  renderer.gravityWells=wells;
+  textEffect.renderer.gravityWells=wells;
 }
 function reposition() {
   if (!renderer) return;
   portraitBounds=figure.getBoundingClientRect();
   renderer.setBounds(portraitBounds);
   textEffect?.position();
+  updateGravityWells();
   draw();
 }
 function tick(now) {
@@ -200,6 +210,7 @@ image.onerror = () => fail();
 createTuner(config, () => {
   renderer?.applyConfig();
   textEffect?.updateConfig();
+  updateGravityWells();
   draw();
 }, () => {}, () => {
   breakupElapsed=0;
