@@ -82,7 +82,19 @@ function resize() {
   renderer.resize(surface.width,surface.height,b,surface);
   textEffect?.refresh(surface);
   updateGravityWells();
+  updateDensityGradient();
   draw();
+}
+function updateDensityGradient(){
+  if(!config.shader.densityGradient||!renderer||!textEffect?.renderer||!portraitBounds)return;
+  const b=portraitBounds,s=config.shader;
+  const width=image.naturalWidth*Math.min(b.width/image.naturalWidth,b.height/image.naturalHeight)*s.zoom;
+  const faceRight=b.left+b.width*.5+(.75-.5+s.centerX)*width;
+  const left=textEffect.bounds.left+48;
+  const right=Math.max(left+100,faceRight);
+  const base=width/(innerWidth<=700?config.ascii.mobileColumns:config.ascii.desktopColumns);
+  const profile=[left,right,base*1.8,base*.6];
+  renderer.setDensityGradient(profile);textEffect.renderer.setDensityGradient(profile);
 }
 function updateGravityWells(){
   if(!gravityEnabled||!textEffect?.identityRegions)return;
@@ -97,6 +109,7 @@ function reposition() {
   renderer.setBounds(portraitBounds);
   textEffect?.position();
   updateGravityWells();
+  updateDensityGradient();
   draw();
 }
 function tick(now) {
@@ -211,6 +224,7 @@ createTuner(config, () => {
   renderer?.applyConfig();
   textEffect?.updateConfig();
   updateGravityWells();
+  updateDensityGradient();
   draw();
 }, () => {}, () => {
   breakupElapsed=0;

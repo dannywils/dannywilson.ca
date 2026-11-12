@@ -38,6 +38,8 @@ export class TextEffect {
     this.textConfig={...this.config,ascii:{...this.config.ascii,
       desktopColumns:Math.round(this.config.ascii.desktopColumns*.9),
       mobileColumns:Math.round(this.config.ascii.mobileColumns*.78)},shader:{...this.config.shader,
+      idleFraction:this.config.shader.textIdleFraction??this.config.shader.idleFraction,
+      idleTravel:this.config.shader.textIdleTravel??this.config.shader.idleTravel,
       breakup:this.config.shader.breakup*(this.config.shader.textBreakup??.25),zoom:1,centerX:0,centerY:0}};
     if(this.renderer){this.renderer.config=this.textConfig;this.renderer.applyConfig();}
   }

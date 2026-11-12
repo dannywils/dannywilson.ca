@@ -28,8 +28,10 @@ settings and leaves out the tuning tools and interaction hints.
 
 ## How it works
 
-The portrait and name share a WebGL renderer and character atlas. Characters
-change at rest; taps and flicks send nearby pieces drifting before they return.
+The portrait and name share a WebGL renderer and a binary character atlas.
+Characters shrink from the left of the name to the right of the face. The face
+keeps its source characters while copies drift away; the name leaves holes.
+Characters change at rest; taps and flicks scatter nearby pieces before they return.
 The A in Danny and I in Wilson stay put during pointer interactions.
 
 The scene fits the window on desktop and mobile. Reduced motion shows a still

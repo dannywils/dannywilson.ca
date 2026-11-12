@@ -12,6 +12,7 @@
 .tuner-help{grid-column:1/-1;margin:0;color:var(--muted);font-size:12px;line-height:1.4}
 .tuner input[type=number]{width:76px;min-height:44px;background:#0b0d0b;border:1px solid #3b3e37;color:var(--paper);border-radius:4px;padding:8px;font:16px/1.5 var(--mono);font-variant-numeric:tabular-nums}
 .tuner input[type=range]{grid-column:1/-1;width:100%;margin:4px 0 0;accent-color:#b9c5ba;min-height:44px;cursor:ew-resize;touch-action:pan-y pinch-zoom}
+.tuner input[type=checkbox]{width:24px;height:24px;justify-self:center;accent-color:#b9c5ba;cursor:pointer}.tuner-row:has(input[type=checkbox]) label{display:flex;align-items:center;min-height:44px;cursor:pointer}
 .tuner-color{display:flex;align-items:center;justify-content:space-between;margin:12px 0}.tuner input[type=color]{width:76px;height:44px;border:1px solid #44463f;background:#0b0d0b}
 .tuner footer{border-top:1px solid #30312e;padding:16px 20px;display:flex;gap:8px;flex-wrap:wrap}.tuner-status{width:100%;margin:4px 0;color:var(--secondary);font-size:13px}
 .tuner textarea{width:100%;min-height:150px;background:#0b0d0b;color:var(--paper);border:1px solid #44463f;border-radius:4px;padding:12px;resize:vertical;font:16px/1.5 var(--mono)}

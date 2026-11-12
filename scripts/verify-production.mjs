@@ -1,5 +1,6 @@
 import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
+import {publishedLook} from '../site/config.mjs';
 const browser=await chromium.launch({channel:'msedge'});
 const base=process.env.SITE_URL||'http://localhost:8081';
 try{
@@ -17,9 +18,12 @@ try{
     const bounds=await email.boundingBox();assert.ok(bounds.width>=48&&bounds.height>=48);
     assert.equal(await email.locator('svg').evaluate(e=>getComputedStyle(e).animationName),'none');
     const state=await page.evaluate(async()=>({width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight,
-      spacing:document.documentElement.style.getPropertyValue('--name-spacing'),density:(await import('/config.mjs')).config.ascii.desktopColumns}));
+      spacing:document.documentElement.style.getPropertyValue('--name-spacing'),density:(await import('/config.mjs')).config.ascii.desktopColumns,
+      binary:(await import('/config.mjs')).config.ascii.binary,shader:(await import('/config.mjs')).config.shader}));
     assert.ok(state.width<=viewport.width&&state.height<=viewport.height);
-    assert.equal(state.spacing,'0.06em');assert.equal(state.density,229);
+    assert.equal(state.spacing,`${publishedLook.letterSpacing}em`);assert.equal(state.density,publishedLook.density);
+    assert.equal(state.binary,true);assert.equal(state.shader.densityGradient,true);
+    assert.equal(state.shader.idleRetention,1);assert.equal(state.shader.redFraction,.07);
     await page.keyboard.press('Tab');assert.ok(await email.evaluate(e=>e===document.activeElement));
     await page.screenshot({path:`output/production-${viewport.width}.png`});assert.deepEqual(errors,[]);await page.close();
   }

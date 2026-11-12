@@ -1,19 +1,19 @@
 // Danny's selected look. Shared by the renderer and the tuner's Reset action.
 export const publishedLook = Object.freeze({
-  density: 229,
-  contrast: 0.65,
-  brightness: 1.15,
-  exposure: 1.25,
+  density: 113,
+  contrast: 0.85,
+  brightness: 1.7,
+  exposure: 1.15,
   gamma: 1.65,
   glyphWeight: 3,
-  glyphFillX: 1.2,
-  glyphFillY: 1.2,
+  glyphFillX: 1,
+  glyphFillY: 1,
   gapFill: 0,
   noseContrast: 3,
-  zoom: 1.4,
-  centerX: -0.03,
-  centerY: 0.05,
-  letterSpacing: 0.06,
+  zoom: 1.18,
+  centerX: -0.3,
+  centerY: 0.04,
+  letterSpacing: -0.026,
   breakup: 1,
   breakupCenter: 0.72,
   feather: 0.59,
@@ -27,19 +27,27 @@ export const publishedLook = Object.freeze({
   driftSpread: 2,
   windCurl: 0,
   fragmentSpin: 0,
-  streamReach: 0.4,
+  streamReach: 0,
   erosionStructure: .68,
-  fragmentDepth: 0,
+  fragmentDepth: 0.45,
   flightDepth: 0,
   afterglow: 0,
   brushSize: 200,
   trailPersistence: 2,
   particleSpeed: 0.2,
-  particleTravel: 0.13,
-  randomness: 0.1,
-  debrisDensity: 0.58,
-  scrambleHz: 11.5,
-  densityJitter: 1.25,
+  particleTravel: 0.05,
+  randomness: 0.7,
+  debrisDensity: 0.39,
+  scrambleHz: 3.5,
+  densityJitter: 2,
+  idleAmount: 10,
+  textIdleAmount: 5,
+  idleTravel: 4,
+  textIdleTravel: 4,
+  idleCopies: true,
+  idleRetention: 100,
+  redAmount: 7,
+  redIntensity: 0.4,
   glitchBandSpeed: 1,
   eyeX: 0.434,
   eyeY: 0.328,
@@ -63,6 +71,17 @@ export function applyLook(config, values) {
   config.shader.glyphFillX = values.glyphFillX ?? 1;
   config.shader.glyphFillY = values.glyphFillY ?? 1;
   config.shader.gapFill = (values.gapFill ?? 0) / 100;
+  if (typeof values.idleAmount === 'number') config.shader.idleFraction = values.idleAmount / 100;
+  if (typeof values.textIdleAmount === 'number') config.shader.textIdleFraction = values.textIdleAmount / 100;
+  for (const key of ['idleTravel', 'textIdleTravel'])
+    if (typeof values[key] === 'number') config.shader[key] = values[key];
+  if (typeof values.idleCopies === 'boolean') config.shader.idleCopies = values.idleCopies;
+  if (typeof values.idleRetention === 'number') {
+    config.shader.idleRetention = values.idleRetention / 100;
+    config.shader.idleCopies = values.idleRetention > 0;
+  }
+  if (typeof values.redAmount === 'number') config.shader.redFraction = values.redAmount / 100;
+  if (typeof values.redIntensity === 'number') config.shader.redIntensity = values.redIntensity;
   config.ascii.mobileColumns = Math.round(values.density * .75);
   config.shader.dissolveStart = values.breakupCenter - values.feather / 2;
   config.shader.dissolveEnd = values.breakupCenter + values.feather / 2;
@@ -84,8 +103,8 @@ export const config = {
   email: 'danny@dannywilson.ca',
   portrait: '/assets/portrait.webp',
   timing: { recovery: 260 },
-  ascii: { color: [250, 250, 240], cyan: [168, 225, 232], red: '#ff1531' },
+  ascii: { color: [250, 250, 240], cyan: [168, 225, 232], red: '#ff1531', binary: true },
   eye: {},
-  shader: {},
+  shader: { densityGradient: true, redFragments: 1 },
 };
 applyLook(config, publishedLook);

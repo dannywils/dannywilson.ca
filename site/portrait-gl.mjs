@@ -1,4 +1,4 @@
-// One GPU pass: each source fragment is a movable quad, rendered exactly once.
+// Shared GPU renderer: source fragments are movable quads with optional idle copies.
 // The source photograph is sampled only for tone/alpha; it is never composited.
 import {maxTapBursts} from './tap-motion.mjs';
 import {idleGlitchAt,sceneGlitchAt} from './idle-glitch.mjs';
@@ -6,6 +6,9 @@ const vertexSource = `
 attribute vec2 position;
 attribute vec2 origin;
 attribute vec2 interaction;
+attribute vec4 sourceCell;
+uniform float densityGradient;
+varying vec4 glyphBounds;
 uniform vec2 resolution;
 uniform vec4 portraitBounds;
 uniform vec2 imageSize;
@@ -15,6 +18,9 @@ uniform vec3 debrisControls;
 uniform float columns;
 uniform vec2 meshGrid;
 uniform float driftSpread;
+uniform vec2 idleControls;
+uniform float idleCopyPass;
+uniform float idleRetention;
 uniform float portraitMode;
 uniform vec4 identityA;
 uniform vec4 identityI;
@@ -50,6 +56,7 @@ varying vec2 cellInteraction;
 varying float fragmentShade;
 varying float interactionMask;
 varying float arrivalGlitch;
+varying float idleDisplacement;
 float hash(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float noise(vec2 p) {
   vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
@@ -61,25 +68,38 @@ float inside(vec2 p,vec4 rect) {
 vec2 ambientOffset(float clock,vec2 cell){
   vec2 glyphGrid=vec2(columns,floor(columns*imageSize.y/imageSize.x/1.3));
   cell=floor((cell+.5)/meshGrid*glyphGrid);
-  // Ninety percent of the source stays exactly home. The remainder coasts out
-  // and back at independent rates, retaining its ink and original shard shape.
-  if(clock<=0.||hash(cell+913.7)<.9)return vec2(0.);
+  vec2 sourceCenter=(cell+.5)/glyphGrid;
+  if(densityGradient>.5){
+    cell=floor(sourceCell.xy*4096.);
+    sourceCenter=(sourceCell.xy+sourceCell.zw)*.5;
+  }
+  // Keep most source cells home while a configurable cohort coasts out and back.
+  // Idle reach is separate from pointer-burst strength.
+  if(clock<=0.||hash(cell+913.7)<1.-idleControls.x)return vec2(0.);
   float rhythm=.5-.5*cos(clock*6.283185*(.6+hash(cell+947.3)*1.2)+hash(cell+961.7)*6.283185);
   float drift=smoothstep(.15,.95,rhythm)*smoothstep(0.,.08,clock);
-  vec2 radial=(cell+.5)/glyphGrid-vec2(.5,.45);
+  vec2 radial=sourceCenter-vec2(.5,.45);
   float angle=atan(radial.y+.00001,radial.x+.00001)+(hash(cell+977.1)-.5)*2.2;
   float width=imageSize.x*min(portraitBounds.z/imageSize.x,portraitBounds.w/imageSize.y)*placement.x;
-  float distance=width*(.012+hash(cell+991.3)*.025)*drift*driftSpread;
+  float distance=width*(.012+hash(cell+991.3)*.025)*drift*driftSpread*idleControls.y;
   return vec2(cos(angle),sin(angle))*distance;
 }
 void main() {
+  glyphBounds=sourceCell;
   vec2 grid=meshGrid;
   vec2 cell=floor(origin*grid);
   float identity=max(inside(origin,identityA),inside(origin,identityI));
   // All sub-shards of an ASCII cell inherit the sampled character's immunity,
   // including the tiny glyph edges extending beyond the DOM letter bounds.
   vec2 characterGrid=vec2(columns,floor(columns*imageSize.y/imageSize.x/1.3));
-  vec2 characterCenter=(floor(origin*characterGrid)+.5)/characterGrid;
+  vec2 characterCell=floor(origin*characterGrid);
+  vec2 characterCenter=(characterCell+.5)/characterGrid;
+  if(densityGradient>.5){
+    characterGrid=1./(sourceCell.zw-sourceCell.xy);
+    characterCenter=(sourceCell.xy+sourceCell.zw)*.5;
+    characterCell=floor(sourceCell.xy*4096.);
+  }
+  float retainedSource=step(1.-idleRetention,hash(characterCell+vec2(1811.3,1823.7)));
   vec2 identityPad=.5/characterGrid+1./imageSize;
   vec4 padded=vec4(-identityPad,identityPad);
   float protectedA=inside(characterCenter,identityA+padded)*step(.00001,identityA.z-identityA.x);
@@ -96,7 +116,8 @@ void main() {
     vec2 sourceCenter=portraitBounds.xy+portraitBounds.zw*.5;
     vec2 cellHome=(origin-.5+placement.yz)*sourceSize+sourceCenter;
     vec2 pointerScreen=(pointer-.5+placement.yz)*sourceSize+sourceCenter;
-    vec2 visibleCell=cellHome+ambientOffset(ambientTime,cell);
+    vec2 visibleCell=cellHome;
+    if(idleCopyPass!=1.||retainedSource<.5)visibleCell+=ambientOffset(ambientTime,cell);
     float radial=clamp(1.-length(visibleCell-pointerScreen)/max(brushRadius*sourceSize.x,1.),0.,1.);
     local=radial*radial*(3.-2.*radial)*pointerStrength*motion*interactionMask;
     cellInteraction.x=local;
@@ -270,7 +291,7 @@ void main() {
     float hitDistance=hitTravel*dissolve.z*mix(1.,.55+burst*1.2,debrisControls.y)*driftSpread;
     float hitPerspective=2./max(.8,2.-z*hitTravel*.85*flightDepth);
     vec2 hit=volumeCenter+(homeCenter-volumeCenter)*hitPerspective+hitHeading*hitDistance*reach*size*placement.x*hitPerspective;
-    hit+=ambientOffset(tapTiming.w,cell)*(1.-restored);
+    if(idleCopyPass!=1.||retainedSource<.5)hit+=ambientOffset(tapTiming.w,cell)*(1.-restored);
     vec2 fromTap=hit-tap.xy;
     // The noisy contour never exceeds 1.35 radii. Reject distant pieces before
     // evaluating its noise, random velocities and trigonometry for every tap.
@@ -300,7 +321,8 @@ void main() {
     fragmentShade*=1.-max(0.,-z)*.18*spread;
   }
   // Idle motion treats every letter alike. A/I immunity belongs to contact only.
-  screen+=ambientOffset(ambientTime,cell)*motion*(1.-restored)*live;
+  vec2 idleDrift=ambientOffset(ambientTime,cell)*motion*(1.-restored)*live;
+  screen+=idleDrift;
   if(gravityPass>.5){
     // A and I remain the fixed centers of the field. Every other source glyph
     // gets its own departure clock; the second draw carries that same UV ink.
@@ -339,11 +361,30 @@ void main() {
       }
     }
   }
+  // Only idle drift drives red ink. Pointer bursts can move those same pieces,
+  // but cannot recruit the rest of the face or name into the red cohort.
+  float characterWidth=imageSize.x*min(portraitBounds.z/imageSize.x,portraitBounds.w/imageSize.y)*placement.x/columns;
+  if(densityGradient>.5)characterWidth*=columns*(sourceCell.z-sourceCell.x);
+  idleDisplacement=length(idleDrift)/max(characterWidth,1.);
+  if(idleCopyPass==1.&&retainedSource>.5){
+    // Leave the source ink at home; contact effects still work on this layer.
+    screen-=idleDrift;
+    idleDisplacement=0.;
+  }else if(idleCopyPass==2.){
+    // Only displaced copies contribute. Fade near home to avoid double ink
+    // as the copy departs or rejoins its original source character.
+    fragmentLife*=retainedSource*smoothstep(.35,1.,idleDisplacement);
+  }
   gl_Position=vec4(screen.x/resolution.x*2.-1.,1.-screen.y/resolution.y*2.,0.,1.);
 }
 `;
 const fragmentSource = `
 precision highp float;
+varying float idleDisplacement;
+uniform float redFragments;
+uniform vec2 redControls;
+uniform float densityGradient;
+varying vec4 glyphBounds;
 varying float interactionMask;
 varying float arrivalGlitch;
 varying vec2 uv;
@@ -383,6 +424,7 @@ float glyphAt(vec2 position,vec2 grid,float index,float variant,vec2 size) {
   // Enlarge the ink within its existing source cell, independently on each axis.
   // Keep sampling inside this atlas tile so smaller glyphs cannot pick up neighbors.
   vec2 glyphUV=(fract(position*grid)-.5)/glyphFill+.5;
+  if(densityGradient>.5)glyphUV=((position-glyphBounds.xy)/(glyphBounds.zw-glyphBounds.xy)-.5)/glyphFill+.5;
   if(any(lessThan(glyphUV,vec2(0.)))||any(greaterThan(glyphUV,vec2(1.))))return 0.;
   vec2 atlasUV=vec2((index+glyphUV.x)/16.,(variant+glyphUV.y)/8.);
   vec2 tap=grid/size/vec2(16.,8.)*.25/glyphFill;
@@ -411,8 +453,18 @@ void main() {
   grid *= mix(1.,3.,anchored);
   vec2 cell = floor(pos*grid);
   vec2 center = (cell+.5)/grid;
+  if(densityGradient>.5){
+    grid=1./(glyphBounds.zw-glyphBounds.xy);
+    cell=floor(glyphBounds.xy*4096.);
+    center=(glyphBounds.xy+glyphBounds.zw)*.5;
+  }
   vec4 sampleColor = texture2D(portrait, center);
   float rawL = lum(sampleColor.rgb);
+  // Preserve neutral reflections and enamel in source coordinates. A soft
+  // feature mask plus original luminance avoids whitening frames, lips or gums.
+  float lenses=1.-smoothstep(.85,1.05,length((center-vec2(.51,.345))/vec2(.23,.075)));
+  float teeth=1.-smoothstep(.85,1.2,length((center-vec2(.516,.536))/vec2(.073,.025)));
+  float neutralHighlight=max(lenses,teeth)*smoothstep(.42,.62,rawL)*portraitMode;
   float l = rawL;
   vec2 texel = 1./imageSize;
   float surrounding = (lum(texture2D(portrait,center+vec2(texel.x*3.,0.)).rgb)
@@ -460,6 +512,13 @@ void main() {
   float edge = clamp(abs(l-surrounding)*7.,0.,1.);
   vec3 ink = mix(paper,cyan, .13+edge*.45+step(.88,seed)*.23+band*.12);
   ink=mix(ink,vec3(.65,.95,1.),arrivalGlitch*.35);
+  // A stable share of idle pieces turns red; flings never recruit extra pieces.
+  float redCohort=step(1.-redControls.x,hash(cell+vec2(1451.3,1487.9)));
+  float redFlight=redFragments*redCohort*smoothstep(.35,1.,idleDisplacement);
+  ink=mix(ink,vec3(.78,.045,.075)*redControls.y,redFlight);
+  // These source highlights stay neutral in both the face and its floating
+  // copies, including during arrival glitches and red-accent drift.
+  ink=mix(ink,paper,neutralHighlight);
   // Returning source glyphs briefly catch a cool phosphor edge as they settle.
   float light = exp(-dot(center-pointer,center-pointer)*90.)*.12*motion*pointerStrength*interactionMask;
   float sweep = exp(-pow((center.y-fract(time*.045))/.075,2.))*.07*motion;
@@ -467,7 +526,7 @@ void main() {
   float opacity = glyph*silhouette*intensity;
   vec3 color = ink*opacity;
   // Cyan channel separation in the displaced slices, never over the whole face.
-  color += cyan*glyph*silhouette*selected*interference*.12;
+  color += mix(cyan,paper,neutralHighlight)*glyph*silhouette*selected*interference*.12;
   float coverage=mix(clamp(opacity,0.,1.),silhouette,gapFill);
   gl_FragColor=vec4(color*toneControls.y*fragmentShade,coverage)*fragmentLife;
 }
@@ -519,16 +578,19 @@ export class PortraitGL {
       gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
       const position = gl.getAttribLocation(this.program, "position");
       gl.enableVertexAttribArray(position);
-      gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 16, 0);
+      gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 32, 0);
       const origin = gl.getAttribLocation(this.program, "origin");
       gl.enableVertexAttribArray(origin);
-      gl.vertexAttribPointer(origin, 2, gl.FLOAT, false, 16, 8);
+      gl.vertexAttribPointer(origin, 2, gl.FLOAT, false, 32, 8);
+      const sourceCell=gl.getAttribLocation(this.program,"sourceCell");
+      gl.enableVertexAttribArray(sourceCell);
+      gl.vertexAttribPointer(sourceCell,4,gl.FLOAT,false,32,16);
       this.interactionBuffer = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.interactionBuffer);
       const interaction = gl.getAttribLocation(this.program, "interaction");
       gl.enableVertexAttribArray(interaction);
       gl.vertexAttribPointer(interaction, 2, gl.FLOAT, false, 8, 0);
-      this.attributes={position,origin,interaction};
+      this.attributes={position,origin,interaction,sourceCell};
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       this.uniforms = Object.fromEntries(
@@ -543,6 +605,9 @@ export class PortraitGL {
           "columns",
           "meshGrid",
           "driftSpread",
+          "idleControls",
+          "idleCopyPass",
+          "idleRetention",
           "portraitMode",
           "identityA",
           "identityI",
@@ -583,6 +648,9 @@ export class PortraitGL {
           "toneControls",
           "glyphFill",
           "gapFill",
+          "redFragments",
+          "redControls",
+          "densityGradient",
           "placement",
           "debrisControls",
         ].map((key) => [key, gl.getUniformLocation(this.program, key)]),
@@ -616,7 +684,9 @@ export class PortraitGL {
         "@#WM&%B8",
       ];
       const rows = Array.from({ length: 8 }, (_, row) =>
-        buckets.map((bucket) => bucket[row]).join(""),
+        buckets.map((bucket, column) => config.ascii.binary
+          ? String((column + row) % 2)
+          : bucket[row]).join(""),
       );
       rows.forEach((row, y) =>
         [...row].forEach((c, x) => ctx.fillText(c, x * 32 + 16, y * 64 + 32)),
@@ -676,6 +746,9 @@ export class PortraitGL {
     gl.uniform4f(u.toneControls,s.contrast,s.brightness,s.gamma,s.glyphWeight);
     gl.uniform2f(u.glyphFill,s.glyphFillX??1,s.glyphFillY??1);
     gl.uniform1f(u.gapFill,s.gapFill??0);
+    gl.uniform1f(u.redFragments,s.redFragments??0);
+    gl.uniform2f(u.redControls,s.redFraction??.5,s.redIntensity??1);
+    gl.uniform1f(u.densityGradient,s.densityGradient?1:0);
     gl.uniform3f(u.placement,s.zoom,s.centerX,s.centerY);
     gl.uniform3f(u.debrisControls,s.breakup,s.randomness,s.debrisDensity);
     gl.uniform1f(u.columns,innerWidth<=700?c.ascii.mobileColumns:c.ascii.desktopColumns);
@@ -692,6 +765,8 @@ export class PortraitGL {
     gl.uniform1f(u.fragmentDepth,s.fragmentDepth??.8);
     gl.uniform1f(u.flightDepth,s.flightDepth??.8);
     gl.uniform1f(u.driftSpread,s.driftSpread??1);
+    gl.uniform2f(u.idleControls,s.idleFraction??.1,s.idleTravel??1);
+    gl.uniform1f(u.idleRetention,s.idleRetention??(s.idleCopies?1:0));
     gl.uniform1f(u.portraitMode,this.options.text?0:1);
     gl.uniform2f(u.identityControls,s.identityDelay??.7,s.identityBreakup??.35);
     this.updateMesh();
@@ -726,8 +801,9 @@ export class PortraitGL {
     const gl=this.gl,a=this.attributes;
     gl.useProgram(this.program);
     gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer);
-    gl.enableVertexAttribArray(a.position);gl.vertexAttribPointer(a.position,2,gl.FLOAT,false,16,0);
-    gl.enableVertexAttribArray(a.origin);gl.vertexAttribPointer(a.origin,2,gl.FLOAT,false,16,8);
+    gl.enableVertexAttribArray(a.position);gl.vertexAttribPointer(a.position,2,gl.FLOAT,false,32,0);
+    gl.enableVertexAttribArray(a.origin);gl.vertexAttribPointer(a.origin,2,gl.FLOAT,false,32,8);
+    gl.enableVertexAttribArray(a.sourceCell);gl.vertexAttribPointer(a.sourceCell,4,gl.FLOAT,false,32,16);
     gl.bindBuffer(gl.ARRAY_BUFFER,this.interactionBuffer);
     gl.enableVertexAttribArray(a.interaction);gl.vertexAttribPointer(a.interaction,2,gl.FLOAT,false,8,0);
     if(this.indexBuffer)gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.indexBuffer);
@@ -738,27 +814,68 @@ export class PortraitGL {
     const detail=Math.max(1,Math.min(this.options.detailLimit??3,innerWidth<=700?2:3,Math.round(this.config.shader.fragmentation??2)));
     const columns=glyphColumns*detail;
     const rows=Math.max(1,Math.floor(glyphColumns*this.sourceHeight/this.sourceWidth/1.3))*detail;
-    this.gl.uniform2f(this.uniforms.meshGrid,columns,rows);
-    if(this.meshColumns===columns && this.meshRows===rows)return;
+    const gradient=!!this.config.shader.densityGradient;
+    if(gradient&&!this.bounds)return;
+    const profile=this.gradientProfile??[innerWidth*.05,innerWidth*.95,12,4];
+    const b=this.bounds,s=this.config.shader;
+    const sourceWidth=gradient?this.sourceWidth*Math.min(b.width/this.sourceWidth,b.height/this.sourceHeight)*s.zoom:0;
+    const sourceLeft=gradient?b.left+b.width*.5+(-.5+s.centerX)*sourceWidth:0;
+    const gradientKey=gradient?JSON.stringify([profile,sourceWidth,sourceLeft]):'';
+    this.gl.uniform2f(this.uniforms.meshGrid,gradient?Math.ceil(columns*1.8):columns,gradient?Math.ceil(rows*1.8):rows);
+    if(this.meshColumns===columns && this.meshRows===rows&&this.meshGradient===gradient&&this.gradientKey===gradientKey)return;
     this.meshColumns=columns;this.meshRows=rows;
-    const vertices=new Float32Array(columns*rows*this.verticesPerCell*4);
-    const corners=this.indexed?[[0,0],[1,0],[0,1],[1,1]]:[[0,0],[1,0],[0,1],[0,1],[1,0],[1,1]];
-    let i=0;
-    for(let y=0;y<rows;y++)for(let x=0;x<columns;x++)for(const [dx,dy] of corners){
-      vertices[i++]=(x+dx)/columns;vertices[i++]=(y+dy)/rows;
-      vertices[i++]=(x+.5)/columns;vertices[i++]=(y+.5)/rows;
+    this.meshGradient=gradient;
+    this.gradientKey=gradientKey;
+    const cells=[];
+    if(gradient){
+      // Both layers use the same CSS-pixel size field. The gradient never
+      // restarts at the boundary between the name and the portrait.
+      const widthAt=x=>{
+        const t=Math.max(0,Math.min(1,(sourceLeft+x*sourceWidth-profile[0])/Math.max(1,profile[1]-profile[0])));
+        return Math.max(.5,profile[2]+(profile[3]-profile[2])*t*t*(3-2*t))/Math.max(sourceWidth,1);
+      };
+      const aspect=this.sourceHeight/this.sourceWidth;
+      for(let left=0;left<1;){
+        const width=widthAt(left+widthAt(left)*.5);
+        const right=1-left<width*1.5?1:Math.min(1,left+width);
+        const localRows=Math.max(1,Math.round(aspect/(right-left)/1.3));
+        for(let y=0;y<localRows;y++)for(let sy=0;sy<detail;sy++)for(let sx=0;sx<detail;sx++){
+          const top=y/localRows,bottom=(y+1)/localRows;
+          cells.push([left+(right-left)*sx/detail,top+(bottom-top)*sy/detail,
+            left+(right-left)*(sx+1)/detail,top+(bottom-top)*(sy+1)/detail,
+            left,top,right,bottom]);
+        }
+        left=right;
+      }
+    }else{
+      for(let y=0;y<rows;y++)for(let x=0;x<columns;x++)
+        cells.push([x/columns,y/rows,(x+1)/columns,(y+1)/rows,0,0,1,1]);
     }
-    this.vertexCount=vertices.length/4;
+    this.cellCount=cells.length;
+    this.cellCenters=new Float32Array(cells.length*2);
+    const vertices=new Float32Array(cells.length*this.verticesPerCell*8);
+    const corners=this.indexed?[[0,0],[1,0],[0,1],[1,1]]:[[0,0],[1,0],[0,1],[0,1],[1,0],[1,1]];
+    let i=0,cellIndex=0;
+    for(const [left,top,right,bottom,...bounds] of cells){
+      const cx=(left+right)*.5,cy=(top+bottom)*.5;
+      this.cellCenters[cellIndex++]=cx;this.cellCenters[cellIndex++]=cy;
+      for(const [dx,dy] of corners){
+        vertices[i++]=left+(right-left)*dx;vertices[i++]=top+(bottom-top)*dy;
+        vertices[i++]=cx;vertices[i++]=cy;
+        for(const value of bounds)vertices[i++]=value;
+      }
+    }
+    this.vertexCount=vertices.length/8;
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER,this.buffer);
     this.gl.bufferData(this.gl.ARRAY_BUFFER,vertices,this.gl.STATIC_DRAW);
     if(this.indexed){
-      const indices=new Uint32Array(columns*rows*6),order=[0,1,2,2,1,3];
-      for(let cell=0;cell<columns*rows;cell++)for(let v=0;v<6;v++)indices[cell*6+v]=cell*4+order[v];
+      const indices=new Uint32Array(cells.length*6),order=[0,1,2,2,1,3];
+      for(let cell=0;cell<cells.length;cell++)for(let v=0;v<6;v++)indices[cell*6+v]=cell*4+order[v];
       this.indexCount=indices.length;
       this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER,this.indexBuffer);
       this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER,indices,this.gl.STATIC_DRAW);
     }
-    this.interactions=new Float32Array(columns*rows*this.interactionStride);
+    this.interactions=new Float32Array(cells.length*this.interactionStride);
     this.interactionActive=false;
     this.previousPointer=null;
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER,this.interactionBuffer);
@@ -767,6 +884,10 @@ export class PortraitGL {
   setDetailLimit(limit){
     if(this.options.detailLimit===limit)return;
     this.options.detailLimit=limit;this.gl.useProgram(this.program);this.updateMesh();
+  }
+  setDensityGradient(profile){
+    this.gradientProfile=profile;
+    this.gl.useProgram(this.program);this.updateMesh();
   }
   updateInteraction(time, reduced, pointer) {
     const delta=Math.max(0,Math.min(.1,time-(this.interactionTime??time)));
@@ -782,21 +903,22 @@ export class PortraitGL {
     // Sweep the brush across the path between frames so quick gestures leave no holes.
     const sweeping=!!previous&&strength>.05&&lengthSquared>1e-8&&lengthSquared<.7;
     if(strength<.001&&reveal<.001&&!pulse&&!this.interactionActive)return;
-    const data=this.interactions,columns=this.meshColumns,rows=this.meshRows;
+    const data=this.interactions;
     const attack=1-Math.exp(-delta/.12),release=1-Math.exp(-delta/(pointer.trail??.45));
     const impulseAttack=1-Math.exp(-delta/.035),impulseRelease=1-Math.exp(-delta/.24);
     const chargeRelease=Math.exp(-delta/.18),chargeDelta=Math.max(delta,.001);
     const catchUp=sweeping?Math.max(attack,Math.min(.95,Math.sqrt(lengthSquared)*12)):attack;
     let active=false;
-    for(let y=0;y<rows;y++)for(let x=0;x<columns;x++){
-      const i=(y*columns+x)*this.interactionStride;
-      let dx=(x+.5)/columns-pointer.x,dy=((y+.5)/rows-pointer.y)*aspect;
+    for(let cell=0;cell<this.cellCount;cell++){
+      const i=cell*this.interactionStride;
+      const cx=this.cellCenters[cell*2],cy=this.cellCenters[cell*2+1];
+      let dx=cx-pointer.x,dy=(cy-pointer.y)*aspect;
       const along=sweeping?Math.max(0,Math.min(1,(dx*sx+dy*sy)/lengthSquared)):0;
       dx-=sx*along;dy-=sy*along;
       const radial=Math.max(0,1-Math.sqrt(dx*dx+dy*dy)/(pointer.radius??.16));
       let wave=0;
       if(pulse){
-        const distance=Math.hypot((x+.5)/columns-pulse.x,((y+.5)/rows-pulse.y)*aspect);
+        const distance=Math.hypot(cx-pulse.x,(cy-pulse.y)*aspect);
         const edge=Math.max(0,Math.min(1,(Math.abs(distance-pulse.radius)-pulse.width*.3)/(pulse.width*.7)));
         wave=(1-edge*edge*(3-2*edge))*(pulse.strength??1);
       }
@@ -844,9 +966,11 @@ export class PortraitGL {
     this.setBounds(bounds);
   }
   setBounds(bounds) {
+    this.bounds={left:bounds.left,top:bounds.top,width:bounds.width,height:bounds.height};
     const dpr=this.pixelRatio||1;
     this.gl.useProgram(this.program);
     this.gl.uniform4f(this.uniforms.portraitBounds,(bounds.left-(this.surfaceLeft??0))*dpr,(bounds.top-(this.surfaceTop??0))*dpr,bounds.width*dpr,bounds.height*dpr);
+    if(this.config.shader.densityGradient)this.updateMesh();
   }
   render(time, phase, reduced, pointer, light = 1, assembly = 1, breakupTime = time, ambientTime = 0) {
     const gl = this.gl,
@@ -893,6 +1017,8 @@ export class PortraitGL {
     }
     if(this.options.clear!==false){gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);}
     const gravity=!reduced&&assembly>=1&&this.gravityWells?.length===4;
+    const idleCopies=this.config.shader.idleCopies&&!this.options.text&&!reduced&&assembly>=1&&!gravity;
+    gl.uniform1f(u.idleCopyPass,idleCopies?1:0);
     gl.uniform1f(u.gravityPass,gravity?1:0);
     if(gravity){
       const wells=this.gravityWells,sx=this.surfaceLeft??0,sy=this.surfaceTop??0;
@@ -901,6 +1027,11 @@ export class PortraitGL {
     }
     if(this.indexed)gl.drawElements(gl.TRIANGLES,this.indexCount,gl.UNSIGNED_INT,0);
     else gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
+    if(idleCopies){
+      gl.uniform1f(u.idleCopyPass,2);
+      if(this.indexed)gl.drawElements(gl.TRIANGLES,this.indexCount,gl.UNSIGNED_INT,0);
+      else gl.drawArrays(gl.TRIANGLES,0,this.vertexCount);
+    }
     if(gravity){
       gl.uniform1f(u.gravityPass,2);
       if(this.indexed)gl.drawElements(gl.TRIANGLES,this.indexCount,gl.UNSIGNED_INT,0);
