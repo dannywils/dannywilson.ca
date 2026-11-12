@@ -1,148 +1,86 @@
-# Danny Wilson
+# dannywilson.ca
 
-The live personal site is https://dannywilson.ca, hosted on GitHub Pages.
-`npm run build` produces `dist/` from `site/`, with no production dependencies.
-The production build excludes Tune, its stylesheet and saved settings, interaction
-hints, Replay and Reveal. It uses the published look in `site/config.mjs` and keeps
-pointer interactions. The icon-only email link has an accessible name, a 52px
-hit area and a brief envelope glitch that respects reduced motion.
-
-Pushes to `master` run syntax checks, unit tests and the production build before
-GitHub Pages deploys `dist/`. The custom domain is retained via `site/CNAME`.
-The development source retains its tuning interface for future adjustments.
+My [personal website](https://dannywilson.ca): an ASCII portrait and name that
+assemble, glitch, and scatter when you touch them. Built with HTML, CSS,
+JavaScript, and WebGL. Hosted on GitHub Pages.
 
 ## Run locally
 
-Run `npm start` (Python 3 required), then open http://localhost:8080.
-`npm ci` installs development checks. `npm run check` verifies module syntax;
-`npm test` runs unit checks. To preview production, run `npm run build`, then
-`python -m http.server 8081 --directory dist`. Run
-`node scripts/verify-production.mjs` against that server.
+Requires Node.js 22 or later and Python 3.
 
-## Current experience
+```sh
+npm ci
+npm start
+```
 
-The composition fits the dynamic viewport without document scrolling. Desktop
-and short landscape windows use two columns; portrait phones stack the name and
-face. Typography scales with both width and height. Artwork cannot be selected.
-The floating **Email Danny** icon link remains available from first paint and in fallback
-mode. In the development preview, **Replay**, **Reveal / Release**, and **Tune** remain keyboard accessible.
-The tuner scrolls independently of the fixed artwork; fields remain editable.
+Open [localhost:8080](http://localhost:8080). The development version includes
+Tune, Replay, and Reveal controls.
 
-The portrait and uppercase name use the same WebGL shader and glyph atlas.
-Photographic luminance selects the face's glyphs; solid letter ink uses a stable
-mix of medium and dense glyph buckets. Text cells are slightly larger and lighter
-so individual characters remain visible. Shapes rewrite at independent rates.
-Reduced motion retains varied ASCII texture without animation.
+To preview the production build:
 
-Actual source fragments assemble from irregular positions across and beyond the
-viewport over 4.8 seconds. Paths bend, stall and glitch locally, then settle into
-place. The static SVG stays hidden until no-JavaScript, script-load failure, or
-renderer failure requires it. Reduced motion shows the assembled scene immediately.
-Resizing does not replay the intro, and hidden tabs pause animation.
+```sh
+npm run build
+python -m http.server 8081 --directory dist
+```
 
-`site/timeline.mjs` supplies continuous time for sparse outward disintegration.
-About 90% of the source stays home while small groups coast outward and return at
-independent rates around the selected 8-second base period. Displaced glyphs retain their
-ink and shape; the full face and name stay visible. There is no inward collapse,
-disappearance, or A/I-only pause. Idle motion treats A and I like every other letter.
-Their subtle distinction is immunity to hover, tap, drag and flick. Protection uses
-actual ink bounds and complete sampled glyph cells, without neighboring letters.
-In the development preview, **Reveal** temporarily gathers the complete scene; **Release** resumes idle drift.
+Open [localhost:8081](http://localhost:8081). Production uses the published
+settings and leaves out the tuning tools and interaction hints.
 
-Mouse movement alone throws nearby fragments: recent velocity triggers local
-directional bursts with a short cooldown. Slower movement uses the gentle brush.
-Touch flicks trigger on release. Taps select broader irregular patches, drift for
-1.1 seconds, then return over 2.7 seconds. Up to 16 independent bursts overlap;
-new gestures never replace existing bursts. Holds keep a fixed local radius.
-Tap targeting accounts for the drift position at impact; hover follows moving
-cells. Pinch zoom remains available, and a second finger cancels the active brush.
-The development preview’s keyboard Reveal offers a non-pointer alternative.
+## How it works
 
-Returning fragments stay compact. The live renderer no longer uses the afterimage
-pass, landing highlights, or anisotropic shard stretching. The red-eye feature,
-its ignition controller, and its Tune controls are removed from the live experience.
-Legacy configuration keys remain readable for old saved looks but cannot restore
-the eye or afterimage effects.
+The portrait and name share a WebGL renderer and character atlas. Characters
+change at rest; taps and flicks send nearby pieces drifting before they return.
+The A in Danny and I in Wilson stay put during pointer interactions.
 
-Brief idle glitches rewrite small patches and shift narrow rows. A rarer shared
-tear crosses the portrait and name roughly every 29 seconds. Reveal and reduced
-motion suppress those events. Both layers share screen coordinates, timing and
-glyph rendering; no extra decorative particles are generated.
+The scene fits the window on desktop and mobile. Reduced motion shows a still
+image, and a static portrait replaces WebGL when it is unavailable. The email
+link works without JavaScript.
 
-Adaptive quality watches sustained slow frames on phones and touch devices. It
-reduces shard subdivision when no gesture or glitch is active, then restores it
-after sustained recovery. Glyph density, shading and output resolution stay fixed.
-Idle cohorts are selected per glyph so subdivision changes do not relocate them.
-Layout bounds are cached and refreshed on resize or viewport changes, not read
-every frame. The indexed mesh uses four vertices per shard, with a six-vertex
-compatibility path when required.
+## Change the look
 
-## Tune
+Open Tune in the development version, or visit
+[localhost:8080/?tune](http://localhost:8080/?tune). Settings save in your browser.
+Copy settings exports JSON; copy look link lets you share a look. Reset restores
+the published defaults.
 
-Open **Tune** or append `?tune`. Active controls cover character density and weight,
-brightness, contrast, shadow curve, nose detail, portrait position, letter spacing,
-cycle length, fragment detail and movement, touch radius, and character rewriting.
-**Horizontal fill** and **Vertical fill** expand the glyph ink independently inside
-each existing cell. Both default to 1.2 and range from 0.5 to 2; higher values narrow
-character/row gaps without changing density, contrast, source geometry or motion.
-They apply to the portrait and name. Atlas sampling stays inside each glyph's tile.
-**Gap fill** (0–100) fills the spaces between and inside characters on both the
-portrait and name. At 100, every source cell is solid, retaining tonal shading and
-the source silhouette. At 0 (default), the original ASCII texture is unchanged.
-Fragment movement still works normally; empty background is never filled.
-Changes save only in the current browser. **Reset** restores `publishedLook` from
-`site/config.mjs`. **Copy settings**, **Import settings**, and **Copy look link**
-transfer looks between devices without changing published defaults. Old ignition,
-afterglow, partial-erosion and boundary controls have been retired.
+Horizontal and vertical fill adjust the space between glyphs and rows. Gap fill
+fills the spaces between and inside characters: 0 keeps the ASCII texture,
+100 makes solid cells.
 
-The email address is in `site/config.mjs`; update its native HTML fallback in
-`site/index.html` as well when changing it. The portrait uses lossless WebP; the
-static SVG is requested only when the interactive renderer is unavailable.
+To publish a look, update `publishedLook` in [site/config.mjs](site/config.mjs).
+The contact address lives there too; also update its HTML fallback in
+[site/index.html](site/index.html) when changing it.
 
-## Verification
+## Checks
 
-With the local server running, relevant Edge browser checks include:
+```sh
+npm run check
+npm test
+npm run build
+```
 
-- `node scripts/verify-ambient.mjs`: window fit, no scrolling or text selection,
-  sparse idle movement, continued portrait/name visibility across several cycles,
-  stable drift under detail changes, no red eye, reduced motion, and mouse flicks.
-- `node scripts/verify-identity-immunity.mjs`: A/I stay unaffected by hover and
-  taps at desktop and phone sizes and multiple device-pixel ratios.
-- `node scripts/verify-refinements.mjs`: directional rendered motion, synchronized
-  glitches, exact settled pixels across mesh detail changes, and adaptation.
-- `node scripts/verify-touch.mjs`: independent bursts, local holds, drift and
-  return timing, pinch cancellation, email, controls, and tuner scrolling.
-- `node scripts/verify-email.mjs`: floating contact, responsive sizes, keyboard
-  focus, mail link, reduced motion, no JavaScript and script-load failure.
-- `node scripts/verify-quality.mjs`: Skip/Replay, Reveal, cycle restart, texture
-  reuse, tuning validation and keyboard behavior.
-- `node scripts/verify-ascii-type.mjs`: shared shader, visible glyph gaps,
-  rewriting, density changes and reduced-motion stability.
-- `node scripts/verify-glyph-fill.mjs`: independent width/height changes in actual
-  rendered glyphs, cell boundaries, old saved looks, persistence, sharing, import
-  bounds and Reset.
+With the production server running on port 8081:
 
-Screenshots are saved in ignored `output/`. These are browser-emulated phone
-checks, not physical-phone performance measurements. Older scripts describe prior
-creative iterations and may intentionally assert superseded eye/timeline behavior.
-The earlier synchronized entrance was checkpointed at
-`codex/checkpoint-before-creative-20261111` (`f2b66ba`).
+```sh
+node scripts/verify-production.mjs
+```
 
-## Portrait asset provenance
+The browser checks use Microsoft Edge and cover desktop and mobile layouts,
+pointer input, reduced motion, and the email link. Screenshots go in `output/`.
+Other scripts in `scripts/` cover individual effects; some target earlier versions.
 
-The built-in image tool extracted `source-assets/portrait.png` from the supplied
-photo. Prompt: “Make an accurate photographic head and upper shoulders cutout.
-Preserve this exact man's face, hair, rectangular glasses, expression and facial
-proportions. Remove bathroom, background, phone and hand. Reconstruct only the
-small missing black sweater shoulder area. Centered head and shoulders, head
-large, from top of hair to upper chest, transparent background. No text,
-graphics, ASCII, beautification or change in identity. Preserve natural facial
-shading.” This is a generated extraction, not a measured 3D scan.
+## Portrait
 
-## Production publishing
+The portrait was cut out from my photo using an image-generation tool. The source
+is in `source-assets/`; the WebP and static SVG used by the site are in
+[site/assets/](site/assets/).
 
-Push `master` to publish through `.github/workflows/pages.yml`, or run that
-workflow from Actions. V2 preview work does not push or merge into `master`.
-GitHub Pages uses GitHub Actions, the custom domain `dannywilson.ca`, and HTTPS.
-DNS is managed at Squarespace; preserve separate email records when changing
-website DNS. Netlify is no longer part of the publishing workflow.
+## Publish
+
+Push site changes to `master`. The [Pages workflow](.github/workflows/pages.yml)
+runs the checks, builds `dist/`, and deploys it to **dannywilson.ca** over HTTPS.
+You can also run the workflow manually from GitHub Actions.
+
+The custom domain is configured in GitHub Pages settings. DNS is managed at
+Squarespace. The old Netlify DNS zone also points to GitHub for resolvers still
+using the former nameservers; Netlify no longer builds the site.
