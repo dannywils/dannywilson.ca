@@ -1,6 +1,8 @@
-import { config } from "./config.mjs";
+import { config, publishedLook } from "./config.mjs";
 import { PortraitGL } from "./portrait-gl.mjs";
+// preview:start
 import { createTuner } from "./tuner.mjs";
+// preview:end
 import { TextEffect } from "./text-effect.mjs";
 import { createExperience } from "./experience.mjs";
 import { sceneTimeline } from "./timeline.mjs";
@@ -10,6 +12,7 @@ const figure = document.querySelector(".portrait");
 const canvas = document.querySelector("canvas");
 const email = document.querySelector(".email-button");
 const identity = document.querySelector(".identity");
+document.documentElement.style.setProperty('--name-spacing',`${publishedLook.letterSpacing}em`);
 email.href = `mailto:${config.email}`;
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
 const coarse=matchMedia('(pointer: coarse)'),quality=new AdaptiveQuality();
@@ -193,6 +196,7 @@ image.onload = () => {
   observer.observe(canvas);
 };
 image.onerror = () => fail();
+// preview:start
 createTuner(config, () => {
   renderer?.applyConfig();
   textEffect?.updateConfig();
@@ -203,6 +207,7 @@ createTuner(config, () => {
   renderer?.resetInteraction();textEffect?.renderer?.resetInteraction();
   draw();
 });
+// preview:end
 image.src = config.portrait;
 canvas.addEventListener("webglcontextlost", lost);
 canvas.addEventListener("webglcontextrestored", restored);

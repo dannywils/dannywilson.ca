@@ -1,3 +1,4 @@
+import {publishedLook} from '../site/config.mjs';
 import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
 const browser=await chromium.launch({channel:'msedge'});
@@ -35,9 +36,9 @@ try{
   assert.ok(await page.evaluate(()=>window.rasterizedLetters)>0,'Letter-spacing changes rebuild the actual type');
   const density=page.getByRole('spinbutton',{name:'Character density value'});
   await density.fill('9999');await density.press('Tab');
-  assert.equal(await density.inputValue(),'179');
+  assert.equal(await density.inputValue(),String(publishedLook.density));
   assert.match(await page.locator('.tuner-status').textContent(),/restored/);
-  await density.fill('');await density.press('Tab');assert.equal(await density.inputValue(),'179');
+  await density.fill('');await density.press('Tab');assert.equal(await density.inputValue(),String(publishedLook.density));
   await page.keyboard.press('Escape');
   assert.ok(await page.locator('.tuner').isHidden());
   await reveal.click();await page.waitForTimeout(600);

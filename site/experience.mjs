@@ -3,9 +3,9 @@ import {recordGesture,flickVelocity} from './flick.mjs';
 // A screen-space brush scatters the portrait and type; the cycle reforms them.
 export function createExperience({ root, motion, config, onMove, onLeave, onReplay, onSkip }) {
   const rail = document.querySelector('.experience');
-  const hint = rail.querySelector('.experience-hint');
-  const reveal = rail.querySelector('[data-scene="reveal"]');
-  const replay = rail.querySelector('[data-scene="replay"]');
+  const hint = rail?.querySelector('.experience-hint');
+  const reveal = rail?.querySelector('[data-scene="reveal"]');
+  const replay = rail?.querySelector('[data-scene="replay"]');
   const cursor = document.querySelector('.gather-cursor');
   const figure = root.querySelector('.portrait');
   const coarse = matchMedia('(pointer: coarse)');
@@ -18,7 +18,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   const touches=new Set();
   const samples=[];
   const state = { radius: 90, reveal: 0, gather: 0, taps:[] };
-  const on = (el, type, fn) => { el.addEventListener(type, fn); listeners.push([el, type, fn]); };
+  const on = (el, type, fn) => { if(el){el.addEventListener(type, fn); listeners.push([el, type, fn]);} };
   const reset = () => {
     held = false; active = false;
     samples.length=0;
@@ -29,6 +29,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   };
   const cancelGesture=()=>{state.gather=0;reset();};
   const syncReveal = () => {
+    if(!reveal)return;
     reveal.setAttribute('aria-pressed',String(pinned));
     reveal.querySelector('span').textContent=pinned?'Release':'Reveal';
     reveal.title=pinned?'Resume the gentle outward drift':'Reveal the complete portrait and name';
@@ -109,17 +110,18 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
       interactive=ready&&assembly===1;
       if(interactive)advanceTaps(state.taps,delta);else state.taps.length=0;
       const nextAssembling=assembly<1;
-      if(assembling!==nextAssembling||!replay.dataset.entranceAction){
+      if(replay&&(assembling!==nextAssembling||!replay.dataset.entranceAction)){
         assembling=nextAssembling;replay.dataset.entranceAction=assembling?'skip':'replay';
         replay.querySelector('span').textContent=assembling?'Skip':'Replay';
         replay.querySelector('path').setAttribute('d',assembling?'M7 5l10 7-10 7V5Zm11 0v14':'M4 10a8 8 0 1 1 1.7 7M4 4v6h6');
         replay.setAttribute('aria-label',assembling?'Skip entrance':'Replay entrance');
         replay.title=assembling?'Skip entrance':'Replay entrance';
       }
-      if(rail.hidden)rail.hidden=false;
+      assembling=nextAssembling;
+      if(rail?.hidden)rail.hidden=false;
       const disabled=!ready||assembly<1;
-      if(reveal.disabled!==disabled)reveal.disabled=disabled;
-      if(replay.disabled===ready)replay.disabled=!ready;
+      if(reveal&&reveal.disabled!==disabled)reveal.disabled=disabled;
+      if(replay&&replay.disabled===ready)replay.disabled=!ready;
       if (held && ready && assembly === 1) {
         onMove({ clientX: x, clientY: y, isPrimary: true, gather: true });
       }
@@ -137,6 +139,8 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
         cursor.style.setProperty('--ring-size',held?'24px':'18px');
         lastCursor=cursorState;
       }
+      // Production keeps gestures but has no instructional rail.
+      if(!rail)return;
       const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to resume' : held ? 'Release to reform' : state.taps.length ? (state.taps.some(tap=>tap.age<tapDriftSeconds)?'Drifting':'Reforming') : coarse.matches ? 'Tap · flick · drag' : 'Click to scatter · flick to throw';
       if (message !== lastHint) { hint.textContent = message; lastHint = message; }
       const railState=assembly<1?'assembling':pinned?'revealed':'live';

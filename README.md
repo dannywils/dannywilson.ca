@@ -1,24 +1,31 @@
 # Danny Wilson
 
 The live personal site is https://dannywilson.ca, hosted on GitHub Pages.
-V2 work is on `codex/v2`, published separately at
-https://danny-wilson-v2-preview.dannywils.chatgpt.site.
-The production domain is unchanged. Deployable source lives in `site/`:
-plain HTML, CSS and JavaScript modules with no production build dependencies.
+`npm run build` produces `dist/` from `site/`, with no production dependencies.
+The production build excludes Tune, its stylesheet and saved settings, interaction
+hints, Replay and Reveal. It uses the published look in `site/config.mjs` and keeps
+pointer interactions. The icon-only email link has an accessible name, a 52px
+hit area and a brief envelope glitch that respects reduced motion.
+
+Pushes to `master` run syntax checks, unit tests and the production build before
+GitHub Pages deploys `dist/`. The custom domain is retained via `site/CNAME`.
+The development source retains its tuning interface for future adjustments.
 
 ## Run locally
 
 Run `npm start` (Python 3 required), then open http://localhost:8080.
 `npm ci` installs development checks. `npm run check` verifies module syntax;
-`npm test` runs unit checks.
+`npm test` runs unit checks. To preview production, run `npm run build`, then
+`python -m http.server 8081 --directory dist`. Run
+`node scripts/verify-production.mjs` against that server.
 
 ## Current experience
 
 The composition fits the dynamic viewport without document scrolling. Desktop
 and short landscape windows use two columns; portrait phones stack the name and
 face. Typography scales with both width and height. Artwork cannot be selected.
-The floating **Email me** link remains available from first paint and in fallback
-mode. **Replay**, **Reveal / Release**, and **Tune** remain keyboard accessible.
+The floating **Email Danny** icon link remains available from first paint and in fallback
+mode. In the development preview, **Replay**, **Reveal / Release**, and **Tune** remain keyboard accessible.
 The tuner scrolls independently of the fixed artwork; fields remain editable.
 
 The portrait and uppercase name use the same WebGL shader and glyph atlas.
@@ -35,12 +42,12 @@ Resizing does not replay the intro, and hidden tabs pause animation.
 
 `site/timeline.mjs` supplies continuous time for sparse outward disintegration.
 About 90% of the source stays home while small groups coast outward and return at
-independent rates around the 26-second base period. Displaced glyphs retain their
+independent rates around the selected 8-second base period. Displaced glyphs retain their
 ink and shape; the full face and name stay visible. There is no inward collapse,
 disappearance, or A/I-only pause. Idle motion treats A and I like every other letter.
 Their subtle distinction is immunity to hover, tap, drag and flick. Protection uses
 actual ink bounds and complete sampled glyph cells, without neighboring letters.
-**Reveal** temporarily gathers the complete scene; **Release** resumes idle drift.
+In the development preview, **Reveal** temporarily gathers the complete scene; **Release** resumes idle drift.
 
 Mouse movement alone throws nearby fragments: recent velocity triggers local
 directional bursts with a short cooldown. Slower movement uses the gentle brush.
@@ -49,7 +56,7 @@ Touch flicks trigger on release. Taps select broader irregular patches, drift fo
 new gestures never replace existing bursts. Holds keep a fixed local radius.
 Tap targeting accounts for the drift position at impact; hover follows moving
 cells. Pinch zoom remains available, and a second finger cancels the active brush.
-Keyboard Reveal offers a non-pointer alternative.
+The development preview’s keyboard Reveal offers a non-pointer alternative.
 
 Returning fragments stay compact. The live renderer no longer uses the afterimage
 pass, landing highlights, or anisotropic shard stretching. The red-eye feature,

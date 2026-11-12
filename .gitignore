@@ -6,3 +6,4 @@ static/admin/*.bundle.*
 yarn-error.log
 test-results/
 output/
+dist/
