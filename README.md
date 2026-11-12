@@ -227,7 +227,7 @@ tonal sampling stays unchanged, while flat letter ink selects a stable
 mix of medium and dense glyph buckets from that same atlas. Slightly larger text
 cells and lighter glyph weight keep individual characters distinguishable. The
 variants keep rewriting in normal motion and remain varied but still in reduced
-motion. `node scripts/verify-ascii-type.mjs` checks this against the prior renderer,
+motion. `node scripts/verify-type-variety.mjs` checks this against the prior renderer,
 including unchanged portrait pixels, rewriting and reduced-motion stability.
 Portrait-only
 eye, nose and shoulder masks do not affect the letters. They assemble from
