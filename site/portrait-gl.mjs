@@ -22,6 +22,10 @@ uniform vec2 identityControls;
 uniform vec4 anchoredRegion;
 uniform float time;
 uniform float breakupTime;
+uniform float collapse;
+uniform vec2 pointer;
+uniform float pointerStrength;
+uniform float brushRadius;
 uniform float sweepDuration;
 uniform float motion;
 uniform float assembly;
@@ -32,7 +36,7 @@ uniform float erosionStructure;
 uniform float fragmentDepth;
 uniform float flightDepth;
 uniform vec4 taps[${maxTapBursts}];
-uniform vec3 tapTimings[${maxTapBursts}];
+uniform vec4 tapTimings[${maxTapBursts}];
 uniform vec2 tapVelocities[${maxTapBursts}];
 uniform int tapCount;
 uniform vec3 idleGlitch;
@@ -50,6 +54,18 @@ float noise(vec2 p) {
 }
 float inside(vec2 p,vec4 rect) {
   return step(rect.x,p.x)*step(p.x,rect.z)*step(rect.y,p.y)*step(p.y,rect.w);
+}
+float collapseAmount(float clock,vec2 cell){
+  return smoothstep(hash(cell+913.7)*.16,.98,clock);
+}
+vec2 collapsePoint(vec2 point,float amount,vec2 cell){
+  vec2 center=resolution*vec2(.5,.46);
+  vec2 delta=point-center;
+  vec2 tangent=vec2(-delta.y,delta.x);
+  float arc=sin(amount*3.14159265);
+  vec2 wander=vec2(hash(cell+961.7),hash(cell+977.1))-.5;
+  return center+delta*(1.-amount)+tangent*arc*(hash(cell+947.3)-.5)*.24
+    +wander*min(resolution.x,resolution.y)*.08*arc*clamp(debrisControls.y,0.,1.5)/1.5;
 }
 void main() {
   vec2 grid=meshGrid;
@@ -69,6 +85,17 @@ void main() {
   // Negative interaction remains available to the explicit Reveal button.
   if(interactionMask<.5){cellInteraction.x=min(0.,cellInteraction.x);cellInteraction.y=0.;}
   float local=cellInteraction.x;
+  if(collapse>.001&&local>=0.){
+    // Contact follows the visible inward-moving cohort, not its former outline.
+    vec2 sourceSize=imageSize*min(portraitBounds.z/imageSize.x,portraitBounds.w/imageSize.y)*placement.x;
+    vec2 sourceCenter=portraitBounds.xy+portraitBounds.zw*.5;
+    vec2 cellHome=(origin-.5+placement.yz)*sourceSize+sourceCenter;
+    vec2 pointerScreen=(pointer-.5+placement.yz)*sourceSize+sourceCenter;
+    vec2 visibleCell=collapsePoint(cellHome,collapseAmount(collapse,cell)*interactionMask,cell);
+    float radial=clamp(1.-length(visibleCell-pointerScreen)/max(brushRadius*sourceSize.x,1.),0.,1.);
+    local=radial*radial*(3.-2.*radial)*pointerStrength*motion*interactionMask;
+    cellInteraction.x=local;
+  }
   // Positive interaction scatters; negative interaction is the explicit Reveal action.
   float restored=smoothstep(.08,.8,max(-local,0.));
   float anchored=inside(origin,anchoredRegion);
@@ -187,8 +214,7 @@ void main() {
   // becomes exactly flat at home, including when restoring along the same path.
   float airborne=smoothstep(.02,.25,flight)*live*clamp(fragmentDepth,0.,1.);
   float facing=abs(cos(flight*(3.+burst*5.)*fragmentDepth));
-  localPosition.x*=mix(1.,.28+.72*facing,airborne);
-  localPosition.y*=mix(1.,.72+.28*abs(cos(flight*(2.+seed*3.)*fragmentDepth)),airborne);
+  localPosition*=mix(1.,.65+.35*facing,airborne);
   fragmentShade=1.-airborne*(1.-facing)*.3;
   // Different source cells pass nearer or farther from the lens. Their scale and
   // lighting return to exactly one at home; the settled face never changes shape.
@@ -228,7 +254,7 @@ void main() {
     if(tapIndex>=tapCount||interactionMask<.5||anchored>.5||restored>=1.)break;
     vec4 tap=taps[tapIndex];
     if(tap.w<=0.)continue;
-    vec3 tapTiming=tapTimings[tapIndex];
+    vec4 tapTiming=tapTimings[tapIndex];
     // Freeze selection at the tap: hit the displayed pieces, including their
     // existing drift and depth, rather than the original source-image location.
     float hitAge=clamp((tapTiming.y-(settleAt-introTiming.y)*introTiming.x-departure)/flightDuration,0.,1.)*step(.00001,dissolve.w);
@@ -239,6 +265,7 @@ void main() {
     float hitDistance=hitTravel*dissolve.z*mix(1.,.55+burst*1.2,debrisControls.y)*driftSpread;
     float hitPerspective=2./max(.8,2.-z*hitTravel*.85*flightDepth);
     vec2 hit=volumeCenter+(homeCenter-volumeCenter)*hitPerspective+hitHeading*hitDistance*reach*size*placement.x*hitPerspective;
+    hit=collapsePoint(hit,collapseAmount(tapTiming.w,cell)*interactionMask*(1.-restored),cell);
     vec2 fromTap=hit-tap.xy;
     // The noisy contour never exceeds 1.35 radii. Reject distant pieces before
     // evaluating its noise, random velocities and trigonometry for every tap.
@@ -267,6 +294,12 @@ void main() {
     screen+=localPosition*z*.35*spread;
     fragmentShade*=1.-max(0.,-z)*.18*spread;
   }
+  // The complete source cohort falls inward; the protected A/I cells stay home.
+  // Move cell centers rather than stretching quads into tapered streaks.
+  float inward=collapseAmount(collapse,cell)*motion*interactionMask*(1.-restored)*live;
+  vec2 centerPosition=screen-localPosition;
+  screen=collapsePoint(centerPosition,inward,cell)+localPosition*(1.-inward*.65);
+  fragmentLife*=1.-smoothstep(.72,1.,inward);
   gl_Position=vec4(screen.x/resolution.x*2.-1.,1.-screen.y/resolution.y*2.,0.,1.);
 }
 `;
@@ -292,10 +325,6 @@ uniform float columns;
 uniform float time;
 uniform float motion;
 uniform float interference;
-uniform float takeover;
-uniform vec4 eye;
-uniform vec3 eyeColor;
-uniform float eyeGlow;
 uniform vec3 paper;
 uniform vec3 cyan;
 uniform float exposure;
@@ -385,22 +414,14 @@ void main() {
   vec3 ink = mix(paper,cyan, .13+edge*.45+step(.88,seed)*.23+band*.12);
   ink=mix(ink,vec3(.65,.95,1.),arrivalGlitch*.35);
   // Returning source glyphs briefly catch a cool phosphor edge as they settle.
-  float landing=cellInteraction.y*smoothstep(.2,.8,cellInteraction.x);
-  ink=mix(ink,vec3(.76,.97,1.),landing*.4);
   float light = exp(-dot(center-pointer,center-pointer)*90.)*.12*motion*pointerStrength*interactionMask;
   float sweep = exp(-pow((center.y-fract(time*.045))/.075,2.))*.07*motion;
   float intensity = (.12+1.08*pow(tone,1.15))+light*.5+sweep*.5+(rewrite-.5)*.035*motion;
-  float eyeDistance = length((center-eye.xy)/eye.zw);
-  float eyeMask = (1.-smoothstep(.72,1.15,eyeDistance))*takeover*portraitMode;
-  vec3 red = eyeColor;
-  ink = mix(ink,red,eyeMask);
   float opacity = glyph*silhouette*intensity;
-  // Tight phosphor halo, still restricted to the eye rather than the lens.
-  float halo = exp(-eyeDistance*eyeDistance*4.)*takeover*eyeGlow*sampleColor.a*portraitMode;
-  vec3 color = ink*opacity + red*halo;
+  vec3 color = ink*opacity;
   // Cyan channel separation in the displaced slices, never over the whole face.
   color += cyan*glyph*silhouette*selected*interference*.12;
-  gl_FragColor=vec4(color*toneControls.y*fragmentShade,clamp(opacity+halo,0.,1.))*fragmentLife;
+  gl_FragColor=vec4(color*toneControls.y*fragmentShade,clamp(opacity,0.,1.))*fragmentLife;
 }
 `;
 
@@ -482,6 +503,8 @@ export class PortraitGL {
           "anchoredVisible",
           "time",
           "breakupTime",
+          "collapse",
+          "brushRadius",
           "sweepDuration",
           "motion",
           "assembly",
@@ -498,10 +521,6 @@ export class PortraitGL {
           "idleGlitch",
           "sceneGlitch",
           "interference",
-          "takeover",
-          "eye",
-          "eyeColor",
-          "eyeGlow",
           "paper",
           "cyan",
           "exposure",
@@ -572,22 +591,10 @@ export class PortraitGL {
       gl.uniform1i(u.portrait, 0);
       gl.uniform1i(u.atlas, 1);
       gl.uniform2f(u.imageSize, this.sourceWidth, this.sourceHeight);
-      gl.uniform4f(
-        u.eye,
-        config.eye.x,
-        config.eye.y,
-        config.eye.rx,
-        config.eye.ry,
-      );
       gl.uniform3fv(
         u.paper,
         config.ascii.color.map((v) => v / 255),
       );
-      gl.uniform3fv(
-        u.eyeColor,
-        config.eye.color.map((v) => v / 255),
-      );
-      gl.uniform1f(u.eyeGlow, config.eye.glow);
       gl.uniform3fv(
         u.cyan,
         config.ascii.cyan.map((v) => v / 255),
@@ -623,9 +630,6 @@ export class PortraitGL {
     gl.uniform1f(u.glitchBandSpeed,s.glitchBandSpeed);
     gl.uniform1f(u.noseContrast,s.noseContrast);
     gl.uniform4f(u.dissolve,s.dissolveStart,s.dissolveEnd,s.particleTravel,s.particleSpeed);
-    gl.uniform4f(u.eye,c.eye.x,c.eye.y,c.eye.rx,c.eye.ry);
-    gl.uniform3fv(u.eyeColor,c.eye.color.map(v=>v/255));
-    gl.uniform1f(u.eyeGlow,c.eye.glow);
     gl.uniform1f(u.sweepDuration,s.sweepDuration??18);
     gl.uniform3f(u.flowControls,s.windCurl??.9,s.fragmentSpin??.65,s.streamReach??1.2);
     gl.uniform2f(u.introTiming,c.intro.duration,c.intro.flowStart);
@@ -789,24 +793,20 @@ export class PortraitGL {
     this.gl.useProgram(this.program);
     this.gl.uniform4f(this.uniforms.portraitBounds,(bounds.left-(this.surfaceLeft??0))*dpr,(bounds.top-(this.surfaceTop??0))*dpr,bounds.width*dpr,bounds.height*dpr);
   }
-  render(time, phase, reduced, pointer, light = 1, assembly = 1, breakupTime = time) {
+  render(time, phase, reduced, pointer, light = 1, assembly = 1, breakupTime = time, collapse = 0) {
     const gl = this.gl,
       u = this.uniforms;
     this.bind();
     this.updateInteraction(time,reduced||assembly<1,pointer);
     gl.uniform1f(u.time, reduced ? 0 : time);
     gl.uniform1f(u.breakupTime,breakupTime);
+    gl.uniform1f(u.collapse,reduced?0:collapse);
     gl.uniform1f(u.motion, reduced ? 0 : 1);
     gl.uniform1f(u.assembly, reduced ? 1 : assembly);
     gl.uniform1f(u.interference, !reduced && phase === "interference" ? 1 : 0);
-    gl.uniform1f(
-      u.takeover,
-      !reduced && (phase === "interference" || phase === "takeover")
-        ? light
-        : 0,
-    );
     gl.uniform2f(u.pointer, pointer.x, pointer.y);
     gl.uniform1f(u.pointerStrength,reduced?0:(pointer.strength??1));
+    gl.uniform1f(u.brushRadius,pointer.radius??.16);
     this.idleData??=new Float32Array(3);
     if(!reduced&&assembly>=1&&this.options.idleGlitch!==false)idleGlitchAt(time,this.idleData);
     else this.idleData.fill(0);
@@ -818,21 +818,22 @@ export class PortraitGL {
     const taps=!reduced&&assembly>=1?(pointer.taps??[]):[],dpr=this.pixelRatio||1;
     const count=Math.min(taps.length,maxTapBursts);
     this.tapData??=new Float32Array(maxTapBursts*4);
-    this.tapTimingData??=new Float32Array(maxTapBursts*3);
+    this.tapTimingData??=new Float32Array(maxTapBursts*4);
     this.tapVelocityData??=new Float32Array(maxTapBursts*2);
     for(let i=0;i<count;i++){
-      const tap=taps[i],p=i*4,t=i*3;
+      const tap=taps[i],p=i*4,t=i*4;
       this.tapData[p]=(tap.x-(this.surfaceLeft??0))*dpr;
       this.tapData[p+1]=(tap.y-(this.surfaceTop??0))*dpr;
       this.tapData[p+2]=tap.width*dpr;this.tapData[p+3]=tap.strength;
       this.tapTimingData[t]=tap.age;this.tapTimingData[t+1]=tap.breakupTime??breakupTime;
       this.tapTimingData[t+2]=tap.seed??0;
+      this.tapTimingData[t+3]=tap.collapse??collapse;
       this.tapVelocityData[i*2]=tap.velocityX??0;this.tapVelocityData[i*2+1]=tap.velocityY??0;
     }
     gl.uniform1i(u.tapCount,count);
     if(count){
       gl.uniform4fv(u['taps[0]'],this.tapData);
-      gl.uniform3fv(u['tapTimings[0]'],this.tapTimingData);
+      gl.uniform4fv(u['tapTimings[0]'],this.tapTimingData);
       gl.uniform2fv(u['tapVelocities[0]'],this.tapVelocityData);
     }
     if(this.options.clear!==false){gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);}

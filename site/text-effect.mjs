@@ -14,7 +14,7 @@ export class TextEffect {
       const p=this.pointer,b=this.bounds;
       p.tx=(e.clientX-b.left)/b.width;p.ty=(e.clientY-b.top)/b.height;
       if(p.strength<.01){p.x=p.tx;p.y=p.ty;}
-      p.targetStrength=e.gather||(p.tx>=0&&p.tx<=1&&p.ty>=0&&p.ty<=1)?1:0;
+      p.targetStrength=e.gather||this.currentCollapse>.001||(p.tx>=0&&p.tx<=1&&p.ty>=0&&p.ty<=1)?1:0;
     };
     this.movePointer=move;
     // Scene pointer ownership lives in experience.mjs; only keyboard focus is local.
@@ -77,18 +77,21 @@ export class TextEffect {
       const x=letter.box.left-left,y=letter.box.top-top+(letter.box.height-ascent-descent)/2+ascent;
       ctx.fillStyle='#f4f1e7';
       ctx.fillText(letter.char,x,y);
+      letter.ink=[(x-metrics.actualBoundingBoxLeft)/this.bounds.width,
+        (y-metrics.actualBoundingBoxAscent)/this.bounds.height,
+        (x+metrics.actualBoundingBoxRight)/this.bounds.width,
+        (y+metrics.actualBoundingBoxDescent)/this.bounds.height];
     }
     this.applyConfig();
     if(this.renderer)this.renderer.updateSource(this.source);
     else this.renderer=new PortraitGL(this.canvas,this.source,this.textConfig,{text:true,clear:false});
-    this.identityRegions=letters.filter(l=>l.accent).map(({box})=>[
-      (box.left-left)/this.bounds.width,(box.top-top)/this.bounds.height,
-      (box.right-left)/this.bounds.width,(box.bottom-top)/this.bounds.height]);
+    this.identityRegions=letters.filter(l=>l.accent).map(l=>l.ink);
     this.renderer.setIdentityBounds(this.identityRegions);
     this.renderer.resize(surface.width,surface.height,this.bounds,surface);
   }
-  render(time,phase,reduced,light,breakupTime,interactive=true,assembly=1,brush){
+  render(time,phase,reduced,light,breakupTime,interactive=true,assembly=1,brush,collapse=0){
     if(!this.renderer)return;
+    this.currentCollapse=reduced?0:collapse;
     const delta=Math.max(0,Math.min(.1,time-(this.lastTime??time)));this.lastTime=time;
     const p=this.pointer;
     if(brush){p.radius=brush.radius/this.bounds.width;p.reveal=brush.reveal;p.trail=this.config.shader.trailPersistence;}
@@ -98,7 +101,7 @@ export class TextEffect {
       const follow=1-Math.exp(-delta/.065);p.x+=(p.tx-p.x)*follow;p.y+=(p.ty-p.y)*follow;
       p.strength+=(p.targetStrength-p.strength)*(1-Math.exp(-delta/.11));
     }
-    this.renderer.render(time,phase,reduced,p,light,assembly,breakupTime);
+    this.renderer.render(time,phase,reduced,p,light,assembly,breakupTime,collapse);
     if(!this.ready){this.element.classList.add('text-ready');this.ready=true;}
   }
   dispose(){

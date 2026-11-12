@@ -15,21 +15,12 @@ const groups = [
     ['centerY','Center · vertical',-.3,.3,.01],
     ['letterSpacing','Letter spacing',-.06,.06,.002],
   ]],
-  ['Timeline & lettering', [
+  ['Timeline', [
     ['cycleDuration','Cycle length · seconds',8,60,1],
-    ['erosionReach','Peak erosion',.2,1.6,.05],
-    ['textBreakup','Text erosion',0,1,.05],
-    ['identityDelay','A / I release delay',0,2,.05],
-    ['identityBreakup','A / I erosion multiplier',0,1,.05],
   ]],
   ['Fragments & motion', [
     ['fragmentation','Shard detail',1,3,1],
     ['driftSpread','Weightless spread',0,2,.05],
-    ['breakup','Amount',0,1,.02],
-    ['breakupCenter','Starting center',.3,.95,.005],
-    ['feather','Boundary softness',.01,2,.01],
-    ['sweepDuration','Sweep duration · seconds',3,60,1],
-    ['particleSpeed','Speed',0,1.5,.02],
     ['particleTravel','Travel distance',0,.6,.01],
     ['randomness','Velocity variation',0,1.5,.05],
     ['windCurl','Orbital drift',0,2,.05],
@@ -37,7 +28,6 @@ const groups = [
     ['fragmentDepth','Fragment depth',0,1.5,.05],
     ['flightDepth','Near / far depth',0,1.5,.05],
     ['streamReach','Far fragment reach',0,2,.05],
-    ['erosionStructure','Connected erosion',0,1,.02],
     ['debrisDensity','Particle density',0,.6,.01],
   ]],
   ['Touch & scatter', [
@@ -45,21 +35,11 @@ const groups = [
     ['trailPersistence','Trail persistence · seconds',.2,2,.05],
   ]],
   ['Character animation', [
-    ['afterglow','Motion afterglow · seconds',0,.25,.01],
     ['scrambleHz','Rewrite speed',0,16,.5],
     ['densityJitter','Density variation',0,3,.25],
     ['glitchBandSpeed','Scramble band speed',0,1,.05],
   ]],
-  ['Red eye', [
-    ['eyeX','Eye · horizontal',.3,.8,.001],
-    ['eyeY','Eye · vertical',.2,.5,.002],
-    ['eyeWidth','Eye width',.005,.05,.001],
-    ['eyeHeight','Eye height',.003,.03,.001],
-    ['eyeGlow','Eye glow',0,.25,.005],
-    ['flickerSpeed','Ignition speed',.5,2,.1],
-    ['hold','Takeover hold · seconds',.5,4,.1],
-    ['interval','Time between · seconds',3,20,.5],
-  ]],
+
 ];
 const fields=groups.flatMap(g=>g[1]);
 const storageKey='danny-portrait-tuning-v1';
@@ -79,7 +59,7 @@ export function createTuner(config,onChange,onPreview,onReplay=()=>{}){
   const panel=document.createElement('aside');panel.className='tuner';panel.hidden=true;panel.id='portrait-tuner';panel.setAttribute('aria-label','Appearance controls');
   const toggle=document.createElement('button');toggle.className='tuner-toggle';toggle.setAttribute('aria-label','Tune appearance');toggle.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7m5 0h4M4 17h3m5 0h8"/><circle cx="13.5" cy="7" r="2.5"/><circle cx="9.5" cy="17" r="2.5"/></svg><span>Tune</span>';toggle.setAttribute('aria-controls',panel.id);toggle.setAttribute('aria-expanded','false');
   panel.innerHTML=`<header><div><h2>Dial in the look</h2><p>Changes save on this device.</p></div><button type="button" class="tuner-close" aria-label="Close controls">×</button></header>
-    <div class="tuner-toolbar"><label>Starting point <select aria-label="Starting point"><option value="current">Current look</option><option value="clean">Clean portrait</option><option value="ghost">More fragmented</option><option value="coarse">Coarse characters</option></select></label><button type="button" data-action="preview">Test flicker</button></div>
+    <div class="tuner-toolbar"><label>Starting point <select aria-label="Starting point"><option value="current">Current look</option><option value="clean">Clean portrait</option><option value="ghost">More fragmented</option><option value="coarse">Coarse characters</option></select></label></div>
     <div class="tuner-fields"></div><footer><button type="button" data-action="replay">Restart cycle</button><button type="button" data-action="reset">Reset</button><button type="button" data-action="copy">Copy settings</button><button type="button" data-action="link">Copy look link</button><button type="button" data-action="import">Import settings</button><p role="status" class="tuner-status"></p><textarea hidden aria-label="Settings JSON" spellcheck="false"></textarea><button hidden type="button" data-action="apply">Apply JSON</button></footer>`;
   const controls=new Map();
   for(const [title,entries] of groups){
@@ -121,10 +101,6 @@ export function createTuner(config,onChange,onPreview,onReplay=()=>{}){
       });
       details.append(row);
     }
-    if(title==='Red eye'){
-      const row=document.createElement('label');row.className='tuner-color';row.textContent='Eye color';
-      const input=document.createElement('input');input.type='color';input.setAttribute('aria-label','Eye color');input.addEventListener('input',()=>{values.eyeColor=input.value;apply();});row.append(input);details.append(row);controls.set('eyeColor',[input]);
-    }
     panel.querySelector('.tuner-fields').append(details);
   }
   (document.querySelector('.scene-actions')||document.body).append(toggle);document.body.append(panel);
@@ -141,7 +117,6 @@ export function createTuner(config,onChange,onPreview,onReplay=()=>{}){
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!panel.hidden){e.stopPropagation();open(false);}});
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   panel.querySelector('[data-action="replay"]').addEventListener('click',()=>{onReplay();status.textContent=reduced.matches?'Reduced motion is enabled. The portrait stays still.':'Cycle restarted.';});
-  panel.querySelector('[data-action="preview"]').addEventListener('click',()=>{if(reduced.matches){status.textContent='Reduced motion is enabled. The preview stays still.';return;}onPreview();status.textContent='Previewing the eye flicker.';});
   panel.querySelector('select').addEventListener('change',e=>{
     const presets={current:{},clean:{breakup:0,contrast:1.2,density:190,scrambleHz:3},ghost:{breakup:1,breakupCenter:.60,particleSpeed:.8,randomness:1.4,debrisDensity:.28},coarse:{density:100,glyphWeight:2,brightness:1.1}};
     values=sanitize({...defaults,...presets[e.target.value]});sync();apply();status.textContent='Starting point applied.';

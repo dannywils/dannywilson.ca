@@ -14,7 +14,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   let x = -100, y = -100, lastHint = '',lastCursor='',lastRail='';
   let interactive=false,assembling=true;
   let captured=null,multitouch=false;
-  let pressedAt=0,startX=0,startY=0,travel=0;
+  let pressedAt=0,startX=0,startY=0,travel=0,lastMouseFlick=-Infinity;
   const touches=new Set();
   const samples=[];
   const state = { radius: 90, reveal: 0, gather: 0, taps:[] };
@@ -31,7 +31,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   const syncReveal = () => {
     reveal.setAttribute('aria-pressed',String(pinned));
     reveal.querySelector('span').textContent=pinned?'Release':'Reveal';
-    reveal.title=pinned?'Resume the dissolve and reform cycle':'Reveal the complete portrait and name';
+    reveal.title=pinned?'Resume the collapse and reform cycle':'Reveal the complete portrait and name';
   };
   const release = () => {
     pinned=false;state.reveal=0;state.gather=0;state.taps.length=0;reset();syncReveal();
@@ -41,7 +41,16 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
     if(e.target?.closest('a,button,input,select,textarea')){if(!held)reset();return;}
     if(e.pointerType==='touch'&&!held)return;
     x = e.clientX; y = e.clientY; active = true;
-    if(held){travel=Math.max(travel,Math.hypot(x-startX,y-startY));recordGesture(samples,x,y,performance.now());}
+    const now=performance.now();
+    if(held){travel=Math.max(travel,Math.hypot(x-startX,y-startY));recordGesture(samples,x,y,now);}
+    else if(e.pointerType==='mouse'){
+      recordGesture(samples,x,y,now);
+      const flick=flickVelocity(samples,x,y,now);
+      if(flick&&!pinned&&now-lastMouseFlick>140){
+        addTap(state.taps,{x,y,width:Math.min(150,state.radius*1.9),...flick});
+        lastMouseFlick=now;samples.length=0;recordGesture(samples,x,y,now);
+      }
+    }
     cursor.style.setProperty('--x', `${x}px`); cursor.style.setProperty('--y', `${y}px`);
     onMove({clientX:x,clientY:y,isPrimary:true,gather:held});
   };

@@ -1,10 +1,8 @@
 import { config } from "./config.mjs";
-import { Controller } from "./controller.mjs";
 import { PortraitGL } from "./portrait-gl.mjs";
 import { createTuner } from "./tuner.mjs";
 import { TextEffect } from "./text-effect.mjs";
 import { createExperience } from "./experience.mjs";
-import { Phosphor } from "./phosphor.mjs";
 import { sceneTimeline } from "./timeline.mjs";
 import { AdaptiveQuality } from './adaptive-quality.mjs';
 const root = document.querySelector(".composition");
@@ -15,19 +13,16 @@ const identity = document.querySelector(".identity");
 email.href = `mailto:${config.email}`;
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
 const coarse=matchMedia('(pointer: coarse)'),quality=new AdaptiveQuality();
-let controller = new Controller(config),
-  renderer,
+let renderer,
   textEffect,
-  phosphor,
   portraitBounds,
-  lastLight,
   lastAssembling,
   frame = 0,
   last = 0,
   elapsed = 0,
   entranceElapsed = 0,
   breakupElapsed = 0,
-  introCueFired = false,
+  currentCollapse = 0,
   disposed = false;
 const entranceDuration = config.intro.duration*1000;
 const pointer = { x: -2, y: -2, tx: -2, ty: -2, strength: 0, targetStrength: 0 };
@@ -36,60 +31,40 @@ const experience = createExperience({root,motion,config,
   onMove(e) { move(e); textEffect?.movePointer(e); if(e.gather)pointer.targetStrength=1; },
   onLeave: leaveAll,
   onReplay() {
-    entranceElapsed=0;breakupElapsed=0;introCueFired=false;controller=new Controller(config);
-    phosphor?.clear();
+    entranceElapsed=0;breakupElapsed=0;
     renderer?.resetInteraction();textEffect?.renderer?.resetInteraction();
-    sync();start();
+    start();
   },
   onSkip() {
     entranceElapsed=entranceDuration;
     breakupElapsed=entranceDuration*(1-config.intro.flowStart)/1000;
-    introCueFired=true;controller=new Controller(config);
-    phosphor?.clear();
     renderer?.resetInteraction();textEffect?.renderer?.resetInteraction();
-    sync();start();draw();
+    start();draw();
   }
 });
-function sync() {
-  root.dataset.phase = controller.phase;
-}
 function draw() {
-  const light = motion.matches ? 0 : controller.light;
-  if(light!==lastLight){root.style.setProperty("--ai-light",light);lastLight=light;}
   const assembly = motion.matches ? 1 : Math.min(1, entranceElapsed / entranceDuration);
   const timeline=sceneTimeline(breakupElapsed,config.shader);
+  currentCollapse=motion.matches?0:timeline.collapse;
   if (renderer) {
-    if(quality.commitIfCalm(assembly===1&&timeline.erosion<.02&&pointer.strength<.01&&(textEffect?.pointer.strength??0)<.01&&experience.state.reveal<.01&&!experience.state.taps.length&&!renderer.idleData?.[0]&&!renderer.sceneGlitchData?.[0])){
+    if(quality.commitIfCalm(assembly===1&&timeline.collapse<.002&&pointer.strength<.01&&(textEffect?.pointer.strength??0)<.01&&experience.state.reveal<.01&&!experience.state.taps.length&&!renderer.idleData?.[0]&&!renderer.sceneGlitchData?.[0])){
       renderer.setDetailLimit(quality.limit);textEffect?.renderer?.setDetailLimit(quality.limit);
-      phosphor?.clear();canvas.dataset.detail=quality.limit===1?'economy':'full';
+      canvas.dataset.detail=quality.limit===1?'economy':'full';
     }
     const b=portraitBounds;
     const width=image.naturalWidth*Math.min(b.width/image.naturalWidth,b.height/image.naturalHeight)*config.shader.zoom;
     pointer.radius=experience.state.radius/width;
     pointer.reveal=experience.state.reveal;
     pointer.trail=config.shader.trailPersistence;
-    for(const tap of experience.state.taps)tap.breakupTime??=timeline.erosion;
+    for(const tap of experience.state.taps){tap.breakupTime??=0;tap.collapse??=timeline.collapse;}
     pointer.taps=experience.state.taps;
     const assembling=assembly<1;
     if(assembling!==lastAssembling){
       figure.dataset.entrance=assembling?'assembling':'settled';
       figure.setAttribute('aria-busy',String(assembling));lastAssembling=assembling;
     }
-    let usePhosphor=!!phosphor&&!motion.matches&&config.shader.afterglow>0;
-    if(usePhosphor){
-      try{phosphor.begin();}catch{
-        phosphor.dispose();phosphor=undefined;usePhosphor=false;
-        renderer.gl.bindFramebuffer(renderer.gl.FRAMEBUFFER,null);
-      }
-    }
-    renderer.render(elapsed, controller.phase, motion.matches, pointer, light, assembly, timeline.erosion);
-    textEffect?.render(elapsed,controller.phase,motion.matches,light,timeline.erosion,assembly===1,assembly,experience.state);
-    if(usePhosphor){
-      // Fast incoming pieces stay distinct; full afterglow returns as they land.
-      const landing=Math.max(0,Math.min(1,(assembly-.65)/.35));
-      const introTrail=.08+.92*landing*landing*(3-2*landing);
-      phosphor.present(elapsed,config.shader.afterglow*introTrail);
-    }
+    renderer.render(elapsed,'human',motion.matches,pointer,0,assembly,0,timeline.collapse);
+    textEffect?.render(elapsed,'human',motion.matches,0,0,assembly===1,assembly,experience.state,timeline.collapse);
     renderer.gl.useProgram(renderer.program);
   }
 }
@@ -102,7 +77,6 @@ function resize() {
   const surface=canvas.getBoundingClientRect();
   renderer.resize(surface.width,surface.height,b,surface);
   textEffect?.refresh(surface);
-  phosphor?.clear();
   draw();
 }
 function reposition() {
@@ -110,7 +84,6 @@ function reposition() {
   portraitBounds=figure.getBoundingClientRect();
   renderer.setBounds(portraitBounds);
   textEffect?.position();
-  phosphor?.clear();
   draw();
 }
 function tick(now) {
@@ -122,18 +95,10 @@ function tick(now) {
   if(last&&(coarse.matches||innerWidth<=700))quality.observe(now-last);
   last = now;
   elapsed += delta / 1000;
-  const beforeEntrance=entranceElapsed;
   const dissolveDelta=Math.max(0,delta-Math.max(0,entranceDuration*config.intro.flowStart-entranceElapsed));
   entranceElapsed = Math.min(entranceDuration, entranceElapsed + delta);
   breakupElapsed += dissolveDelta / 1000;
   experience.update(delta/1000, Math.min(1,entranceElapsed/entranceDuration), breakupElapsed);
-  let lightDelta=introCueFired?delta:0;
-  const ignitionAt=entranceDuration*config.intro.ignition;
-  if(!introCueFired&&entranceElapsed>=ignitionAt){
-    introCueFired=true;controller.ignite();sync();
-    lightDelta=Math.max(0,beforeEntrance+delta-ignitionAt);
-  }
-  if(lightDelta>0&&controller.update(lightDelta))sync();
   const follow = 1 - Math.exp(-delta / 65);
   pointer.x += (pointer.tx - pointer.x) * follow;
   pointer.y += (pointer.ty - pointer.y) * follow;
@@ -158,7 +123,7 @@ function move(e) {
   pointer.tx = (e.clientX - b.left - b.width / 2) / (image.naturalWidth * scale) + .5 - config.shader.centerX;
   pointer.ty = (e.clientY - b.top - b.height / 2) / (image.naturalHeight * scale) + .5 - config.shader.centerY;
   if (pointer.strength < .01) { pointer.x = pointer.tx; pointer.y = pointer.ty; }
-  pointer.targetStrength = pointer.tx >= 0 && pointer.tx <= 1 && pointer.ty >= 0 && pointer.ty <= 1 ? 1 : 0;
+  pointer.targetStrength = currentCollapse>.001 || (pointer.tx >= 0 && pointer.tx <= 1 && pointer.ty >= 0 && pointer.ty <= 1) ? 1 : 0;
 }
 function leave() {
   pointer.targetStrength = 0;
@@ -169,15 +134,11 @@ function visibility() {
   start();
 }
 function preference() {
-  phosphor?.clear();
-  controller = new Controller(config);
   elapsed = 0;
   breakupElapsed = 0;
   if (motion.matches) entranceElapsed = entranceDuration;
-  introCueFired=entranceElapsed===entranceDuration;
   leaveAll();
   pointer.strength = 0;
-  sync();
   start();
 }
 function fail(error) {
@@ -186,22 +147,18 @@ function fail(error) {
   figure.classList.remove("ready");
   canvas.classList.remove("ready");
   textEffect?.dispose();textEffect=undefined;
-  phosphor?.dispose();phosphor=undefined;
   figure.dataset.renderer = "fallback";
   experience.update(0,1,breakupElapsed);
   figure.setAttribute("aria-busy", "false");
-  controller = new Controller(config);
-  sync();
   if (error instanceof Error) console.warn("Portrait fallback:", error.message);
 }
 function initialize() {
   try {
     lastAssembling=undefined;
-    if (motion.matches) {entranceElapsed=entranceDuration;introCueFired=true;}
+    if (motion.matches) entranceElapsed=entranceDuration;
     renderer = new PortraitGL(canvas, image, config,{detailLimit:quality.limit});
     textEffect = new TextEffect(canvas, identity, config, motion);
     textEffect.renderer.setDetailLimit(quality.limit);
-    try{phosphor=new Phosphor(renderer.gl);}catch{phosphor=undefined;}
     resize();
     figure.dataset.renderer = "webgl";
     figure.classList.add("ready");
@@ -239,20 +196,11 @@ image.onerror = () => fail();
 createTuner(config, () => {
   renderer?.applyConfig();
   textEffect?.updateConfig();
-  phosphor?.clear();
-  controller.duration = controller.phase === "human"
-    ? Math.max(controller.elapsed + 100, (config.timing.humanMin + config.timing.humanMax) / 2)
-    : config.timing[controller.phase];
   draw();
-}, () => {
-  controller.ignite();
-  sync();
-  start();
-}, () => {
+}, () => {}, () => {
   breakupElapsed=0;
   experience.release();
   renderer?.resetInteraction();textEffect?.renderer?.resetInteraction();
-  phosphor?.clear();
   draw();
 });
 image.src = config.portrait;
@@ -273,7 +221,6 @@ addEventListener(
     observer.disconnect();
     renderer?.dispose();
     textEffect?.dispose();
-    phosphor?.dispose();
     experience.dispose();
     canvas.removeEventListener("webglcontextlost", lost);
     canvas.removeEventListener("webglcontextrestored", restored);

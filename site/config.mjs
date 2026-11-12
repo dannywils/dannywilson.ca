@@ -28,7 +28,7 @@ export const publishedLook = Object.freeze({
   erosionStructure: .68,
   fragmentDepth: .8,
   flightDepth: .8,
-  afterglow: .08,
+  afterglow: 0,
   brushSize: 96,
   trailPersistence: .9,
   particleSpeed: 0.2,

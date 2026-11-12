@@ -101,7 +101,7 @@ try{
   await send('touchStart',[{x:20,y:220,id:1}]);
   for(let i=1;i<=8;i++){await send('touchMove',[{x:20,y:220-i*18,id:1}]);await page.waitForTimeout(30);}
   await send('touchEnd');await page.waitForTimeout(150);
-  assert.ok(await page.evaluate(()=>scrollY)>20,'Swipes outside the drawing surface still scroll normally');
+  assert.equal(await page.evaluate(()=>scrollY),0,'The artwork stays fixed when swiping outside it');
   await page.evaluate(()=>{document.body.style.minHeight='';scrollTo(0,0);});await page.waitForTimeout(150);
   await page.getByRole('button',{name:'Tune appearance'}).tap();
   const panel=page.locator('.tuner');
