@@ -15,3 +15,15 @@ export function idleGlitchAt(seconds,out=new Float32Array(3)){
   out[2]=Math.floor(time*29);
   return out;
 }
+
+// One occasional viewport-space tear connects both renderers. Its cadence is
+// deliberately separate from the small, frequent idle glitches.
+export function sceneGlitchAt(seconds,out=new Float32Array(4)){
+  const time=Math.max(0,seconds),epoch=Math.floor(time/29);
+  const age=time-epoch*29-(17+random(epoch+73)*4),duration=.82;
+  out[0]=pulse(age,0,duration);
+  out[1]=-.08+1.16*smooth(0,duration,age);
+  out[2]=epoch*19.3+53;
+  out[3]=(random(epoch+89)>.5?1:-1)*(9+random(epoch+97)*5);
+  return out;
+}

@@ -41,7 +41,8 @@ Protection includes the complete ASCII cells along each letter's edge.
 The name uses wider letter spacing. The page has no taglines. Hovering, drawing or
 holding a finger scatters nearby source pixels along their weightless paths.
 After release, the disturbance decays and those pixels reform naturally into the
-current stage of the automatic cycle. The email stays readable and clickable.
+current stage of the automatic cycle. A fixed **Email me** button replaces the
+address in the hero and stays readable and clickable from first paint.
 The effect follows source coordinates through zoom and placement. The portrait accepts drawing in any
 direction on touchscreens; pinch zoom remains available. The rest of the page
 still allows vertical scrolling. Reduced motion keeps the complete portrait and text static.
@@ -74,9 +75,11 @@ The selected cohort stays fixed; there is no travelling selection wave. Each imp
 seeded contour and varied fragment velocities, leaving suspended pieces through
 the center instead of a clean circular hole. Up to 16 bursts overlap with separate
 clocks; new touches never replace a burst already in flight. Holds and drags keep
-their gentler local deformation.
+their gentler local deformation. A quick flick adds directional momentum at its
+release point, with the same broad, irregular local selection and slow return.
+Recent samples determine velocity; pausing before release does not throw pieces.
 Burst shaders reject pieces outside the maximum noisy contour before computing
-noise and velocities, and skip protected letters and anchored email cells.
+noise and velocities, and skip protected letters.
 Animation reuses layout bounds refreshed on resize/scroll, and updates DOM state
 only when it changes. Glyph density, source fragments and motion timing stay intact.
 
@@ -86,15 +89,15 @@ median completed render batches against a Git revision (default `7f29b71`).
 attribute mutations across 40 idle and held-contact frames. These are desktop
 browser measurements at a phone viewport, not physical-phone benchmarks.
 Lifting lets them reform. Motion reduction, cancellation or loss of focus end
-the gesture. The persistent **Contact** link
+the gesture. The fixed **Email me** button
 keeps email reachable throughout the animation.
 Both the portrait and type share a screen-space brush, so scattering works across
 their boundaries. One gesture handler owns pointer capture for the scene. A second
 finger cancels scattering for native pinch zoom until all fingers lift.
 Artwork suppresses touch text selection
 and the hold context menu; the email keeps native link interactions. Phone controls
-use four equal touch targets at least 48 pixels tall, keep the Contact label at
-320 pixels wide, and respect screen safe areas. Tuner sliders wait for a tap or
+use three equal touch targets at least 48 pixels tall, reserve space for the
+separate email button at 320 pixels wide, and respect screen safe areas. Tuner sliders wait for a tap or
 horizontal drag before applying touch edits, so vertical scrolling does not change
 the look. Fast strokes sweep the intervening path rather than skipping
 cells between frames. Returning glyphs briefly catch a cool phosphor tint. Small
@@ -140,6 +143,11 @@ subdivision preserves the assembled face. **Shard detail** adjusts this division
 from one to nine pieces per character, capped at four on phones. Each piece is
 drawn once, carrying its original source coordinates and shading; no separate
 debris glyphs are generated. The characters keep rewriting during flight.
+`site/adaptive-quality.mjs` watches sustained frame pressure on touch devices and
+small viewports. It can reduce subdivision to one piece per character at a calm,
+fully reformed moment, then restore detail after sustained recovery. Glyph density,
+source shading and output resolution stay unchanged. Intro, gestures and glitch
+bursts defer the switch so airborne pieces do not jump to a new mesh.
 Each shard has an independent velocity on a sphere, with gentle orbital drift
 and slow rotation. There is no common wind or screen-right destination. **Weightless
 spread** adjusts the volume; **Near / far depth** projects shards toward and away
@@ -195,9 +203,12 @@ After assembly, independent idle glitches recur in uneven double/triple bursts.
 Small patches rewrite characters faster, thin source rows shift sideways, and
 individual fragments jitter briefly with cool phosphor accents. Most of the
 scene remains readable; quiet intervals restore the ordinary ASCII rendering.
-The A/I treatment stays subtler, the email's link position stays fixed, and
+The A/I treatment stays subtler, the email button stays fixed, and
 Reveal and reduced motion suppress the idle corruption. This clock is independent
 of touch and the eye ignition, and runs in the existing GPU pass.
+A rarer, sub-second screen-space tear crosses both name and portrait about every
+29 seconds. Both layers share its position, timing and displacement; broken rows
+keep the pass irregular. Reveal and reduced motion suppress this event too.
 Incoming fragments start at 30% ink and gain full brightness as they gather. Afterglow
 starts at 8% of its tuned value and eases back to full strength during landing,
 keeping fast incoming pieces distinct without changing the floating scene.
@@ -208,22 +219,20 @@ departure delay. This overlaps incoming and outgoing motion without jumping to
 particles already midway through a flight. `config.intro` shares the timing
 between the animation loop and shader. Touch and natural recovery use the same paths.
 
-`site/text-effect.mjs` rasterizes the existing name and email letter shapes.
-The name and email pass through the portrait's exact ASCII fragment shader and glyph
+`site/text-effect.mjs` rasterizes the existing name letter shapes.
+The name passes through the portrait's exact ASCII fragment shader and glyph
 atlas, including while assembled. Density, weight, tonal controls and character
 rewriting apply to both; the name has no separate texture renderer. Portrait-only
-eye, nose and shoulder masks do not affect the letters. Both assemble from
-the surrounding cloud alongside the portrait, then the name disintegrates with the face. The email
-cells are protected from subsequent disintegration and retain their live ASCII
-texture after assembly, using finer cells to keep the small address readable.
-The transparent DOM link preserves clicking, selection and its focus
-outline. Before the renderer is ready, keyboard focus reveals the plain link;
-renderer failure also restores it. Reduced motion keeps its ASCII texture static. Hover
+eye, nose and shoulder masks do not affect the letters. They assemble from
+the surrounding cloud alongside the portrait, then disintegrate with the face.
+The separate email button uses a native mail link, has a visible keyboard focus
+outline, and remains available without JavaScript or WebGL. Reduced motion keeps
+the name's ASCII texture static. Hover
 and touch scatter text locally. A/I share the same neutral ink as the other
 letters; normalized bounds select their delayed, reduced disintegration in the
 vertex shader. Bounds update with layout, so the effect survives phone sizing,
-letter-spacing changes and tuning. The original DOM text remains for semantics, selection, keyboard focus,
-and the working mail link, and is revealed if rendering fails. Rasterization is
+letter-spacing changes and tuning. The original DOM name remains for semantics
+and is revealed if rendering fails. Rasterization is
 repeated when layout or letter spacing changes. Tone and motion adjustments reuse
 the name texture and update its shader settings directly.
 Screen readers receive
@@ -315,9 +324,12 @@ Reveal, name texture reuse, spacing refresh, invalid/empty number-field recovery
 and reduced motion. Invalid number fields return to the last accepted value on
 blur, keeping the displayed settings consistent with the renderer.
 
-`node scripts/verify-email.mjs` checks loading without an email flash, keyboard
-access during assembly, real email source cells in flight, exact/protected landing,
-the GPU-to-DOM handoff, mail clicks, Replay and reduced motion during the entrance.
+`node scripts/verify-email.mjs` checks the floating email button from first paint,
+320–1440 px layouts, fixed positioning during scroll, keyboard focus, mail clicks,
+reduced motion, no JavaScript and script-load failure.
+`node scripts/verify-refinements.mjs` checks touch flick velocity, actual source
+pixels moving in all four directions, matching shared-tear uniforms, exact settled
+pixels across detail changes, and live adaptation under sustained slow frames.
 
 `node scripts/verify-optimization.mjs` compares indexed and legacy rendering
 pixel-for-pixel through entry, settled and disintegrating frames for both portrait

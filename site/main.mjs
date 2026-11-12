@@ -6,15 +6,15 @@ import { TextEffect } from "./text-effect.mjs";
 import { createExperience } from "./experience.mjs";
 import { Phosphor } from "./phosphor.mjs";
 import { sceneTimeline } from "./timeline.mjs";
+import { AdaptiveQuality } from './adaptive-quality.mjs';
 const root = document.querySelector(".composition");
 const figure = document.querySelector(".portrait");
 const canvas = document.querySelector("canvas");
-const email = document.querySelector(".email");
+const email = document.querySelector(".email-button");
 const identity = document.querySelector(".identity");
 email.href = `mailto:${config.email}`;
-email.textContent = config.email;
-document.querySelector('.contact-link').href=email.href;
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
+const coarse=matchMedia('(pointer: coarse)'),quality=new AdaptiveQuality();
 let controller = new Controller(config),
   renderer,
   textEffect,
@@ -59,6 +59,10 @@ function draw() {
   const assembly = motion.matches ? 1 : Math.min(1, entranceElapsed / entranceDuration);
   const timeline=sceneTimeline(breakupElapsed,config.shader);
   if (renderer) {
+    if(quality.commitIfCalm(assembly===1&&timeline.erosion<.02&&pointer.strength<.01&&(textEffect?.pointer.strength??0)<.01&&experience.state.reveal<.01&&!experience.state.taps.length&&!renderer.idleData?.[0]&&!renderer.sceneGlitchData?.[0])){
+      renderer.setDetailLimit(quality.limit);textEffect?.renderer?.setDetailLimit(quality.limit);
+      phosphor?.clear();canvas.dataset.detail=quality.limit===1?'economy':'full';
+    }
     const b=portraitBounds;
     const width=image.naturalWidth*Math.min(b.width/image.naturalWidth,b.height/image.naturalHeight)*config.shader.zoom;
     pointer.radius=experience.state.radius/width;
@@ -115,6 +119,7 @@ function tick(now) {
   // Finish the static frame instead of freezing halfway through the entrance.
   if (motion.matches) { preference(); return; }
   const delta = last ? Math.min(now - last, 100) : 0;
+  if(last&&(coarse.matches||innerWidth<=700))quality.observe(now-last);
   last = now;
   elapsed += delta / 1000;
   const beforeEntrance=entranceElapsed;
@@ -139,6 +144,7 @@ function tick(now) {
 function start() {
   cancelAnimationFrame(frame);
   last = 0;
+  quality.resetSamples();
   if (!renderer) return;
   experience.update(0,motion.matches?1:entranceElapsed/entranceDuration,breakupElapsed);
   if (!motion.matches && !document.hidden) frame = requestAnimationFrame(tick);
@@ -192,8 +198,9 @@ function initialize() {
   try {
     lastAssembling=undefined;
     if (motion.matches) {entranceElapsed=entranceDuration;introCueFired=true;}
-    renderer = new PortraitGL(canvas, image, config);
+    renderer = new PortraitGL(canvas, image, config,{detailLimit:quality.limit});
     textEffect = new TextEffect(canvas, identity, config, motion);
+    textEffect.renderer.setDetailLimit(quality.limit);
     try{phosphor=new Phosphor(renderer.gl);}catch{phosphor=undefined;}
     resize();
     figure.dataset.renderer = "webgl";

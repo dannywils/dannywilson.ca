@@ -10,7 +10,7 @@ try{
     const {PortraitGL}=await import('/portrait-gl.mjs'),render=PortraitGL.prototype.render;
     PortraitGL.prototype.render=function(...args){const result=render.apply(this,args);this.testPointer={...args[3]};if(this.options.text)window.touchType=this;else window.touchPhoto=this;return result;};
   });
-  assert.equal(await page.locator('.email').evaluate(e=>getComputedStyle(e).textDecorationLine),'none');
+  assert.equal(await page.locator('.email-button').evaluate(e=>getComputedStyle(e).textDecorationLine),'none');
   const cdp=await page.context().newCDPSession(page);
   const send=(type,touchPoints=[])=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints});
   const point={x:195,y:460,id:1};
@@ -85,8 +85,8 @@ try{
   assert.equal(remaining[0].seed,overlap[1].seed);assert.ok(remaining[0].strength>0);
   await page.waitForTimeout(1200);
   assert.equal(await page.evaluate(()=>window.touchPhoto.testPointer.taps.length),0);
-  await page.locator('.email').evaluate(e=>e.addEventListener('click',event=>{event.preventDefault();window.contactTapped=true;}));
-  await page.locator('.email').tap();assert.ok(await page.evaluate(()=>window.contactTapped));
+  await page.locator('.email-button').evaluate(e=>e.addEventListener('click',event=>{event.preventDefault();window.contactTapped=true;}));
+  await page.locator('.email-button').tap();assert.ok(await page.evaluate(()=>window.contactTapped));
   assert.ok(await page.locator('.gather-cursor').evaluate(e=>!e.classList.contains('held')),'Email taps do not capture a drawing gesture');
   for(const [width,height] of [[320,568],[390,844],[844,390]]){
     await page.setViewportSize({width,height});await page.waitForTimeout(150);
@@ -94,7 +94,7 @@ try{
       const b=c.getBoundingClientRect();return {left:b.left,right:b.right,bottom:b.bottom,width:b.width,height:b.height};
     }));
     assert.ok(controls.every(b=>b.width>=44&&b.height>=48&&b.left>=0&&b.right<=width&&b.bottom<=height),`Touch controls fit with at least 48px height: ${JSON.stringify({width,height,controls})}`);
-    assert.ok(await page.locator('.contact-link span').isVisible(),'Contact retains its text label on small phones');
+    assert.ok(await page.locator('.email-button span').isVisible(),'The floating email button retains its text label on small phones');
   }
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>document.body.style.minHeight='1400px');

@@ -1,4 +1,5 @@
 import {addTap,advanceTaps,tapDriftSeconds} from './tap-motion.mjs';
+import {recordGesture,flickVelocity} from './flick.mjs';
 // A screen-space brush scatters the portrait and type; the cycle reforms them.
 export function createExperience({ root, motion, config, onMove, onLeave, onReplay, onSkip }) {
   const rail = document.querySelector('.experience');
@@ -15,10 +16,12 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
   let captured=null,multitouch=false;
   let pressedAt=0,startX=0,startY=0,travel=0;
   const touches=new Set();
+  const samples=[];
   const state = { radius: 90, reveal: 0, gather: 0, taps:[] };
   const on = (el, type, fn) => { el.addEventListener(type, fn); listeners.push([el, type, fn]); };
   const reset = () => {
     held = false; active = false;
+    samples.length=0;
     lastCursor='';
     const id=captured;captured=null;
     if(id!==null&&root.hasPointerCapture(id))root.releasePointerCapture(id);
@@ -38,7 +41,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
     if(e.target?.closest('a,button,input,select,textarea')){if(!held)reset();return;}
     if(e.pointerType==='touch'&&!held)return;
     x = e.clientX; y = e.clientY; active = true;
-    if(held)travel=Math.max(travel,Math.hypot(x-startX,y-startY));
+    if(held){travel=Math.max(travel,Math.hypot(x-startX,y-startY));recordGesture(samples,x,y,performance.now());}
     cursor.style.setProperty('--x', `${x}px`); cursor.style.setProperty('--y', `${y}px`);
     onMove({clientX:x,clientY:y,isPrimary:true,gather:held});
   };
@@ -48,12 +51,16 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
     held = true;
     captured=e.pointerId;
     pressedAt=performance.now();startX=e.clientX;startY=e.clientY;travel=0;
+    samples.length=0;
     root.setPointerCapture(e.pointerId); move(e);
   });
   on(root, 'pointerup', e => {
     if(e.isPrimary===false||e.pointerId!==captured)return;
-    if(held&&performance.now()-pressedAt<280&&travel<10&&interactive&&!pinned){
-      addTap(state.taps,{x:e.clientX,y:e.clientY,width:Math.min(coarse.matches?108:150,state.radius*1.9)});
+    if(held&&interactive&&!pinned){
+      const now=performance.now(),flick=travel>=18?flickVelocity(samples,e.clientX,e.clientY,now):null;
+      if(flick||(now-pressedAt<280&&travel<10)){
+        addTap(state.taps,{x:e.clientX,y:e.clientY,width:Math.min(coarse.matches?108:150,state.radius*1.9),...flick});
+      }
     }
     held = false;
     captured=null;
@@ -121,7 +128,7 @@ export function createExperience({ root, motion, config, onMove, onLeave, onRepl
         cursor.style.setProperty('--ring-size',held?'24px':'18px');
         lastCursor=cursorState;
       }
-      const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to resume' : held ? 'Release to reform' : state.taps.length ? (state.taps.some(tap=>tap.age<tapDriftSeconds)?'Drifting':'Reforming') : coarse.matches ? 'Tap to scatter · drag to deform' : 'Click to scatter · move to deform';
+      const message = !enabled ? 'Static portrait' : motion.matches ? 'Motion reduced' : assembly < 1 ? 'Assembling' : pinned ? 'Revealed · release to resume' : held ? 'Release to reform' : state.taps.length ? (state.taps.some(tap=>tap.age<tapDriftSeconds)?'Drifting':'Reforming') : coarse.matches ? 'Tap · flick · drag' : 'Click to scatter · flick to throw';
       if (message !== lastHint) { hint.textContent = message; lastHint = message; }
       const railState=assembly<1?'assembling':pinned?'revealed':'live';
       if(railState!==lastRail){rail.dataset.state=railState;lastRail=railState;}

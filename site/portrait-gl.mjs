@@ -1,7 +1,7 @@
 // One GPU pass: each source fragment is a movable quad, rendered exactly once.
 // The source photograph is sampled only for tone/alpha; it is never composited.
 import {maxTapBursts} from './tap-motion.mjs';
-import {idleGlitchAt} from './idle-glitch.mjs';
+import {idleGlitchAt,sceneGlitchAt} from './idle-glitch.mjs';
 const vertexSource = `
 attribute vec2 position;
 attribute vec2 origin;
@@ -33,8 +33,10 @@ uniform float fragmentDepth;
 uniform float flightDepth;
 uniform vec4 taps[${maxTapBursts}];
 uniform vec3 tapTimings[${maxTapBursts}];
+uniform vec2 tapVelocities[${maxTapBursts}];
 uniform int tapCount;
 uniform vec3 idleGlitch;
+uniform vec4 sceneGlitch;
 varying vec2 uv;
 varying float fragmentLife;
 varying vec2 cellInteraction;
@@ -212,6 +214,16 @@ void main() {
     arrivalGlitch=max(arrivalGlitch,corruption);
     fragmentShade*=1.-corruption*.2;
   }
+  if(sceneGlitch.x>0.&&restored<1.){
+    float band=1.-smoothstep(.012,.037,abs(screen.y/resolution.y-sceneGlitch.y));
+    float signal=band*sceneGlitch.x*(1.-restored)*mix(1.,.3,identity);
+    // Screen coordinates make the same tear cross the portrait and typography.
+    float row=floor(screen.y/resolution.y*140.);
+    float broken=.65+.35*hash(vec2(row,sceneGlitch.z+floor(time*23.)));
+    screen.x+=sceneGlitch.w*signal*broken;
+    arrivalGlitch=max(arrivalGlitch,signal*.9);
+    fragmentShade*=1.-signal*.18;
+  }
   for(int tapIndex=0;tapIndex<${maxTapBursts};tapIndex++){
     if(tapIndex>=tapCount||interactionMask<.5||anchored>.5||restored>=1.)break;
     vec4 tap=taps[tapIndex];
@@ -249,6 +261,8 @@ void main() {
     float lingering=1.-smoothstep(.23,.35,hash(cell+tapTiming.z+739.7));
     float speed=mix(.035+pow(scatter,2.)*2.1,.015+scatter*.035,lingering);
     vec2 drift=(outward*cos(turn)+tangent*sin(turn))*speed;
+    vec2 velocity=tapVelocities[tapIndex];
+    if(dot(velocity,velocity)>.001)drift=drift*.18+velocity*(.8+scatter*.4);
     screen+=drift*tap.z*spread;
     screen+=localPosition*z*.35*spread;
     fragmentShade*=1.-max(0.,-z)*.18*spread;
@@ -473,8 +487,10 @@ export class PortraitGL {
           "flightDepth",
           "taps[0]",
           "tapTimings[0]",
+          "tapVelocities[0]",
           "tapCount",
           "idleGlitch",
+          "sceneGlitch",
           "interference",
           "takeover",
           "eye",
@@ -654,7 +670,7 @@ export class PortraitGL {
   }
   updateMesh() {
     const glyphColumns=innerWidth<=700?this.config.ascii.mobileColumns:this.config.ascii.desktopColumns;
-    const detail=Math.max(1,Math.min(innerWidth<=700?2:3,Math.round(this.config.shader.fragmentation??2)));
+    const detail=Math.max(1,Math.min(this.options.detailLimit??3,innerWidth<=700?2:3,Math.round(this.config.shader.fragmentation??2)));
     const columns=glyphColumns*detail;
     const rows=Math.max(1,Math.floor(glyphColumns*this.sourceHeight/this.sourceWidth/1.3))*detail;
     this.gl.uniform2f(this.uniforms.meshGrid,columns,rows);
@@ -682,6 +698,10 @@ export class PortraitGL {
     this.previousPointer=null;
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER,this.interactionBuffer);
     this.gl.bufferData(this.gl.ARRAY_BUFFER,this.interactions,this.gl.DYNAMIC_DRAW);
+  }
+  setDetailLimit(limit){
+    if(this.options.detailLimit===limit)return;
+    this.options.detailLimit=limit;this.gl.useProgram(this.program);this.updateMesh();
   }
   updateInteraction(time, reduced, pointer) {
     const delta=Math.max(0,Math.min(.1,time-(this.interactionTime??time)));
@@ -785,10 +805,15 @@ export class PortraitGL {
     if(!reduced&&assembly>=1&&this.options.idleGlitch!==false)idleGlitchAt(time,this.idleData);
     else this.idleData.fill(0);
     gl.uniform3fv(u.idleGlitch,this.idleData);
+    this.sceneGlitchData??=new Float32Array(4);
+    if(!reduced&&assembly>=1&&this.options.sceneGlitch!==false)sceneGlitchAt(time,this.sceneGlitchData);
+    else this.sceneGlitchData.fill(0);
+    gl.uniform4f(u.sceneGlitch,this.sceneGlitchData[0],this.sceneGlitchData[1],this.sceneGlitchData[2],this.sceneGlitchData[3]*(this.pixelRatio||1));
     const taps=!reduced&&assembly>=1?(pointer.taps??[]):[],dpr=this.pixelRatio||1;
     const count=Math.min(taps.length,maxTapBursts);
     this.tapData??=new Float32Array(maxTapBursts*4);
     this.tapTimingData??=new Float32Array(maxTapBursts*3);
+    this.tapVelocityData??=new Float32Array(maxTapBursts*2);
     for(let i=0;i<count;i++){
       const tap=taps[i],p=i*4,t=i*3;
       this.tapData[p]=(tap.x-(this.surfaceLeft??0))*dpr;
@@ -796,11 +821,13 @@ export class PortraitGL {
       this.tapData[p+2]=tap.width*dpr;this.tapData[p+3]=tap.strength;
       this.tapTimingData[t]=tap.age;this.tapTimingData[t+1]=tap.breakupTime??breakupTime;
       this.tapTimingData[t+2]=tap.seed??0;
+      this.tapVelocityData[i*2]=tap.velocityX??0;this.tapVelocityData[i*2+1]=tap.velocityY??0;
     }
     gl.uniform1i(u.tapCount,count);
     if(count){
       gl.uniform4fv(u['taps[0]'],this.tapData);
       gl.uniform3fv(u['tapTimings[0]'],this.tapTimingData);
+      gl.uniform2fv(u['tapVelocities[0]'],this.tapVelocityData);
     }
     if(this.options.clear!==false){gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);}
     if(this.indexed)gl.drawElements(gl.TRIANGLES,this.indexCount,gl.UNSIGNED_INT,0);

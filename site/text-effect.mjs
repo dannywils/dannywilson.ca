@@ -49,7 +49,7 @@ export class TextEffect {
     const walker=document.createTreeWalker(this.element,NodeFilter.SHOW_TEXT);
     while(walker.nextNode()){
       const node=walker.currentNode,parent=node.parentElement;
-      if(!parent.closest('h1,.email'))continue;
+      if(!parent.closest('h1'))continue;
       const style=getComputedStyle(parent);
       for(let i=0;i<node.length;i++){
         if(!node.data[i].trim())continue;
@@ -57,7 +57,7 @@ export class TextEffect {
         const box=range.getBoundingClientRect();
         if(!box.width||!box.height)continue;
         letters.push({char:node.data[i],box,font:`${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`,
-          accent:!!parent.closest('.ai-letter'),email:!!parent.closest('.email')});
+          accent:!!parent.closest('.ai-letter')});
       }
     }
     if(!letters.length)return;
@@ -72,7 +72,7 @@ export class TextEffect {
       ctx.font=letter.font;ctx.textBaseline='alphabetic';
       const metrics=ctx.measureText(letter.char),ascent=metrics.fontBoundingBoxAscent,descent=metrics.fontBoundingBoxDescent;
       const x=letter.box.left-left,y=letter.box.top-top+(letter.box.height-ascent-descent)/2+ascent;
-      ctx.fillStyle=letter.email?'#b3b8b5':'#f4f1e7';
+      ctx.fillStyle='#f4f1e7';
       ctx.fillText(letter.char,x,y);
     }
     this.applyConfig();
@@ -82,21 +82,10 @@ export class TextEffect {
       (box.left-left)/this.bounds.width,(box.top-top)/this.bounds.height,
       (box.right-left)/this.bounds.width,(box.bottom-top)/this.bounds.height]);
     this.renderer.setIdentityBounds(this.identityRegions);
-    const emailLetters=letters.filter(l=>l.email);
-    // Protect the complete email cells, including shards crossing a glyph edge.
-    this.emailRegion=emailLetters.length?[
-      (Math.min(...emailLetters.map(l=>l.box.left))-left-4)/this.bounds.width,
-      (Math.min(...emailLetters.map(l=>l.box.top))-top-4)/this.bounds.height,
-      (Math.max(...emailLetters.map(l=>l.box.right))-left+4)/this.bounds.width,
-      (Math.max(...emailLetters.map(l=>l.box.bottom))-top+4)/this.bounds.height]:[0,0,0,0];
-    this.renderer.setAnchoredBounds(this.emailRegion);
-    this.renderer.showAnchored(true);
     this.renderer.resize(surface.width,surface.height,this.bounds,surface);
   }
   render(time,phase,reduced,light,breakupTime,interactive=true,assembly=1,brush){
     if(!this.renderer)return;
-    const settled=reduced||assembly>=1;
-    if(settled!==this.settled){this.element.classList.toggle('email-settled',settled);this.settled=settled;}
     const delta=Math.max(0,Math.min(.1,time-(this.lastTime??time)));this.lastTime=time;
     const p=this.pointer;
     if(brush){p.radius=brush.radius/this.bounds.width;p.reveal=brush.reveal;p.trail=this.config.shader.trailPersistence;}
@@ -111,6 +100,6 @@ export class TextEffect {
   }
   dispose(){
     for(const [name,fn] of this.listeners)this.element.removeEventListener(name,fn);
-    this.renderer?.dispose();this.element.classList.remove('text-ready','email-settled');
+    this.renderer?.dispose();this.element.classList.remove('text-ready');
   }
 }
