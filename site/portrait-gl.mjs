@@ -313,9 +313,10 @@ float glyphAt(vec2 position,vec2 grid,float index,float variant,vec2 size) {
   vec2 glyphUV=fract(position*grid);
   vec2 atlasUV=vec2((index+glyphUV.x)/16.,(variant+glyphUV.y)/8.);
   vec2 tap=grid/size/vec2(16.,8.)*.25;
+  float weight=mix(min(toneControls.w,1.2),toneControls.w,portraitMode);
   return clamp((texture2D(atlas,atlasUV+tap).a+texture2D(atlas,atlasUV-tap).a
     +texture2D(atlas,atlasUV+vec2(tap.x,-tap.y)).a
-    +texture2D(atlas,atlasUV+vec2(-tap.x,tap.y)).a)*.25*toneControls.w,0.,1.);
+    +texture2D(atlas,atlasUV+vec2(-tap.x,tap.y)).a)*.25*weight,0.,1.);
 }
 void main() {
   float scale = min(portraitBounds.z/imageSize.x, portraitBounds.w/imageSize.y);
@@ -372,7 +373,12 @@ void main() {
   // Lock tonal density across the face; shapes still change every tick.
   float face = 1.-smoothstep(.85,1.1,length((center-vec2(.5,.37))/vec2(.29,.34)));
   float index = floor(clamp(floor(tone*15.)+jitter*densityJitter*motion*(1.+band)*step(face,.1),0.,15.));
+  // Flat letter ink has no photographic tones: distribute its cells across the
+  // same atlas instead of saturating every cell into the heaviest @/# bucket.
+  // A stable per-cell bucket keeps brightness steady while variants rewrite.
+  index=mix(5.+floor(hash(cell+vec2(17.3,91.7))*9.),index,portraitMode);
   float alternate = floor(rewrite*8.)*motion;
+  alternate=mix(floor(rewrite*8.),alternate,portraitMode);
   alternate=mix(alternate,floor(rewrite*2.)*motion,step(.25,nose));
   float glyph = glyphAt(pos,grid,index,alternate,size);
   float edge = clamp(abs(l-surrounding)*7.,0.,1.);

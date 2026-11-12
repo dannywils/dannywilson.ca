@@ -1,47 +1,45 @@
 import {chromium} from '@playwright/test';
+import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
-
+const baseline=execFileSync('git',['show','7c5a357:site/portrait-gl.mjs'],{encoding:'utf8'});
 const browser=await chromium.launch({channel:'msedge'});
 try{
-  for(const width of [1440,390]){
-    const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});
-    await page.goto('http://localhost:8080');
-    await page.waitForSelector('.identity.text-ready');
-    const result=await page.evaluate(async()=>{
-      const {TextEffect}=await import('/text-effect.mjs'),{PortraitGL}=await import('/portrait-gl.mjs'),{config}=await import('/config.mjs');
-      const effect=new TextEffect(document.createElement('canvas'),document.querySelector('.identity'),structuredClone(config),matchMedia('(prefers-reduced-motion: reduce)'));
-      const renderer=effect.renderer;renderer.options.clear=true;renderer.showAnchored(false);
-      const photo=new PortraitGL(document.createElement('canvas'),effect.source,structuredClone(config));
-      const shader=r=>r.gl.getAttachedShaders(r.program).filter(s=>r.gl.getShaderParameter(s,r.gl.SHADER_TYPE)===r.gl.FRAGMENT_SHADER).map(s=>r.gl.getShaderSource(s))[0];
-      const shared=shader(renderer)===shader(photo);photo.dispose();
-      const sample=(time,reduced=false)=>{
-        renderer.render(time,'human',reduced,{x:-2,y:-2,strength:0},0,1,0);
-        const gl=renderer.gl,pixels=new Uint8Array(renderer.canvas.width*renderer.canvas.height*4);
-        gl.readPixels(0,0,renderer.canvas.width,renderer.canvas.height,gl.RGBA,gl.UNSIGNED_BYTE,pixels);return pixels;
+  const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
+  await page.route('**/type-baseline.mjs',r=>r.fulfill({contentType:'text/javascript',body:baseline}));
+  await page.goto('http://localhost:8080');await page.waitForSelector('.identity.text-ready');
+  const results=await page.evaluate(async()=>{
+    const {PortraitGL:Before}=await import('/type-baseline.mjs'),{PortraitGL:After}=await import('/portrait-gl.mjs'),{config}=await import('/config.mjs');
+    const image=new Image();image.src=config.portrait;await image.decode();
+    const solid=document.createElement('canvas');solid.width=solid.height=256;
+    const ctx=solid.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,256,256);
+    const diff=(a,b)=>a.reduce((n,v,i)=>n+(Math.abs(v-b[i])>2),0),results=[];
+    for(const text of [false,true]){
+      const pair=[Before,After].map(Renderer=>{
+        const c=structuredClone(config);if(text){c.ascii.mobileColumns=24;c.shader.zoom=1;c.shader.centerX=c.shader.centerY=0;}
+        const r=new Renderer(document.createElement('canvas'),text?solid:image,c,{text,idleGlitch:false,sceneGlitch:false});
+        r.resize(390,600);r.gl.uniform1f(r.uniforms.entranceSeed,7);return r;
+      });
+      const sample=(r,time,reduced,assembly=1)=>{
+        r.render(time,'human',reduced,{x:-2,y:-2,strength:0},0,assembly,0);
+        const g=r.gl,a=new Uint8Array(390*600*4);g.readPixels(0,0,390,600,g.RGBA,g.UNSIGNED_BYTE,a);return a;
       };
-      const first=sample(0),next=sample(.37),still=sample(0,true),stillLater=sample(9,true);
-      const source=effect.source.getContext('2d').getImageData(0,0,effect.source.width,effect.source.height);
-      const b=effect.bounds,h=document.querySelector('h1').getBoundingClientRect();
-      let interior=0,holes=0,lit=0,rewritten=0;
-      const alpha=(x,y)=>source.data[(y*source.width+x)*4+3]??0;
-      for(let y=Math.ceil(h.top);y<h.bottom;y++)for(let x=Math.ceil(h.left);x<h.right;x++){
-        const sx=Math.floor((x-b.left)/b.width*source.width),sy=Math.floor((y-b.top)/b.height*source.height);
-        if([alpha(sx,sy),alpha(sx-2,sy),alpha(sx+2,sy),alpha(sx,sy-2),alpha(sx,sy+2)].some(a=>a<250))continue;
-        const i=((renderer.canvas.height-1-y)*renderer.canvas.width+x)*4;
-        interior++;if(first[i+3]<30)holes++;if(first[i]>80)lit++;
-        if(Math.abs(first[i+3]-next[i+3])>30)rewritten++;
+      const changes=[.3,.7,1].map(assembly=>diff(sample(pair[0],2,false,assembly),sample(pair[1],2,false,assembly)));
+      const reduced=diff(sample(pair[1],0,true),sample(pair[1],8,true));
+      const rewriting=diff(sample(pair[1],0,false),sample(pair[1],.3,false));
+      // A flat source must still contain visibly different glyph silhouettes.
+      const pixels=sample(pair[1],0,true),patterns=new Set();
+      for(let row=3;row<15;row++)for(let col=3;col<21;col++){
+        let pattern='';for(let y=0;y<12;y++)for(let x=0;x<8;x++){
+          const px=Math.floor((col+(x+.5)/8)*390/24),py=Math.floor(105+(row+(y+.5)/12)*390/18);
+          pattern+=pixels[((599-py)*390+px)*4+3]>100?'1':'0';
+        }patterns.add(pattern);
       }
-      renderer.config.ascii.desktopColumns=110;renderer.config.ascii.mobileColumns=90;renderer.applyConfig();
-      const lowerDensity=sample(0),densityChanged=first.reduce((n,v,i)=>n+(Math.abs(v-lowerDensity[i])>30),0);
-      const answer={shared,interior,holes,lit,rewritten,densityChanged,reducedStatic:still.every((v,i)=>v===stillLater[i]),error:renderer.gl.getError()};
-      effect.dispose();return answer;
-    });
-    assert.ok(result.shared,'Name and portrait compile the same ASCII fragment shader');
-    assert.ok(result.interior>1000&&result.holes>result.interior*.03&&result.lit>result.interior*.25,'Settled strokes contain visible glyph ink and gaps, rather than solid type');
-    assert.ok(result.rewritten>result.interior*.04,'Characters rewrite while the letter geometry stays assembled');
-    assert.ok(result.densityChanged>1000,'The shared density control changes name texture');
-    assert.ok(result.reducedStatic,'Reduced motion keeps the textured name static');
-    assert.equal(result.error,0);
-    console.log('Shared ASCII type passed:',{width,...result});await page.close();
-  }
+      results.push({text,changes,reduced,rewriting,patterns:patterns.size,errors:pair.map(r=>r.gl.getError())});pair.forEach(r=>r.dispose());
+    }return results;
+  });
+  console.log('ASCII type:',results);
+  assert.ok(results[0].changes.every(n=>n===0),'Portrait remains pixel-identical');
+  assert.ok(results[1].changes.every(n=>n>1000),'Text gains distinct glyphs throughout entry and rest');
+  assert.ok(results[1].patterns>30&&results[1].rewriting>1000,'Flat letter ink supports diverse, rewriting glyph shapes');
+  for(const r of results){assert.equal(r.reduced,0);assert.deepEqual(r.errors,[0,0]);}
 }finally{await browser.close();}

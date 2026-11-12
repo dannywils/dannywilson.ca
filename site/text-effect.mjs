@@ -34,7 +34,10 @@ export class TextEffect {
     this.renderer?.setBounds(this.bounds);
   }
   applyConfig(){
-    this.textConfig={...this.config,ascii:{...this.config.ascii},shader:{...this.config.shader,
+    // Give characters enough screen space to read as glyphs inside the letters.
+    this.textConfig={...this.config,ascii:{...this.config.ascii,
+      desktopColumns:Math.round(this.config.ascii.desktopColumns*.9),
+      mobileColumns:Math.round(this.config.ascii.mobileColumns*.78)},shader:{...this.config.shader,
       breakup:this.config.shader.breakup*(this.config.shader.textBreakup??.25),zoom:1,centerX:0,centerY:0}};
     if(this.renderer){this.renderer.config=this.textConfig;this.renderer.applyConfig();}
   }

@@ -222,7 +222,14 @@ between the animation loop and shader. Touch and natural recovery use the same p
 `site/text-effect.mjs` rasterizes the existing name letter shapes.
 The name passes through the portrait's exact ASCII fragment shader and glyph
 atlas, including while assembled. Density, weight, tonal controls and character
-rewriting apply to both; the name has no separate texture renderer. Portrait-only
+rewriting apply to both; the name has no separate texture renderer. The portrait's
+tonal sampling stays unchanged, while flat letter ink selects a stable
+mix of medium and dense glyph buckets from that same atlas. Slightly larger text
+cells and lighter glyph weight keep individual characters distinguishable. The
+variants keep rewriting in normal motion and remain varied but still in reduced
+motion. `node scripts/verify-ascii-type.mjs` checks this against the prior renderer,
+including unchanged portrait pixels, rewriting and reduced-motion stability.
+Portrait-only
 eye, nose and shoulder masks do not affect the letters. They assemble from
 the surrounding cloud alongside the portrait, then disintegrate with the face.
 The separate email button uses a native mail link, has a visible keyboard focus
