@@ -56,7 +56,7 @@ function draw() {
       canvas.dataset.detail=quality.limit===1?'economy':'full';
     }
     const b=portraitBounds;
-    const width=image.naturalWidth*Math.min(b.width/image.naturalWidth,b.height/image.naturalHeight)*config.shader.zoom;
+    const width=image.naturalWidth*Math.min(b.width/image.naturalWidth,b.height/image.naturalHeight)*renderer.placement.zoom;
     pointer.radius=experience.state.radius/width;
     pointer.reveal=experience.state.reveal;
     pointer.trail=config.shader.trailPersistence;
@@ -87,13 +87,15 @@ function resize() {
 }
 function updateDensityGradient(){
   if(!config.shader.densityGradient||!renderer||!textEffect?.renderer||!portraitBounds)return;
-  const b=portraitBounds,s=config.shader;
+  const b=portraitBounds,s=renderer.placement;
   const width=image.naturalWidth*Math.min(b.width/image.naturalWidth,b.height/image.naturalHeight)*s.zoom;
   const faceRight=b.left+b.width*.5+(.75-.5+s.centerX)*width;
   const left=textEffect.bounds.left+48;
-  const right=Math.max(left+100,faceRight);
+  const right=s.compact?Math.max(left+100,innerWidth-24,faceRight):Math.max(left+100,faceRight);
   const base=width/(innerWidth<=700?config.ascii.mobileColumns:config.ascii.desktopColumns);
-  const profile=[left,right,base*1.8,base*.6];
+  const profile=s.compact
+    ? [left,right,Math.min(4.2,base*1.5),Math.min(3.2,Math.max(2.1,base*.55))]
+    : [left,right,base*1.8,base*.6];
   renderer.setDensityGradient(profile);textEffect.renderer.setDensityGradient(profile);
 }
 function updateGravityWells(){
@@ -145,9 +147,10 @@ function move(e) {
   if (motion.matches || e.isPrimary === false || !image.naturalWidth) return;
   const b = portraitBounds;
   if(!b)return;
-  const scale = Math.min(b.width / image.naturalWidth, b.height / image.naturalHeight) * config.shader.zoom;
-  pointer.tx = (e.clientX - b.left - b.width / 2) / (image.naturalWidth * scale) + .5 - config.shader.centerX;
-  pointer.ty = (e.clientY - b.top - b.height / 2) / (image.naturalHeight * scale) + .5 - config.shader.centerY;
+  const placement=renderer.placement;
+  const scale = Math.min(b.width / image.naturalWidth, b.height / image.naturalHeight) * placement.zoom;
+  pointer.tx = (e.clientX - b.left - b.width / 2) / (image.naturalWidth * scale) + .5 - placement.centerX;
+  pointer.ty = (e.clientY - b.top - b.height / 2) / (image.naturalHeight * scale) + .5 - placement.centerY;
   if (pointer.strength < .01) { pointer.x = pointer.tx; pointer.y = pointer.ty; }
   pointer.targetStrength = currentAmbientTime>.001 || (pointer.tx >= 0 && pointer.tx <= 1 && pointer.ty >= 0 && pointer.ty <= 1) ? 1 : 0;
 }

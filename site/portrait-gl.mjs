@@ -2,6 +2,7 @@
 // The source photograph is sampled only for tone/alpha; it is never composited.
 import {maxTapBursts} from './tap-motion.mjs';
 import {idleGlitchAt,sceneGlitchAt} from './idle-glitch.mjs';
+import {portraitPlacement} from './config.mjs';
 const vertexSource = `
 attribute vec2 position;
 attribute vec2 origin;
@@ -749,7 +750,8 @@ export class PortraitGL {
     gl.uniform1f(u.redFragments,s.redFragments??0);
     gl.uniform2f(u.redControls,s.redFraction??.5,s.redIntensity??1);
     gl.uniform1f(u.densityGradient,s.densityGradient?1:0);
-    gl.uniform3f(u.placement,s.zoom,s.centerX,s.centerY);
+    const placement=this.placement;
+    gl.uniform3f(u.placement,placement.zoom,placement.centerX,placement.centerY);
     gl.uniform3f(u.debrisControls,s.breakup,s.randomness,s.debrisDensity);
     gl.uniform1f(u.columns,innerWidth<=700?c.ascii.mobileColumns:c.ascii.desktopColumns);
     gl.uniform1f(u.exposure,s.exposure);
@@ -773,6 +775,7 @@ export class PortraitGL {
   }
   get sourceWidth(){return this.image.naturalWidth||this.image.width;}
   get sourceHeight(){return this.image.naturalHeight||this.image.height;}
+  get placement(){return this.options.text?this.config.shader:portraitPlacement(this.config.shader);}
   setIdentityBounds(regions=[]) {
     this.gl.useProgram(this.program);
     this.gl.uniform4fv(this.uniforms.identityA,regions[0]??[0,0,0,0]);
@@ -817,7 +820,7 @@ export class PortraitGL {
     const gradient=!!this.config.shader.densityGradient;
     if(gradient&&!this.bounds)return;
     const profile=this.gradientProfile??[innerWidth*.05,innerWidth*.95,12,4];
-    const b=this.bounds,s=this.config.shader;
+    const b=this.bounds,s=this.placement;
     const sourceWidth=gradient?this.sourceWidth*Math.min(b.width/this.sourceWidth,b.height/this.sourceHeight)*s.zoom:0;
     const sourceLeft=gradient?b.left+b.width*.5+(-.5+s.centerX)*sourceWidth:0;
     const gradientKey=gradient?JSON.stringify([profile,sourceWidth,sourceLeft]):'';
@@ -969,6 +972,8 @@ export class PortraitGL {
     this.bounds={left:bounds.left,top:bounds.top,width:bounds.width,height:bounds.height};
     const dpr=this.pixelRatio||1;
     this.gl.useProgram(this.program);
+    const p=this.placement;
+    this.gl.uniform3f(this.uniforms.placement,p.zoom,p.centerX,p.centerY);
     this.gl.uniform4f(this.uniforms.portraitBounds,(bounds.left-(this.surfaceLeft??0))*dpr,(bounds.top-(this.surfaceTop??0))*dpr,bounds.width*dpr,bounds.height*dpr);
     if(this.config.shader.densityGradient)this.updateMesh();
   }

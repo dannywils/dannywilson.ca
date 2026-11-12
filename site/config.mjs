@@ -98,6 +98,18 @@ export function applyLook(config, values) {
   });
 }
 
+// Desktop framing deliberately shifts the portrait toward the name. Compact
+// layouts need centered framing, shared by drawing, mesh sizing and hit testing.
+export function portraitPlacement(shader,width=innerWidth,height=innerHeight){
+  const compact=width<=700||(width<=1000&&height<=540);
+  const stacked=width<=700&&height>width;
+  return {compact,stacked,
+    zoom:compact?(stacked?Math.min(1.35,shader.zoom*1.1):Math.min(1.05,shader.zoom)):shader.zoom,
+    centerX:compact?shader.centerX-publishedLook.centerX:shader.centerX,
+    centerY:compact?(stacked?shader.centerY+.03:0):shader.centerY,
+  };
+}
+
 export const config = {
   intro: { duration: 4.8, flowStart: .72, ignition: .9 },
   email: 'danny@dannywilson.ca',

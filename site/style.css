@@ -182,18 +182,18 @@ h1 {
 }
 @media (max-width: 700px) {
   .composition {
-    padding: calc(24px + env(safe-area-inset-top)) 7vw calc(100px + env(safe-area-inset-bottom));
+    padding: max(28px,4dvh,env(safe-area-inset-top)) 7vw calc(84px + env(safe-area-inset-bottom));
     grid-template-columns: minmax(0,1fr);
-    grid-template-rows:minmax(0,.3fr) minmax(0,.7fr);
-    align-content: center;
-    gap: clamp(24px,4dvh,40px);
+    grid-template-rows:max-content minmax(0,1fr);
+    align-content: start;
+    gap: clamp(28px,5dvh,44px);
     overflow: hidden;
   }
   .identity {
     padding: 0;
   }
   h1 {
-    font-size: min(23cqw,15dvh,140px);
+    font-size: min(23cqw,12dvh,100px);
     margin-bottom: 0;
     line-height: 0.9;
   }
@@ -201,7 +201,8 @@ h1 {
     width: min(100%, 480px);
     justify-self: center;
     margin: 0;
-    height:80%; max-height:none;
+    height:min(100%,94vw); max-height:none;
+    align-self:start;
   }
   .fallback {
     object-fit: contain;
@@ -210,7 +211,7 @@ h1 {
 @media (orientation: landscape) and (max-height: 540px) {
   .composition { grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-rows:minmax(0,1fr); padding: max(16px,env(safe-area-inset-top)) max(5vw,env(safe-area-inset-right)) calc(76px + env(safe-area-inset-bottom)) max(5vw,env(safe-area-inset-left)); }
   h1 { font-size: min(23cqw,24dvh,112px); margin-bottom: 0; }
-  .portrait { height:90%; width: 100%; margin: 0; }
+  .portrait { height:90%; width: 100%; margin: 0; align-self:center; }
   .experience-hint { display:none; }
 }
 @media (prefers-reduced-motion: reduce) {
